@@ -1,0 +1,25 @@
+name: Deploy (hosted backup)
+
+# Only runs if you're doing the optional hosted-backup path — see docs/deployment.md.
+# Requires RAILWAY_TOKEN set in repo secrets. Safe to ignore/delete this file if
+# you're going local-only for the demo.
+
+on:
+  workflow_dispatch:      # manual trigger — deploy on your own schedule, not every push
+  push:
+    branches: [main]
+    paths:
+      - "services/api-gateway/**"
+      - "frontend/**"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+      - name: Deploy
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway up --detach

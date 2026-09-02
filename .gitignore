@@ -1,0 +1,34 @@
+# Environment / secrets
+.env
+.env.local
+*.env
+!*.env.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Node
+node_modules/
+dist/
+build/
+.vite/
+
+# Docker
+*.log
+
+# Data (never commit real land records, even synthetic ones stay local unless curated)
+data/sample-documents/*
+!data/sample-documents/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

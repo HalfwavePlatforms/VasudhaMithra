@@ -1,0 +1,102 @@
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  ocr-pipeline:
+    build: ./services/ocr-pipeline
+    env_file: .env
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./services/ocr-pipeline:/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  extraction-engine:
+    build: ./services/extraction-engine
+    env_file: .env
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./services/extraction-engine:/app
+    depends_on:
+      - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  gis-service:
+    build: ./services/gis-service
+    env_file: .env
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./services/gis-service:/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  api-gateway:
+    build: ./services/api-gateway
+    env_file: .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./services/api-gateway:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ocr-pipeline:
+        condition: service_started
+      extraction-engine:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  upload-portal:
+    build: ./frontend/upload-portal
+    env_file: .env
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend/upload-portal:/app
+      - /app/node_modules
+    depends_on:
+      - api-gateway
+
+  dashboard:
+    build: ./frontend/dashboard
+    env_file: .env
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./frontend/dashboard:/app
+      - /app/node_modules
+    depends_on:
+      - api-gateway
+
+volumes:
+  pgdata:

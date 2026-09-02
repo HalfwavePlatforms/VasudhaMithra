@@ -1,0 +1,51 @@
+# Field extraction + validation rules. Edit this file, not the Python code,
+# when tuning what counts as a valid survey number etc. — keeps rules
+# reviewable/auditable separately from logic.
+
+fields:
+  survey_number:
+    pattern: '\d+/\d+[A-Za-z]?'
+    keywords: ["survey no", "survey number", "s.no", "सर्वे"]
+    required: true
+
+  khasra_number:
+    pattern: '\d+(/\d+)*'
+    keywords: ["khasra", "खसरा"]
+    required: true
+
+  khata_number:
+    pattern: '\d+'
+    keywords: ["khata", "खाता"]
+    required: true
+
+  owner_name:
+    pattern: null   # free text, extracted by NLP proximity to keyword, not regex
+    keywords: ["owner", "landowner", "मालिक", "स्वामी"]
+    required: true
+
+  plot_area:
+    pattern: '\d+(\.\d+)?\s*(acre|hectare|sq\.?\s?ft|sq\.?\s?m)'
+    keywords: ["area", "क्षेत्रफल"]
+    required: true
+
+  village:
+    pattern: null
+    keywords: ["village", "गांव", "ग्राम"]
+    required: false
+
+  tehsil:
+    pattern: null
+    keywords: ["tehsil", "तहसील"]
+    required: false
+
+  district:
+    pattern: null
+    keywords: ["district", "जिला"]
+    required: false
+
+  land_classification:
+    pattern: null
+    keywords: ["classification", "type of land", "भूमि प्रकार"]
+    required: false
+
+confidence_review_threshold: 0.75   # fields below this get flagged for human review
