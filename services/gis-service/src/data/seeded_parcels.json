@@ -1,0 +1,202 @@
+[
+  {
+    "survey_number": "145/2",
+    "parcel_id": "PARCEL-145-2",
+    "village": "Kothari",
+    "tehsil": "Sehore",
+    "district": "Bhopal",
+    "state": "Madhya Pradesh",
+    "area_acres": 2.47,
+    "source": "seeded_demo_data",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[
+        [77.0851, 23.1742],
+        [77.0878, 23.1742],
+        [77.0878, 23.1769],
+        [77.0851, 23.1769],
+        [77.0851, 23.1742]
+      ]]
+    }
+  },
+  {
+    "survey_number": "72/3",
+    "parcel_id": "PARCEL-72-3",
+    "village": "Rampura",
+    "tehsil": "Harda",
+    "district": "Harda",
+    "state": "Madhya Pradesh",
+    "area_acres": 1.83,
+    "source": "seeded_demo_data",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[
+        [77.0924, 22.3384],
+        [77.0948, 22.3384],
+        [77.0948, 22.3406],
+        [77.0924, 22.3406],
+        [77.0924, 22.3384]
+      ]]
+    }
+  },
+  {
+    "survey_number": "210/1A",
+    "parcel_id": "PARCEL-210-1A",
+    "village": "Nayapura",
+    "tehsil": "Hoshangabad",
+    "district": "Narmadapuram",
+    "state": "Madhya Pradesh",
+    "area_acres": 3.92,
+    "source": "seeded_demo_data",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[
+        [77.7219, 22.7498],
+        [77.7258, 22.7498],
+        [77.7258, 22.7535],
+        [77.7219, 22.7535],
+        [77.7219, 22.7498]
+      ]]
+    }
+  },
+  {
+    "survey_number": "33/5B",
+    "parcel_id": "PARCEL-33-5B",
+    "village": "Bidanur",
+    "tehsil": "Ramanagara",
+    "district": "Ramanagara",
+    "state": "Karnataka",
+    "area_acres": 1.15,
+    "source": "seeded_demo_data",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[
+        [77.2823, 12.7146],
+        [77.2845, 12.7146],
+        [77.2845, 12.7165],
+        [77.2823, 12.7165],
+        [77.2823, 12.7146]
+      ]]
+    }
+  },
+  {
+    "survey_number": "88/2",
+    "parcel_id": "PARCEL-88-2",
+    "village": "Mulbagal",
+    "tehsil": "Mulbagal",
+    "district": "Kolar",
+    "state": "Karnataka",
+    "area_acres": 4.60,
+    "source": "seeded_demo_data",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[
+        [78.3918, 13.1625],
+        [78.3964, 13.1625],
+        [78.3964, 13.1668],
+        [78.3918, 13.1668],
+        [78.3918, 13.1625]
+      ]]
+    }
+  },
+  {
+    "survey_number": "19/6",
+    "parcel_id": "PARCEL-19-6",
+    "village": "Toopran",
+    "tehsil": "Toopran",
+    "district": "Medak",
+    "state": "Telangana",
+    "area_acres": 2.10,
+    "source": "seeded_demo_data",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[
+        [78.4621, 18.0132],
+        [78.4647, 18.0132],
+        [78.4647, 18.0157],
+        [78.4621, 18.0157],
+        [78.4621, 18.0132]
+      ]]
+    }
+  },
+  {
+    "survey_number": "54/1",
+    "parcel_id": "PARCEL-54-1",
+    "village": "Zaheerabad",
+    "tehsil": "Zaheerabad",
+    "district": "Sangareddy",
+    "state": "Telangana",
+    "area_acres": 0.85,
+    "source": "seeded_demo_data",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[
+        [77.6049, 17.6793],
+        [77.6063, 17.6793],
+        [77.6063, 17.6807],
+        [77.6049, 17.6807],
+        [77.6049, 17.6793]
+      ]]
+    }
+  },
+  {
+    "survey_number": "301/4",
+    "parcel_id": "PARCEL-301-4",
+    "village": "Mahabalipuram",
+    "tehsil": "Chengalpattu",
+    "district": "Chengalpattu",
+    "state": "Tamil Nadu",
+    "area_acres": 1.75,
+    "source": "seeded_demo_data",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[
+        [80.1921, 12.6202],
+        [80.1946, 12.6202],
+        [80.1946, 12.6226],
+        [80.1921, 12.6226],
+        [80.1921, 12.6202]
+      ]]
+    }
+  },
+  {
+    "survey_number": "7/9A",
+    "parcel_id": "PARCEL-7-9A",
+    "village": "Pallikaranai",
+    "tehsil": "Tambaram",
+    "district": "Chennai",
+    "state": "Tamil Nadu",
+    "area_acres": 0.50,
+    "source": "seeded_demo_data",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[
+        [80.2021, 12.9378],
+        [80.2032, 12.9378],
+        [80.2032, 12.9389],
+        [80.2021, 12.9389],
+        [80.2021, 12.9378]
+      ]]
+    }
+  },
+  {
+    "survey_number": "501/3C",
+    "parcel_id": "PARCEL-501-3C",
+    "village": "Warangal North",
+    "tehsil": "Warangal",
+    "district": "Warangal",
+    "state": "Telangana",
+    "area_acres": 6.30,
+    "source": "seeded_demo_data",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[
+        [79.5671, 17.9910],
+        [79.5731, 17.9910],
+        [79.5731, 17.9967],
+        [79.5671, 17.9967],
+        [79.5671, 17.9910]
+      ]]
+    }
+  }
+]

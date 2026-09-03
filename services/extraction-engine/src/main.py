@@ -5,6 +5,7 @@ Contract: see docs/api-contracts.md — section 2.
 """
 from fastapi import FastAPI
 from pydantic import BaseModel
+from typing import Optional
 
 from field_extractor import extract_fields
 from validators import validate_fields
@@ -27,6 +28,9 @@ class ValidateRequest(BaseModel):
     record_id: str
     fields: dict[str, str | None]
     confidence_per_field: dict[str, float] = {}
+    # Optional: GIS cadastral area in acres, from GET /gis/parcel/{survey_number}.
+    # When provided, triggers area discrepancy consistency check (the WOW feature).
+    gis_area_acres: Optional[float] = None
 
 
 @app.get("/health")
@@ -47,5 +51,5 @@ def validate(req: ValidateRequest):
         record_id=req.record_id,
         confidence_per_field=req.confidence_per_field,
         duplicate_lookup=None,
+        gis_area_acres=req.gis_area_acres,
     )
-
