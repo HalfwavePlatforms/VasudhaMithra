@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Send, ChevronRight, User, FileText, CheckCircle2, Search, Sparkles, Layers, ShieldCheck, Zap, Code2, ArrowUpRight, ArrowRight, X, Star, RefreshCw, AlertCircle, Check, MapPin, Building2 } from 'lucide-react';
+import { FileText, CheckCircle2, Search, Sparkles, Layers, ArrowRight, X, Star, RefreshCw, AlertCircle, MapPin } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
