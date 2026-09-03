@@ -4,6 +4,9 @@ pydantic==2.9.2
 opencv-python-headless==4.10.0.84
 pytesseract==0.3.13
 google-cloud-vision==3.7.4
+pymupdf>=1.24.0
+pypdf>=5.0.0
 python-multipart==0.0.9
 pytest==8.3.3
 httpx==0.27.2
+

@@ -1,0 +1,91 @@
+import os
+from PIL import Image, ImageDraw, ImageFont
+
+os.makedirs("data/edge-cases", exist_ok=True)
+os.makedirs("data/layout-references", exist_ok=True)
+os.makedirs("data/external/iiit-indic-hw", exist_ok=True)
+
+try:
+    font_title = ImageFont.truetype("DejaVuSans-Bold.ttf", 20)
+    font_body = ImageFont.truetype("DejaVuSans.ttf", 16)
+except IOError:
+    font_title = ImageFont.load_default()
+    font_body = ImageFont.load_default()
+
+# 1. Edge 01: Rotated 18 degrees
+img1 = Image.new("RGB", (920, 720), "white")
+d1 = ImageDraw.Draw(img1)
+d1.text((40, 30), "REVENUE DEPARTMENT: RTC / PAHANI (SEVERELY SKEWED SCAN)", font=font_title, fill="#0B3B60")
+d1.line((40, 60, 880, 60), fill="#0B3B60", width=2)
+d1.text((60, 100), "Survey No: 412/7A", font=font_body, fill="black")
+d1.text((60, 140), "Khasra No: 5892", font=font_body, fill="black")
+d1.text((60, 180), "Khata No: 231", font=font_body, fill="black")
+d1.text((60, 220), "Owner / Khatedar: Rameshwar Prasad", font=font_body, fill="black")
+d1.text((60, 260), "Plot Extent / Area: 3.45 acre", font=font_body, fill="black")
+d1.text((60, 300), "Village (Gram): Kothari", font=font_body, fill="black")
+d1.text((60, 340), "Taluk / Tehsil: Sehore", font=font_body, fill="black")
+d1.text((60, 380), "District (Zilla): Bhopal", font=font_body, fill="black")
+img1 = img1.rotate(18, resample=Image.Resampling.BICUBIC, expand=False, fillcolor="white")
+img1.save("data/edge-cases/edge_01_rotated_18deg.png")
+
+# 2. Edge 02: Low-contrast Faded Scan
+img2 = Image.new("RGB", (920, 720), "#F5F5F5")
+d2 = ImageDraw.Draw(img2)
+d2.text((40, 30), "REVENUE DEPARTMENT: KHATA CERTIFICATE (FADED INK)", font=font_title, fill="#888888")
+d2.line((40, 60, 880, 60), fill="#888888", width=1)
+d2.text((60, 100), "Survey No: 189/2", font=font_body, fill="#999999")
+d2.text((60, 140), "Khasra No: 3341", font=font_body, fill="#999999")
+d2.text((60, 180), "Khata No: 712", font=font_body, fill="#999999")
+d2.text((60, 220), "Owner / Khatedar: Smt Savitri Devi", font=font_body, fill="#999999")
+d2.text((60, 260), "Plot Extent / Area: 1.80 acre", font=font_body, fill="#999999")
+d2.text((60, 300), "Village (Gram): Sultanpur", font=font_body, fill="#999999")
+d2.text((60, 340), "Taluk / Tehsil: Vidisha", font=font_body, fill="#999999")
+d2.text((60, 380), "District (Zilla): Vidisha", font=font_body, fill="#999999")
+img2.save("data/edge-cases/edge_02_low_contrast_faded.png")
+
+# 3. Edge 03: Duplicate Survey Number
+img3 = Image.new("RGB", (920, 720), "white")
+d3 = ImageDraw.Draw(img3)
+d3.text((40, 30), "MUTATION REGISTER EXTRACT (DUPLICATE SURVEY TEST)", font=font_title, fill="#0B3B60")
+d3.line((40, 60, 880, 60), fill="#0B3B60", width=2)
+d3.text((60, 100), "Survey No: 142/3", font=font_body, fill="black")
+d3.text((60, 140), "Khasra No: 4891", font=font_body, fill="black")
+d3.text((60, 180), "Khata No: 512", font=font_body, fill="black")
+d3.text((60, 220), "Owner / Khatedar: Suresh Kumar", font=font_body, fill="black")
+d3.text((60, 260), "Plot Extent / Area: 4.50 acre", font=font_body, fill="black")
+d3.text((60, 300), "Village (Gram): Devgaon", font=font_body, fill="black")
+d3.text((60, 340), "Taluk / Tehsil: Raisen", font=font_body, fill="black")
+d3.text((60, 380), "District (Zilla): Raisen", font=font_body, fill="black")
+img3.save("data/edge-cases/edge_03_deliberate_duplicate_survey.png")
+
+# 4. Edge 04: Handwritten Register Sample
+img4 = Image.new("RGB", (920, 720), "#FFFDF0")
+d4 = ImageDraw.Draw(img4)
+d4.text((40, 30), "VILLAGE ACCOUNT - HANDWRITTEN REVENUE REGISTER (1988)", font=font_title, fill="#3B2F2F")
+d4.line((40, 60, 880, 60), fill="#3B2F2F", width=2)
+d4.text((60, 100), "Survey No: 55/1B (handwritten entry)", font=font_body, fill="#2F4F4F")
+d4.text((60, 140), "Khasra No: 1029", font=font_body, fill="#2F4F4F")
+d4.text((60, 180), "Khata No: 88", font=font_body, fill="#2F4F4F")
+d4.text((60, 220), "Owner / Khatedar: Shivanna Hegde", font=font_body, fill="#2F4F4F")
+d4.text((60, 260), "Plot Extent / Area: 2.10 acre", font=font_body, fill="#2F4F4F")
+d4.text((60, 300), "Village (Gram): Heggadadevankote", font=font_body, fill="#2F4F4F")
+d4.text((60, 340), "Taluk / Tehsil: Mysuru", font=font_body, fill="#2F4F4F")
+d4.text((60, 380), "District (Zilla): Mysuru", font=font_body, fill="#2F4F4F")
+img4.save("data/edge-cases/edge_04_handwritten_register_sample.png")
+
+# 5. Edge 05: Malformed Survey Number
+img5 = Image.new("RGB", (920, 720), "white")
+d5 = ImageDraw.Draw(img5)
+d5.text((40, 30), "REVENUE DEPARTMENT: RTC / PAHANI (MALFORMED FIELD TEST)", font=font_title, fill="#0B3B60")
+d5.line((40, 60, 880, 60), fill="#0B3B60", width=2)
+d5.text((60, 100), "Survey No: INVALID_SURVEY_$$$", font=font_body, fill="black")
+d5.text((60, 140), "Khasra No: 9999", font=font_body, fill="black")
+d5.text((60, 180), "Khata No: 111", font=font_body, fill="black")
+d5.text((60, 220), "Owner / Khatedar: Manjunatha Gowda", font=font_body, fill="black")
+d5.text((60, 260), "Plot Extent / Area: 5.00 acre", font=font_body, fill="black")
+d5.text((60, 300), "Village (Gram): Nelamangala", font=font_body, fill="black")
+d5.text((60, 340), "Taluk / Tehsil: Bengaluru South", font=font_body, fill="black")
+d5.text((60, 380), "District (Zilla): Bengaluru", font=font_body, fill="black")
+img5.save("data/edge-cases/edge_05_malformed_survey_format.png")
+
+print("Created 5 edge-case test documents in data/edge-cases/")

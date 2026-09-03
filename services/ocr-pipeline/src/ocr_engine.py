@@ -77,8 +77,16 @@ def _run_mock_ocr(image: np.ndarray) -> dict:
 
 
 def _run_tesseract(image: np.ndarray, language_hint: str) -> dict:
-    # Tesseract language codes: eng, hin, ben, tam, tel, mar, guj ...
-    lang_map = {"en": "eng", "hi": "hin", "bn": "ben", "ta": "tam", "te": "tel"}
+    # Tesseract language codes: eng, hin, kan (Kannada), mar (Marathi), ben, tam, tel ...
+    lang_map = {
+        "en": "eng",
+        "hi": "hin",
+        "kn": "kan",
+        "mr": "mar",
+        "bn": "ben",
+        "ta": "tam",
+        "te": "tel",
+    }
     lang = lang_map.get(language_hint, "eng")
 
     data = pytesseract.image_to_data(
