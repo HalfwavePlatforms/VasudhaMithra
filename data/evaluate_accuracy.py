@@ -43,9 +43,11 @@ for img_path in files:
     with open(img_path, "rb") as f:
         b64 = base64.b64encode(f.read()).decode("utf-8")
 
+    lang_hint = gt.get("language", "en")
     thresh, meta = preprocess_image(b64)
-    res = run_ocr(thresh, language_hint="en")
+    res = run_ocr(thresh, language_hint=lang_hint)
     ocr_confidences.append(res["confidence"])
+
 
     extracted = extract_fields(res["raw_text"], res.get("bounding_boxes", []))
     extracted_fields = extracted.get("fields", {})
