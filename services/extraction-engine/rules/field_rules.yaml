@@ -1,57 +1,292 @@
 # Field extraction + validation rules. Edit this file, not the Python code,
 # when tuning what counts as a valid survey number etc. — keeps rules
 # reviewable/auditable separately from logic.
+#
+# Keyword order matters: more specific / multilingual variants first so the
+# proximity window lands on the right token. Add new language variants at
+# the END of each keyword list to preserve backward-compatible matching.
 
 fields:
   survey_number:
     pattern: '\d+/\d+[A-Za-z]?'
-    keywords: ["survey no", "survey number", "s.no", "सर्वे", "ಸರ್ವೆ ನಂ", "ಸರ್ವೆ ನಂಬರ್", "சர்வே எண்", "సర్వే నంబరు"]
+    keywords:
+      # English
+      - "survey no"
+      - "survey number"
+      - "s.no"
+      - "survey"
+      # Hindi
+      - "सर्वे नं"
+      - "सर्वे नंबर"
+      - "सर्वे"
+      # Kannada
+      - "ಸರ್ವೆ ನಂ"
+      - "ಸರ್ವೆ ನಂಬರ್"
+      # Tamil
+      - "சர்வே எண்"
+      # Telugu
+      - "సర్వే నంబరు"
     required: true
 
   khasra_number:
     pattern: '\d+(/\d+)*'
-    keywords: ["khasra", "खसरा", "ಖಸ್ರಾ", "கஸ்ரா", "ఖస్రా"]
+    keywords:
+      # English
+      - "khasra"
+      - "khasra no"
+      # Hindi
+      - "खसरा"
+      - "खसरा नं"
+      - "खसरा संख्या"
+      # Kannada
+      - "ಖಸ್ರಾ"
+      # Tamil
+      - "கஸ்ரா"
+      # Telugu
+      - "ఖస్రా"
     required: true
 
   khata_number:
     pattern: '\d+'
-    keywords: ["khata", "खाता", "ಖಾತಾ", "ಖಾತೆ", "காதா", "ఖాతా"]
+    keywords:
+      # English
+      - "khata"
+      - "khata no"
+      - "account no"
+      # Hindi
+      - "खाता"
+      - "खाता संख्या"
+      - "खाता नं"
+      # Kannada
+      - "ಖಾತಾ"
+      - "ಖಾತೆ"
+      # Tamil
+      - "காதா"
+      # Telugu
+      - "ఖాతా"
     required: true
 
   owner_name:
-    pattern: null   # free text, extracted by NLP proximity to keyword, not regex
-    keywords: ["owner", "landowner", "pattadar", "मालिक", "स्वामी", "ಖಾತೇದಾರ", "ഭൂവുടമ", "நில உரிமையாளர்", "భూ యజమాని"]
+    pattern: null   # free text — extracted by keyword proximity, not regex
+    window_chars: 120
+    keywords:
+      # English
+      - "owner"
+      - "landowner"
+      - "pattadar"
+      - "khatedar"
+      - "name of owner"
+      # Hindi
+      - "मालिक"
+      - "स्वामी"
+      - "भूमि स्वामी"
+      - "खातेदार"
+      - "पट्टादार"
+      # Kannada
+      - "ಖಾತೇದಾರ"
+      # Malayalam
+      - "ഭൂവുടമ"
+      # Tamil
+      - "நில உரிமையாளர்"
+      # Telugu
+      - "భూ యజమాని"
     required: true
 
   plot_area:
-    pattern: '\d+(\.\d+)?\s*(acre|acres|hectare|hectares|guntha|gunthas|sq\.?\s?ft|sq\.?\s?m|gunta)'
-    keywords: ["area", "plot area", "extent", "क्षेत्रफल", "ವಿಸ್ತೀರ್ಣ", "பரப்பளவு", "విస్తీర్ణం"]
+    pattern: '\d+(\.\d+)?\s*(acre|acres|hectare|hectares|guntha|gunthas|sq\.?\s?ft|sq\.?\s?m|gunta|एकड़|हेक्टेयर|गुंठा|ಎಕರೆ|ಹೆಕ್ಟೇರ್|ஏக்கர்|ఎకరం)'
+    keywords:
+      # English
+      - "area"
+      - "plot area"
+      - "extent"
+      - "total area"
+      - "land area"
+      # Hindi
+      - "क्षेत्रफल"
+      - "भूमि क्षेत्र"
+      - "क्षेत्र"
+      # Kannada
+      - "ವಿಸ್ತೀರ್ಣ"
+      # Tamil
+      - "பரப்பளவு"
+      # Telugu
+      - "విస్తీర్ణం"
     required: true
 
   village:
     pattern: null
-    keywords: ["village", "गांव", "ग्राम", "ಗ್ರಾಮ", "கிராமம்", "గ్రామం"]
+    keywords:
+      # English
+      - "village"
+      - "gram"
+      - "mauza"
+      # Hindi — previously missing
+      - "गाँव"
+      - "गांव"
+      - "ग्राम"
+      - "मौज़ा"
+      - "मौजा"
+      # Kannada
+      - "ಗ್ರಾಮ"
+      - "ಹಳ್ಳಿ"
+      # Tamil
+      - "கிராமம்"
+      # Telugu
+      - "గ్రామం"
     required: false
 
   tehsil:
-    keywords: ["tehsil", "taluk", "taluka", "तहसील", "ತಾಲೂಕು", "வட்டம்", "తాలూకా"]
     pattern: null
+    keywords:
+      # English
+      - "tehsil"
+      - "taluk"
+      - "taluka"
+      - "mandal"
+      - "block"
+      # Hindi — previously missing
+      - "तहसील"
+      - "तालुका"
+      - "मंडल"
+      - "तह"
+      # Kannada
+      - "ತಾಲೂಕು"
+      # Tamil
+      - "வட்டம்"
+      # Telugu
+      - "తాలూకా"
+      - "మండల్"
     required: false
 
   district:
     pattern: null
-    keywords: ["district", "जिला", "ಜಿಲ್ಲೆ", "மாவட்டம்", "జిల్లా"]
+    keywords:
+      # English
+      - "district"
+      - "dist"
+      - "zila"
+      # Hindi — previously missing
+      - "जिला"
+      - "ज़िला"
+      - "जिले"
+      - "जनपद"
+      # Kannada
+      - "ಜಿಲ್ಲೆ"
+      # Tamil
+      - "மாவட்டம்"
+      # Telugu
+      - "జిల్లా"
     required: false
 
   land_classification:
     pattern: null
-    keywords: ["classification", "type of land", "भूमि प्रकार", "ಭೂಮಿಯ ವರ್ಗೀಕರಣ", "நில வகைப்பாடு", "భూమి వర్గీకరణ"]
+    window_chars: 120
+    keywords:
+      # English
+      - "classification"
+      - "type of land"
+      - "land type"
+      - "land use"
+      - "nature of land"
+      # Hindi — previously missing
+      - "भूमि वर्ग"
+      - "भूमि प्रकार"
+      - "भूमि का प्रकार"
+      - "भूमि का वर्ग"
+      - "खेत का प्रकार"
+      # Kannada
+      - "ಭೂಮಿಯ ವರ್ಗೀಕರಣ"
+      - "ಭೂ ಬಳಕೆ"
+      # Tamil
+      - "நில வகைப்பாடு"
+      # Telugu
+      - "భూమి వర్గీకరణ"
+      - "భూ వినియోగం"
     required: false
 
   mutation_number:
-    pattern: 'MR[-/]?\d+[/]\d+'
-    keywords: ["mutation", "mutation no", "mr no", "नामांतरण", "ವರ್ಗಾವಣೆ", "ಮ್ಯುಟೇಶನ್"]
+    # Matches: MR-12/2024, MR12/2024, Mutation No 456, दाखिल-खारिज 123/2024
+    pattern: '(MR[-/]?\d+[/]\d+|\d{1,6}/\d{4})'
+    keywords:
+      # English
+      - "mutation"
+      - "mutation no"
+      - "mutation number"
+      - "mr no"
+      - "mr."
+      # Hindi
+      - "नामांतरण"
+      - "नामांतरण संख्या"
+      - "दाखिल-खारिज"
+      - "दाखिल खारिज"
+      # Kannada
+      - "ವರ್ಗಾವಣೆ"
+      - "ಮ್ಯುಟೇಶನ್"
+      # Tamil
+      - "உரிமை மாற்றம்"
+      # Telugu
+      - "మ్యుటేషన్"
     required: false
 
-confidence_review_threshold: 0.75   # fields below this get flagged for human review
+  registration_info:
+    # Matches deed/registration numbers like 1234/2024, REG/456/2024
+    pattern: '(REG[-/]?\d+[/]\d{4}|\d{3,6}/\d{4})'
+    window_chars: 120
+    keywords:
+      # English
+      - "registration"
+      - "registration no"
+      - "deed no"
+      - "deed number"
+      - "document no"
+      - "reg no"
+      - "reg."
+      - "registered"
+      # Hindi
+      - "पंजीकरण"
+      - "पंजीकरण संख्या"
+      - "पंजीकरण क्रमांक"
+      - "दस्तावेज़ संख्या"
+      # Kannada
+      - "ನೋಂದಣಿ"
+      - "ನೋಂದಣಿ ಸಂಖ್ಯೆ"
+      # Tamil
+      - "பதிவு எண்"
+      # Telugu
+      - "నమోదు సంఖ్య"
+    required: false
 
+  ownership_type:
+    pattern: null
+    window_chars: 120
+    keywords:
+      # English
+      - "ownership"
+      - "ownership type"
+      - "tenure"
+      - "type of ownership"
+      - "nature of ownership"
+      - "title type"
+      # Hindi
+      - "स्वामित्व प्रकार"
+      - "स्वामित्व का प्रकार"
+      - "भूमि स्वत्व"
+      - "भू-स्वामित्व"
+      # Kannada
+      - "ಮಾಲಿಕತ್ವ ಪ್ರಕಾರ"
+      - "ಒಡೆತನದ ವಿಧ"
+      # Tamil
+      - "உரிமை வகை"
+      # Telugu
+      - "యాజమాన్యం రకం"
+    required: false
+
+# Confidence threshold below which a field is flagged for human review
+confidence_review_threshold: 0.75
+
+# Area discrepancy: if |doc_acres - gis_acres| / gis_acres > this, flag HIGH risk
+area_discrepancy_threshold_pct: 5.0
+
+# Plausibility bounds for plot_area in acres
+area_min_acres: 0.001
+area_max_acres: 5000.0
