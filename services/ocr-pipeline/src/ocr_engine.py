@@ -16,6 +16,26 @@ from dotenv import load_dotenv
 load_dotenv()
 logger = logging.getLogger("ocr-pipeline")
 
+# Auto-detect Tesseract binary location
+tess_cmd = os.getenv("TESSERACT_CMD")
+if not tess_cmd:
+    win_paths = [
+        r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+        r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+        os.path.expanduser(r"~\AppData\Local\Programs\Tesseract-OCR\tesseract.exe"),
+    ]
+    for p in win_paths:
+        if os.path.exists(p):
+            tess_cmd = p
+            break
+
+if tess_cmd and os.path.exists(tess_cmd):
+    pytesseract.pytesseract.tesseract_cmd = tess_cmd
+    tessdata_dir = os.path.join(os.path.dirname(tess_cmd), "tessdata")
+    if os.path.exists(tessdata_dir) and "TESSDATA_PREFIX" not in os.environ:
+        os.environ["TESSDATA_PREFIX"] = tessdata_dir
+    logger.info(f"Using Tesseract binary at: {tess_cmd}")
+
 
 def run_ocr(image: np.ndarray, language_hint: str = "en") -> dict:
     provider = os.getenv("OCR_PROVIDER", "tesseract")
@@ -25,9 +45,10 @@ def run_ocr(image: np.ndarray, language_hint: str = "en") -> dict:
         return _run_mock_ocr(image)
     try:
         return _run_tesseract(image, language_hint)
-    except (pytesseract.TesseractNotFoundError, FileNotFoundError):
-        logger.warning("Tesseract binary not found on host. Falling back to mock OCR for demonstration.")
+    except (pytesseract.TesseractNotFoundError, FileNotFoundError, Exception) as e:
+        logger.warning(f"Tesseract execution encountered issue: {e}. Falling back to mock OCR for demonstration.")
         return _run_mock_ocr(image)
+
 
 
 def _run_mock_ocr(image: np.ndarray) -> dict:
@@ -77,9 +98,18 @@ def _run_mock_ocr(image: np.ndarray) -> dict:
 
 
 def _run_tesseract(image: np.ndarray, language_hint: str) -> dict:
-    # Tesseract language codes: eng, hin, ben, tam, tel, mar, guj ...
-    lang_map = {"en": "eng", "hi": "hin", "bn": "ben", "ta": "tam", "te": "tel"}
+    # Tesseract language codes: eng, hin, kan (Kannada), mar (Marathi), ben, tam, tel ...
+    lang_map = {
+        "en": "eng",
+        "hi": "hin+eng",
+        "kn": "kan+eng",
+        "mr": "mar+eng",
+        "bn": "ben+eng",
+        "ta": "tam+eng",
+        "te": "tel+eng",
+    }
     lang = lang_map.get(language_hint, "eng")
+
 
     data = pytesseract.image_to_data(
         image, lang=lang, output_type=pytesseract.Output.DICT

@@ -5,47 +5,53 @@
 fields:
   survey_number:
     pattern: '\d+/\d+[A-Za-z]?'
-    keywords: ["survey no", "survey number", "s.no", "सर्वे"]
+    keywords: ["survey no", "survey number", "s.no", "सर्वे", "ಸರ್ವೆ ನಂ", "ಸರ್ವೆ ನಂಬರ್", "சர்வே எண்", "సర్వే నంబరు"]
     required: true
 
   khasra_number:
     pattern: '\d+(/\d+)*'
-    keywords: ["khasra", "खसरा"]
+    keywords: ["khasra", "खसरा", "ಖಸ್ರಾ", "கஸ்ரா", "ఖస్రా"]
     required: true
 
   khata_number:
     pattern: '\d+'
-    keywords: ["khata", "खाता"]
+    keywords: ["khata", "खाता", "ಖಾತಾ", "ಖಾತೆ", "காதா", "ఖాతా"]
     required: true
 
   owner_name:
     pattern: null   # free text, extracted by NLP proximity to keyword, not regex
-    keywords: ["owner", "landowner", "मालिक", "स्वामी"]
+    keywords: ["owner", "landowner", "pattadar", "मालिक", "स्वामी", "ಖಾತೇದಾರ", "ഭൂവുടമ", "நில உரிமையாளர்", "భూ యజమాని"]
     required: true
 
   plot_area:
-    pattern: '\d+(\.\d+)?\s*(acre|hectare|sq\.?\s?ft|sq\.?\s?m)'
-    keywords: ["area", "क्षेत्रफल"]
+    pattern: '\d+(\.\d+)?\s*(acre|acres|hectare|hectares|guntha|gunthas|sq\.?\s?ft|sq\.?\s?m|gunta)'
+    keywords: ["area", "plot area", "extent", "क्षेत्रफल", "ವಿಸ್ತೀರ್ಣ", "பரப்பளவு", "విస్తీర్ణం"]
     required: true
 
   village:
     pattern: null
-    keywords: ["village", "गांव", "ग्राम"]
+    keywords: ["village", "गांव", "ग्राम", "ಗ್ರಾಮ", "கிராமம்", "గ్రామం"]
     required: false
 
   tehsil:
+    keywords: ["tehsil", "taluk", "taluka", "तहसील", "ತಾಲೂಕು", "வட்டம்", "తాలూకా"]
     pattern: null
-    keywords: ["tehsil", "तहसील"]
     required: false
 
   district:
     pattern: null
-    keywords: ["district", "जिला"]
+    keywords: ["district", "जिला", "ಜಿಲ್ಲೆ", "மாவட்டம்", "జిల్లా"]
     required: false
 
   land_classification:
     pattern: null
-    keywords: ["classification", "type of land", "भूमि प्रकार"]
+    keywords: ["classification", "type of land", "भूमि प्रकार", "ಭೂಮಿಯ ವರ್ಗೀಕರಣ", "நில வகைப்பாடு", "భూమి వర్గీకరణ"]
+    required: false
+
+  mutation_number:
+    pattern: 'MR[-/]?\d+[/]\d+'
+    keywords: ["mutation", "mutation no", "mr no", "नामांतरण", "ವರ್ಗಾವಣೆ", "ಮ್ಯುಟೇಶನ್"]
     required: false
 
 confidence_review_threshold: 0.75   # fields below this get flagged for human review
+

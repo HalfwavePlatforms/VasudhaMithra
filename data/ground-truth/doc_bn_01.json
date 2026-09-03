@@ -1,0 +1,16 @@
+{
+  "language": "bn",
+  "document_type": "ভূমি দপ্তর - মিউটেশন রেজিস্টার এক্সট্রাক্ট",
+  "fields": {
+    "survey_number": "769/19",
+    "khasra_number": "5528",
+    "khata_number": "203",
+    "owner_name": "অনিতা বর্মা",
+    "plot_area": "3.4 একর",
+    "village": "রামপুর",
+    "tehsil": "দুর্গাপুর",
+    "district": "উত্তর ২৪ পরগনা",
+    "land_classification": "কৃষি (ডাঙা)",
+    "mutation_number": "MR-67/2025"
+  }
+}
