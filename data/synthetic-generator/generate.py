@@ -338,7 +338,9 @@ def save_ground_truth(record: dict, gt_path: str):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--count-per-lang", type=int, default=7)
+    parser.add_argument("--language", type=str, default=None, help="Filter by specific language code: en, hi, kn, mr, bn, ta, te")
+    parser.add_argument("--count", type=int, default=None, help="Number of documents to generate when using --language")
+    parser.add_argument("--count-per-lang", type=int, default=7, help="Count per language when generating all")
     parser.add_argument("--out", type=str, default="../sample-documents")
     parser.add_argument("--ground-truth", type=str, default="../ground-truth")
     args = parser.parse_args()
@@ -346,13 +348,21 @@ def main():
     os.makedirs(args.out, exist_ok=True)
     os.makedirs(args.ground_truth, exist_ok=True)
 
-    languages = ["en", "hi", "kn", "mr", "bn", "ta", "te"]
+    if args.language:
+        if args.language not in LANG_CONFIGS:
+            raise ValueError(f"Unknown language: {args.language}. Choices: {list(LANG_CONFIGS.keys())}")
+        languages = [args.language]
+        count = args.count or args.count_per_lang
+    else:
+        languages = ["en", "hi", "kn", "mr", "bn", "ta", "te"]
+        count = args.count_per_lang
+
     doc_idx = 0
     generated_summary = {}
 
     for lang in languages:
         generated_summary[lang] = 0
-        for i in range(args.count_per_lang):
+        for i in range(count):
             record = generate_document_record(lang, i)
             base_name = f"doc_{lang}_{i:02d}"
             img_path = os.path.join(args.out, f"{base_name}.png")

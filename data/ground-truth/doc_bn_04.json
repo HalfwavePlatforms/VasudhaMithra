@@ -2,15 +2,15 @@
   "language": "bn",
   "document_type": "ভূমি দপ্তর - মিউটেশন রেজিস্টার এক্সট্রাক্ট",
   "fields": {
-    "survey_number": "503/13",
-    "khasra_number": "4290",
-    "khata_number": "420",
+    "survey_number": "128/9",
+    "khasra_number": "8016",
+    "khata_number": "963",
     "owner_name": "অনিতা বর্মা",
-    "plot_area": "11.05 একর",
-    "village": "গোপালপুর",
-    "tehsil": "বারাসাত",
-    "district": "উত্তর ২৪ পরগনা",
+    "plot_area": "8.13 একর",
+    "village": "শ্যামনগর",
+    "tehsil": "বর্ধমান",
+    "district": "বর্ধমান",
     "land_classification": "কৃষি (ডাঙা)",
-    "mutation_number": "MR-29/2024"
+    "mutation_number": "MR-15/2022"
   }
 }
