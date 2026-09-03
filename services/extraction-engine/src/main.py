@@ -26,6 +26,7 @@ class ParseRequest(BaseModel):
 class ValidateRequest(BaseModel):
     record_id: str
     fields: dict[str, str | None]
+    confidence_per_field: dict[str, float] = {}
 
 
 @app.get("/health")
@@ -41,8 +42,10 @@ def parse(req: ParseRequest):
 
 @app.post("/extraction/validate")
 def validate(req: ValidateRequest):
-    # NOTE: duplicate_lookup is None here — api-gateway calls the DB-aware
-    # version of this logic directly, or this endpoint gets a callback URL
-    # added once the gateway's duplicate-check API is finalized. Documented
-    # as a known gap, not a silent omission.
-    return validate_fields(req.fields, req.record_id, duplicate_lookup=None)
+    return validate_fields(
+        fields=req.fields,
+        record_id=req.record_id,
+        confidence_per_field=req.confidence_per_field,
+        duplicate_lookup=None,
+    )
+

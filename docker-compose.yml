@@ -21,7 +21,7 @@ services:
     ports:
       - "8001:8001"
     volumes:
-      - ./services/ocr-pipeline:/app
+      - ./services/ocr-pipeline/src:/app
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
       interval: 10s
@@ -49,7 +49,7 @@ services:
     ports:
       - "8003:8003"
     volumes:
-      - ./services/gis-service:/app
+      - ./services/gis-service/src:/app
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
       interval: 10s
@@ -62,7 +62,8 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./services/api-gateway:/app
+      - ./services/api-gateway/src:/app
+
     depends_on:
       postgres:
         condition: service_healthy

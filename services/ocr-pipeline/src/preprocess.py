@@ -53,26 +53,26 @@ def preprocess_image(image_base64: str) -> tuple[np.ndarray, dict]:
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    # 4. Bilateral filtering to reduce noise while preserving sharp character edges
-    filtered = cv2.bilateralFilter(gray, 9, 75, 75)
+    # 4. Bilateral filtering for edge-preserving noise reduction
+    filtered = cv2.bilateralFilter(gray, 7, 50, 50)
 
-    # 5. Adaptive thresholding for handling uneven illumination / shadows
-    thresh = cv2.adaptiveThreshold(
-        filtered, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 15
-    )
+    # 5. Contrast Limited Adaptive Histogram Equalization (CLAHE) for illumination normalization
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    enhanced = clahe.apply(filtered)
 
     # 6. Deskew based on text line orientation
+    _, thresh = cv2.threshold(enhanced, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
     coords = np.column_stack(np.where(thresh > 0))
     angle_deg = 0.0
     if len(coords) > 0:
         angle = cv2.minAreaRect(coords)[-1]
         angle_deg = -(90 + angle) if angle < -45 else -angle
         if abs(angle_deg) > 0.5:
-            (h, w) = thresh.shape[:2]
+            (h, w) = enhanced.shape[:2]
             center = (w // 2, h // 2)
             M = cv2.getRotationMatrix2D(center, angle_deg, 1.0)
-            thresh = cv2.warpAffine(
-                thresh, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE
+            enhanced = cv2.warpAffine(
+                enhanced, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE
             )
 
     metadata = {
@@ -82,7 +82,8 @@ def preprocess_image(image_base64: str) -> tuple[np.ndarray, dict]:
         "is_pdf": is_pdf,
     }
 
-    return thresh, metadata
+    return enhanced, metadata
+
 
 
 def classify_document(raw_text: str) -> tuple[str, str]:

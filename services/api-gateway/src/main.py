@@ -13,6 +13,12 @@ from routes import records, dashboard
 
 app = FastAPI(title="API Gateway")
 
+# Ensure all database tables are created
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception:
+    pass
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # tighten to your deployed frontend origin(s) before real deploy
@@ -26,11 +32,10 @@ app.include_router(dashboard.router)
 
 @app.on_event("startup")
 def on_startup():
-    # For the hackathon, create tables directly. For anything longer-lived,
-    # use Alembic migrations (services/api-gateway/migrations/) instead.
     Base.metadata.create_all(bind=engine)
 
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
+

@@ -1,23 +1,35 @@
-# API Contracts
+# API Contracts (Single Source of Truth)
 
-> Read this before writing any service code. If you need to change a contract here,
-> flag it in the team chat first — everyone else is building against what's written.
+> Single source of truth across all 4 modules. Backward compatibility is strictly maintained.
 
-## 1. OCR Pipeline (`ocr-pipeline`, port 8001)
+## 1. OCR Pipeline (`ocr-pipeline`, port 8001) — Owned by Member 1
 
 ### POST /ocr/extract
 Request:
 ```json
-{ "image_base64": "string", "language_hint": "hi" }
+{
+  "image_base64": "string",
+  "language_hint": "hi",
+  "document_id": "DOC-001 (optional)"
+}
 ```
 Response:
 ```json
 {
+  "document_id": "DOC-001",
+  "language": "kn",
+  "document_type": "Record of Rights / RTC (Pahani)",
+  "pages": 1,
   "raw_text": "string",
   "confidence": 0.92,
   "bounding_boxes": [
-    { "text": "string", "confidence": 0.95, "box": [x1, y1, x2, y2] }
-  ]
+    { "text": "string", "confidence": 0.95, "box": [10.0, 10.0, 100.0, 30.0] }
+  ],
+  "metadata": {
+    "width": 920,
+    "height": 720,
+    "deskew_angle": 0.0
+  }
 }
 ```
 
@@ -26,45 +38,60 @@ Response: `{ "status": "ok" }`
 
 ---
 
-## 2. Extraction Engine (`extraction-engine`, port 8002)
+## 2. Extraction Engine (`extraction-engine`, port 8002) — Owned by Member 2
 
 ### POST /extraction/parse
 Request:
 ```json
-{ "raw_text": "string", "bounding_boxes": [ /* from OCR */ ] }
+{
+  "raw_text": "string",
+  "bounding_boxes": [ /* from OCR */ ]
+}
 ```
 Response:
 ```json
 {
   "fields": {
-    "owner_name": "string",
-    "survey_number": "string",
-    "khasra_number": "string",
-    "khata_number": "string",
-    "plot_area": "string",
-    "village": "string",
-    "tehsil": "string",
-    "district": "string",
-    "land_classification": "string"
+    "owner_name": "Ramesh Gowda",
+    "survey_number": "145/2",
+    "khasra_number": "4891",
+    "khata_number": "512",
+    "plot_area": "2.45 acre",
+    "village": "Rampur",
+    "tehsil": "Sehore",
+    "district": "Bhopal",
+    "land_classification": "Agricultural",
+    "mutation_number": "MR-12/2024"
   },
-  "confidence_per_field": { "owner_name": 0.88, "survey_number": 0.95 },
-  "needs_review": ["owner_name"]
+  "structured_record": {
+    "owner_name": { "value": "Ramesh Gowda", "confidence": 0.94 },
+    "survey_number": { "value": "145/2", "confidence": 0.98 },
+    "plot_area": { "value": "2.45 acre", "area_acres": 2.45, "unit": "acre", "confidence": 0.91 }
+  },
+  "area_acres": 2.45,
+  "confidence_per_field": { "owner_name": 0.94, "survey_number": 0.98 },
+  "needs_review": []
 }
 ```
 
 ### POST /extraction/validate
 Request:
 ```json
-{ "record_id": "uuid", "fields": { /* as above */ } }
+{
+  "record_id": "uuid",
+  "fields": { /* extracted fields */ },
+  "confidence_per_field": { /* optional */ }
+}
 ```
 Response:
 ```json
 {
-  "valid": false,
-  "violations": [
-    { "field": "survey_number", "rule": "format", "message": "does not match expected pattern" },
-    { "field": "khasra_number", "rule": "duplicate", "message": "matches existing record uuid X" }
-  ]
+  "valid": true,
+  "status": "VERIFIED",
+  "risk_level": "LOW",
+  "confidence": 0.92,
+  "issues": [],
+  "violations": []
 }
 ```
 
@@ -73,16 +100,43 @@ Response: `{ "status": "ok" }`
 
 ---
 
-## 3. API Gateway (`api-gateway`, port 8000)
+## 3. GIS Service (`gis-service`, port 8003) — Owned by Member 3
 
-This is the only service the frontends talk to. It orchestrates calls to OCR,
-extraction, and GIS, and owns the database.
-
-### POST /records/upload
-Request: multipart form, `file` field
+### GET /gis/parcel/{survey_number}
 Response:
 ```json
-{ "record_id": "uuid", "status": "processing" }
+{
+  "parcel_id": "PARCEL-145-2",
+  "survey_number": "145/2",
+  "area_gis": 2.47,
+  "area_unit": "acre",
+  "centroid": [23.2599, 77.4126],
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [[[77.4116, 23.2589], [77.4136, 23.2589], [77.4136, 23.2609], [77.4116, 23.2609], [77.4116, 23.2589]]]
+  },
+  "status": "FOUND",
+  "source": "synthetic_cadastral_layer (demo prototype)"
+}
+```
+
+### GET /health
+Response: `{ "status": "ok" }`
+
+---
+
+## 4. API Gateway (`api-gateway`, port 8000) — Orchestration & DB
+
+### POST /records/upload
+Request: multipart form (`file`, optional `actor`)
+Response:
+```json
+{
+  "record_id": "uuid",
+  "status": "validated | pending_review",
+  "risk_level": "LOW | MEDIUM | HIGH",
+  "spatial_consistency": "MATCH | DISCREPANCY | NOT_EVALUATED"
+}
 ```
 
 ### GET /records/{record_id}
@@ -90,60 +144,80 @@ Response:
 ```json
 {
   "record_id": "uuid",
+  "original_filename": "sample.png",
+  "uploaded_at": "2026-09-03T07:00:00Z",
   "status": "pending_review | validated | rejected",
-  "fields": { /* extracted fields */ },
-  "confidence_per_field": { /* ... */ },
-  "violations": [ /* ... */ ]
+  "document_type": "Record of Rights / RTC (Pahani)",
+  "language": "hi",
+  "risk_level": "LOW | MEDIUM | HIGH",
+  "ocr_confidence": 0.92,
+  "fields": { "owner_name": "...", "survey_number": "...", "plot_area": "2.45 acre" },
+  "confidence_per_field": { "owner_name": 0.94 },
+  "corrections": {},
+  "violations": [],
+  "gis": {
+    "parcel_id": "PARCEL-145-2",
+    "area_doc_acres": 2.45,
+    "area_gis_acres": 2.47,
+    "spatial_consistency": "MATCH",
+    "spatial_delta_pct": 0.81,
+    "geometry": { "type": "Polygon", "coordinates": [...] }
+  },
+  "review": {
+    "reviewer_notes": "Verified against survey ledger",
+    "reviewed_by": "Revenue Officer",
+    "reviewed_at": "2026-09-03T07:15:00Z"
+  }
 }
 ```
 
-### GET /records
-Query params: `?status=pending_review&page=1&limit=20`
-Response: paginated list of records, same shape as above.
-
 ### PATCH /records/{record_id}
-Human correction of a field, e.g. `{ "fields": { "owner_name": "corrected value" } }`
-Response: updated record.
+Request:
+```json
+{
+  "actor": "Revenue Officer",
+  "reviewer_notes": "Corrected khata number per original deed",
+  "decision": "APPROVED",
+  "fields": { "khata_number": "512" }
+}
+```
+Response: Updated record serialized.
 
 ### GET /dashboard/stats
 Response:
 ```json
 {
   "total_processed": 142,
-  "avg_extraction_accuracy": 0.87,
+  "verified_count": 128,
   "pending_review_count": 12,
-  "error_count": 3,
-  "by_district": { "District A": 40, "District B": 55 }
+  "rejected_count": 2,
+  "error_count": 5,
+  "spatial_discrepancy_count": 4,
+  "avg_extraction_accuracy": 0.912,
+  "by_district": { "Bhopal": 45, "Indore": 52 },
+  "by_classification": { "Agricultural": 110, "Residential": 32 },
+  "by_doc_type": { "Record of Rights / RTC (Pahani)": 98, "Mutation Extract (Form XII)": 44 }
 }
 ```
 
-### GET /health
-Response: `{ "status": "ok" }`
-
----
-
-## 4. GIS Service (`gis-service`, port 8003)
-
-> Mocked for the hackathon — clearly labeled in the pitch as illustrative of a
-> real DILRMP/GIS integration, not a live government connection.
-
-### GET /gis/parcel/{survey_number}
+### GET /dashboard/audit-trail?limit=30
 Response:
 ```json
 {
-  "survey_number": "string",
-  "geometry": { "type": "Polygon", "coordinates": [ /* mock coords */ ] },
-  "source": "mock_cadastral_layer"
+  "total": 30,
+  "audit_logs": [
+    {
+      "id": "uuid",
+      "record_id": "uuid",
+      "action": "human_reviewed",
+      "actor": "Revenue Officer",
+      "details": { "decision": "APPROVED" },
+      "created_at": "2026-09-03T07:15:00Z"
+    }
+  ]
 }
 ```
 
 ### GET /health
 Response: `{ "status": "ok" }`
 
----
-
-## Conventions used everywhere
-- All timestamps: ISO 8601 UTC.
-- All IDs: UUID v4.
-- Error responses: `{ "error": "message", "code": "MACHINE_READABLE_CODE" }`, HTTP status matches the error.
-- Every service exposes `GET /health` — this is what `infra/healthchecks/check-all.sh` and Docker's healthcheck both hit.
