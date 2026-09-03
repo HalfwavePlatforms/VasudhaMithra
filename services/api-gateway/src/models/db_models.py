@@ -15,9 +15,26 @@ class Record(Base):
     status = Column(String, nullable=False, default="processing")
     raw_ocr_text = Column(String)
     ocr_confidence = Column(Float)
+    document_type = Column(String, default="Standard Land Record")
+    language = Column(String, default="en")
+    risk_level = Column(String, default="LOW")
+
+    # Spatial Consistency Engine fields (Document <-> Data <-> GIS)
+    parcel_id = Column(String)
+    area_doc_acres = Column(Float)
+    area_gis_acres = Column(Float)
+    spatial_consistency = Column(String, default="NOT_EVALUATED")  # MATCH | DISCREPANCY | NOT_EVALUATED
+    spatial_delta_pct = Column(Float)
+    gis_geojson = Column(JSON)
+
+    # Human Verification & Audit
+    reviewer_notes = Column(String)
+    reviewed_by = Column(String)
+    reviewed_at = Column(DateTime(timezone=True))
 
     fields = relationship("RecordField", back_populates="record", cascade="all, delete-orphan")
     validations = relationship("ValidationResult", back_populates="record", cascade="all, delete-orphan")
+
 
 
 class RecordField(Base):
