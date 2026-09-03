@@ -1,0 +1,182 @@
+@import "tailwindcss";
+
+:root {
+  /* Colors */
+  --color-tangerine-tag: #f69251;
+  --color-midnight-ink: #181825;
+  --color-graphite: #484758;
+  --color-deep-slate: #242433;
+  --color-carbon: #000000;
+  --color-stone: #636363;
+  --color-pebble: #949494;
+  --color-ash: #8b8b8b;
+  --color-fog: #f7f7f7;
+  --color-snow: #ffffff;
+  --color-peach-whisper: #fad7c1;
+  --gradient-peach-whisper: linear-gradient(rgba(255, 219, 184, 0.06) 0%, rgba(255, 255, 255, 0.03) 100%);
+  --color-dusty-rose: #c97b84;
+
+  /* Typography — Font Families */
+  --font-pp-radio-grotesk-light: 'Instrument Sans', 'DM Sans', 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-inter: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* Spacing */
+  --spacing-unit: 4px;
+  --spacing-4: 4px;
+  --spacing-8: 8px;
+  --spacing-12: 12px;
+  --spacing-16: 16px;
+  --spacing-20: 20px;
+  --spacing-24: 24px;
+  --spacing-32: 32px;
+  --spacing-40: 40px;
+  --spacing-48: 48px;
+  --spacing-64: 64px;
+
+  /* Border Radius */
+  --radius-cards: 24px;
+  --radius-small: 8px;
+  --radius-badges: 100px;
+  --radius-inputs: 0px;
+  --radius-buttons: 28px;
+  --radius-overlays: 32px;
+
+  /* Shadows */
+  --shadow-subtle: rgba(24, 24, 37, 0.12) 0px 2px 3px -2px;
+  --shadow-xl: rgba(247, 247, 247, 0.5) 0px -40px 40px 0px;
+  --shadow-subtle-2: rgba(0, 0, 0, 0.04) 0px 1px 2px 0px, rgba(0, 0, 0, 0.02) 0px 2px 4px 0px, rgba(0, 0, 0, 0.02) 0px 4px 8px 0px;
+}
+
+@theme {
+  --color-tangerine-tag: #f69251;
+  --color-midnight-ink: #181825;
+  --color-graphite: #484758;
+  --color-deep-slate: #242433;
+  --color-carbon: #000000;
+  --color-stone: #636363;
+  --color-pebble: #949494;
+  --color-ash: #8b8b8b;
+  --color-fog: #f7f7f7;
+  --color-snow: #ffffff;
+  --color-peach-whisper: #fad7c1;
+  --color-dusty-rose: #c97b84;
+
+  --font-pp-radio-grotesk-light: 'Instrument Sans', 'DM Sans', 'Plus Jakarta Sans', sans-serif;
+  --font-inter: 'Inter', sans-serif;
+}
+
+/* Base Body Styles */
+body {
+  background-color: var(--color-fog);
+  color: var(--color-midnight-ink);
+  font-family: var(--font-inter);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typographic Helper Classes */
+.heading-display {
+  font-family: var(--font-pp-radio-grotesk-light);
+  font-weight: 300;
+  font-size: clamp(38px, 5.5vw, 68px);
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+  color: var(--color-carbon);
+}
+
+.heading-lg {
+  font-family: var(--font-pp-radio-grotesk-light);
+  font-weight: 300;
+  font-size: clamp(28px, 3.8vw, 46px);
+  line-height: 1.18;
+  letter-spacing: -0.02em;
+  color: var(--color-carbon);
+}
+
+.heading-md {
+  font-family: var(--font-pp-radio-grotesk-light);
+  font-weight: 300;
+  font-size: clamp(22px, 2.8vw, 32px);
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  color: var(--color-carbon);
+}
+
+/* Button Classes */
+.btn-primary-pill {
+  background-color: var(--color-tangerine-tag);
+  color: var(--color-carbon);
+  border-radius: var(--radius-buttons);
+  padding: 10px 22px;
+  font-family: var(--font-inter);
+  font-weight: 500;
+  font-size: 14px;
+  box-shadow: var(--shadow-subtle-2);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+
+.btn-primary-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(246, 146, 81, 0.35);
+  filter: brightness(1.02);
+}
+
+.btn-ghost-pill {
+  background-color: var(--color-snow);
+  color: var(--color-carbon);
+  border-radius: var(--radius-buttons);
+  padding: 10px 22px;
+  font-family: var(--font-inter);
+  font-weight: 500;
+  font-size: 14px;
+  box-shadow: var(--shadow-subtle-2);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+
+.btn-ghost-pill:hover {
+  background-color: #f2f2f2;
+  transform: translateY(-1px);
+}
+
+.card-dialog {
+  background-color: var(--color-snow);
+  border-radius: var(--radius-cards);
+  padding: var(--card-padding);
+  box-shadow: var(--shadow-subtle);
+}
+
+.badge-neutral {
+  border-radius: var(--radius-badges);
+  background-color: var(--color-fog);
+  padding: 4px 12px;
+  font-family: var(--font-inter);
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--color-graphite);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Hide scrollbars for carousels */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
