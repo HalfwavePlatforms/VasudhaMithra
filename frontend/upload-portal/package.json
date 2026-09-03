@@ -1,16 +1,12 @@
 {
-  "name": "sih",
+  "name": "upload-portal",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
-  "homepage": "https://DhyanK567.github.io/Ui",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 3000 --host 0.0.0.0",
     "build": "tsc -b && vite build",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist",
-    "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview --port 3000 --host 0.0.0.0"
   },
   "dependencies": {
     "@types/canvas-confetti": "^1.9.0",
@@ -25,8 +21,6 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.1.0",
-    "gh-pages": "^6.3.0",
-    "oxlint": "^1.79.0",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
     "vite": "^8.2.2"
