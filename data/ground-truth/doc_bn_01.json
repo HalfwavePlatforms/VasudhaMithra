@@ -1,0 +1,16 @@
+{
+  "language": "bn",
+  "document_type": "ভূমি দপ্তর - মিউটেশন রেজিস্টার এক্সট্রাক্ট",
+  "fields": {
+    "survey_number": "648/11",
+    "khasra_number": "2136",
+    "khata_number": "464",
+    "owner_name": "অরিন্দম মুখার্জী",
+    "plot_area": "4.72 একর",
+    "village": "গোপালপুর",
+    "tehsil": "হুগলি",
+    "district": "বর্ধমান",
+    "land_classification": "কৃষি (ডাঙা)",
+    "mutation_number": "MR-51/2025"
+  }
+}
