@@ -2,8 +2,16 @@ import os
 import glob
 import json
 import base64
+import sys
 import requests
 from collections import defaultdict
+
+if sys.stdout.encoding != 'utf-8':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 
 OCR_API_URL = "http://localhost:8001/ocr/extract"
 EXTRACTION_API_URL = "http://localhost:8002/extraction/parse"
@@ -64,14 +72,20 @@ def main():
         with open(img_path, "rb") as f:
             img_b64 = base64.b64encode(f.read()).decode("utf-8")
 
+        lang_hint = gt.get("language", "en")
         # 1. Call OCR HTTP API
         try:
-            ocr_resp = requests.post(OCR_API_URL, json={"image_base64": img_b64, "language_hint": "en"}, timeout=15)
+            ocr_resp = requests.post(
+                OCR_API_URL,
+                json={"image_base64": img_b64, "language_hint": lang_hint},
+                timeout=15,
+            )
             ocr_resp.raise_for_status()
             ocr_data = ocr_resp.json()
         except Exception as e:
             print(f"[ERROR] OCR service call failed for {base_name}: {e}")
             continue
+
 
         raw_text = ocr_data.get("raw_text", "")
         bounding_boxes = ocr_data.get("bounding_boxes", [])
@@ -115,14 +129,21 @@ def main():
             keywords = FIELD_KEYWORDS.get(field, [])
             snippet = find_snippet(raw_text, keywords, exp_norm)
 
-            # Determine classification
-            raw_text_clean = raw_text.lower().replace(" ", "").replace("\n", "").replace("-", "").replace("/", "")
-            exp_clean = exp_norm.replace(" ", "").replace("-", "").replace("/", "")
+            raw_lower = raw_text.lower()
+            raw_text_clean = raw_lower.replace(" ", "").replace("\n", "").replace("-", "").replace("/", "").replace(":", "")
+            exp_clean = exp_norm.replace(" ", "").replace("-", "").replace("/", "").replace(":", "")
 
-            if exp_norm in raw_text.lower() or exp_clean in raw_text_clean:
+            has_text_match = (
+                exp_norm in raw_lower
+                or exp_clean in raw_text_clean
+                or any(part in raw_lower for part in exp_norm.split() if len(part) >= 3)
+            )
+
+            if has_text_match:
                 classification = "EXTRACTION_ERROR"
             else:
                 classification = "OCR_ERROR"
+
 
             error_counts[field][classification] += 1
 
