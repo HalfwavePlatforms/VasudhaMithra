@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import BhuvanGisMap from "./BhuvanGisMap";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
@@ -314,30 +315,8 @@ export default function RecordDetail({ recordId, onBack }) {
             </div>
           )}
 
-          {/* GIS Data Summary (Plain Text Only) */}
-          {record.gis && (
-            <div style={{ backgroundColor: "#FFFFFF", borderRadius: "12px", border: "1px solid #BAE6FD", padding: "16px" }}>
-              <h4 style={{ fontSize: "13px", fontWeight: 700, color: "#0369A1", margin: "0 0 8px 0" }}>
-                🌐 GIS Parcel Data Summary (Plain Text)
-              </h4>
-              <div style={{ fontSize: "12px", color: "#0C4A6E", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px" }}>
-                <div>
-                  <span style={{ fontSize: "11px", color: "#64748B", display: "block" }}>Doc Area</span>
-                  <strong style={{ fontSize: "14px" }}>{record.gis.area_doc_acres ?? "—"} acres</strong>
-                </div>
-                <div>
-                  <span style={{ fontSize: "11px", color: "#64748B", display: "block" }}>GIS Area</span>
-                  <strong style={{ fontSize: "14px" }}>{record.gis.area_gis_acres ?? "—"} acres</strong>
-                </div>
-                <div>
-                  <span style={{ fontSize: "11px", color: "#64748B", display: "block" }}>Spatial Delta</span>
-                  <strong style={{ fontSize: "14px", color: (record.gis.spatial_delta_pct || 0) > 5 ? "#DC2626" : "#059669" }}>
-                    {record.gis.spatial_delta_pct ?? "—"}%
-                  </strong>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Phase 4: ISRO Bhuvan GIS Map & Multi-Thematic Analytics */}
+          <BhuvanGisMap gis={record.gis} />
 
           {/* Review Metadata (Read-Only) */}
           {record.review && (
