@@ -3,7 +3,8 @@ import os
 import uuid
 
 import httpx
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
+
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -28,24 +29,46 @@ logger = logging.getLogger("api-gateway.records")
 async def upload_record(
     file: UploadFile = File(...),
     actor: str = "Officer (demo)",
+    language: str = Form("auto"),
     db: Session = Depends(get_db),
 ):
     try:
         content = await file.read()
         image_b64 = base64.b64encode(content).decode("utf-8")
 
+        # Resolve language hint
+        lang_hint = language
+        if not lang_hint or lang_hint == "auto":
+            fname = (file.filename or "").lower()
+            if "_kn_" in fname or "kannada" in fname:
+                lang_hint = "kn"
+            elif "_mr_" in fname or "marathi" in fname:
+                lang_hint = "mr"
+            elif "_ta_" in fname or "tamil" in fname:
+                lang_hint = "ta"
+            elif "_te_" in fname or "telugu" in fname:
+                lang_hint = "te"
+            elif "_bn_" in fname or "bengali" in fname:
+                lang_hint = "bn"
+            elif "_hi_" in fname or "hindi" in fname:
+                lang_hint = "hi"
+            elif "_en_" in fname or "english" in fname:
+                lang_hint = "en"
+            else:
+                lang_hint = "auto"
+
         record = Record(original_filename=file.filename, status="processing")
         db.add(record)
         db.commit()
         db.refresh(record)
-        _log(db, record.id, "uploaded", actor=actor, details={"filename": file.filename})
+        _log(db, record.id, "uploaded", actor=actor, details={"filename": file.filename, "language": lang_hint})
 
         # 1. OCR Step
         async with httpx.AsyncClient(timeout=30.0) as client:
             try:
                 ocr_resp = await client.post(
                     f"{OCR_SERVICE_URL}/ocr/extract",
-                    json={"image_base64": image_b64, "language_hint": "hi", "document_id": str(record.id)},
+                    json={"image_base64": image_b64, "language_hint": lang_hint, "document_id": str(record.id)},
                 )
                 ocr_resp.raise_for_status()
                 ocr_data = ocr_resp.json()
@@ -57,12 +80,13 @@ async def upload_record(
         record.raw_ocr_text = ocr_data["raw_text"]
         record.ocr_confidence = ocr_data["confidence"]
         record.document_type = ocr_data.get("document_type", "Standard Land Record")
-        record.language = ocr_data.get("language", "en")
+        record.language = ocr_data.get("language") or lang_hint
         db.commit()
-        _log(db, record.id, "ocr_completed", actor="OCR Engine", details={"confidence": ocr_data["confidence"], "doc_type": record.document_type})
+        _log(db, record.id, "ocr_completed", actor="OCR Engine", details={"confidence": ocr_data["confidence"], "doc_type": record.document_type, "language": record.language})
 
         # 2. Information Extraction Step
         async with httpx.AsyncClient(timeout=30.0) as client:
+
             try:
                 extract_resp = await client.post(
                     f"{EXTRACTION_SERVICE_URL}/extraction/parse",

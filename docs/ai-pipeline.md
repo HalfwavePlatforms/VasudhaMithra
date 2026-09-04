@@ -94,8 +94,8 @@ Identifies document categories based on header token proximity:
 ## 6. Dataset Structure & Benchmarking
 
 ### Dataset Layout
-- `data/sample-documents/`: Curated synthetic document set (RTC, Mutation, Sale Deeds).
-- `data/ground-truth/`: Matching ground truth JSON labels per image for objective accuracy evaluation.
+- `data/sample-documents/`: 49+ multilingual synthetic documents covering all 7 supported languages (`en`, `hi`, `kn`, `mr`, `bn`, `ta`, `te`).
+- `data/ground-truth/`: 59 matching ground-truth JSON label files per image for objective accuracy evaluation.
 - `data/edge-cases/`: 5 challenging test documents:
   1. `edge_01_rotated_18deg.png`: Severely skewed document (18°)
   2. `edge_02_low_contrast_faded.png`: Low contrast/faded ink
@@ -103,7 +103,24 @@ Identifies document categories based on header token proximity:
   4. `edge_04_handwritten_register_sample.png`: Historical handwritten register
   5. `edge_05_malformed_survey_format.png`: Malformed field test
 - `data/layout-references/`: Specimen layout notes for MP Bhulekh, UP Bhulekh, and Karnataka Bhoomi.
-- `data/external/iiit-indic-hw/`: Reference and download guide for the IIIT Indic Handwriting dataset.
+- `data/external/iiit-indic-hw/`: Reference guide for the IIIT Indic Handwriting dataset (`c3rl/IIIT-INDIC-HW-WORDS-Hindi`).
+
+### Benchmark Results (data/evaluate_accuracy.py)
+Following bicubic resolution upscaling ($1.5\times$) and `--psm 6` tabular segmentation mode:
+- **Total Fields Evaluated**: 590 fields across 59 ground-truth documents
+- **Overall Recognition Match**: **435/590 (73.7%)**
+- **Average Optical Confidence**: **77.1%**
+- **Key Field Accuracies**:
+  - `plot_area`: **98.3%**
+  - `khata_number`: **96.6%**
+  - `khasra_number`: **94.9%**
+  - `survey_number`: **89.8%**
+  - `owner_name`: **83.1%**
+  - `tehsil`: **72.9%**
+  - `district`: **66.1%**
+  - `land_classification`: **61.0%**
+  - `village`: **59.3%**
+
 
 ---
 
