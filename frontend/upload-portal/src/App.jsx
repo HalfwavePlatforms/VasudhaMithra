@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { FileText, CheckCircle2, Search, Sparkles, Layers, ArrowRight, X, Star, RefreshCw, AlertCircle, MapPin } from 'lucide-react';
+import {
+  FileText, CheckCircle2, Search, Sparkles, Layers, ArrowRight, X, Star,
+  RefreshCw, AlertCircle, MapPin, BarChart3, Database, ShieldCheck,
+  TrendingUp, Activity, Clock, AlertTriangle
+} from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
@@ -234,7 +238,7 @@ const MOCK_DEMO_RECORDS = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState("home"); // 'home', 'upload', 'inspect', 'queue'
+  const [activeTab, setActiveTab] = useState("home"); // 'home', 'upload', 'inspect', 'queue', 'dashboard'
   const [role, setRole] = useState("Revenue Officer (Tahsildar Office)");
   
   // Upload & Inspect State initialized with first seed record
@@ -246,6 +250,13 @@ export default function App() {
   const [editFields, setEditFields] = useState(MOCK_DEMO_RECORDS[0].fields);
   const [reviewerNotes, setReviewerNotes] = useState(MOCK_DEMO_RECORDS[0].review.reviewer_notes);
   const [actionSuccess, setActionSuccess] = useState(null);
+
+  // National Analytics Dashboard state
+  const [stats, setStats] = useState(null);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
+  const [backendConnected, setBackendConnected] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState(new Date());
 
   function handleFileSelect(f) {
     setFile(f);
@@ -271,12 +282,50 @@ export default function App() {
   const [userEmail, setUserEmail] = useState('');
   const [heroSearchQuery, setHeroSearchQuery] = useState('Survey No. 142/3B - Khata No. 891 (Bhoomi / Bhulekh)');
 
-  // Load review queue when switching tabs with fallback to mock data
+  // Initial load: fetch live dashboard stats and records from database
+  useEffect(() => {
+    async function initData() {
+      await fetchDashboardData();
+      await fetchQueue();
+    }
+    initData();
+    const interval = setInterval(fetchDashboardData, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Sync queue or dashboard when switching tabs
   useEffect(() => {
     if (activeTab === "queue") {
       fetchQueue();
+    } else if (activeTab === "dashboard") {
+      fetchDashboardData();
     }
   }, [activeTab, queueFilter]);
+
+  async function fetchDashboardData() {
+    setDashboardLoading(true);
+    try {
+      const [statsRes, auditRes] = await Promise.all([
+        fetch(`${API_BASE}/dashboard/stats`),
+        fetch(`${API_BASE}/dashboard/audit-trail?limit=30`)
+      ]);
+      if (statsRes.ok) {
+        const sData = await statsRes.json();
+        setStats(sData);
+        setBackendConnected(true);
+      }
+      if (auditRes.ok) {
+        const aData = await auditRes.json();
+        setAuditLogs(aData.audit_logs || []);
+      }
+      setLastRefreshed(new Date());
+    } catch (e) {
+      console.warn("Analytics API unreachable:", e);
+      setBackendConnected(false);
+    } finally {
+      setDashboardLoading(false);
+    }
+  }
 
   async function fetchQueue() {
     setLoadingQueue(true);
@@ -289,13 +338,21 @@ export default function App() {
         const data = await res.json();
         if (data.records && data.records.length > 0) {
           setQueueRecords(data.records);
+          setBackendConnected(true);
+          // If activeRecord is still default mock, update to latest record from PostgreSQL
+          if (activeRecord?.record_id === MOCK_DEMO_RECORDS[0].record_id) {
+            const first = data.records[0];
+            setActiveRecord(first);
+            setEditFields(typeof first.fields === "object" ? first.fields : {});
+            setReviewerNotes(first.review?.reviewer_notes || "");
+          }
           return;
         }
       }
-      // Fallback filter on local seeded demo records
       filterLocalQueue();
     } catch (e) {
       console.log("Backend offline, using VasudhaMithra seeded demo records.");
+      setBackendConnected(false);
       filterLocalQueue();
     } finally {
       setLoadingQueue(false);
@@ -330,7 +387,18 @@ export default function App() {
       });
       if (res.ok) {
         const data = await res.json();
+        setBackendConnected(true);
         await loadRecordDetails(data.record_id);
+        await fetchQueue();
+        await fetchDashboardData();
+        setActionSuccess(`Document successfully ingested & validated via PostGIS (Record ID: ${data.record_id.slice(0, 12)}).`);
+        confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+        setLoading(false);
+        return;
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        setError(errData.detail || `Upload failed with status code ${res.status}`);
+        setLoading(false);
         return;
       }
     } catch (e) {
@@ -407,10 +475,13 @@ export default function App() {
       const res = await fetch(`${API_BASE}/records/${recordId}`);
       if (res.ok) {
         const data = await res.json();
+        const fields = (typeof data.fields === "string" ? JSON.parse(data.fields) : data.fields) || {};
         setActiveRecord(data);
-        setEditFields(data.fields || {});
+        setEditFields(fields);
         setReviewerNotes(data.review?.reviewer_notes || "");
         setActiveTab("inspect");
+        setBackendConnected(true);
+        setLoading(false);
         return;
       }
     } catch (e) {
@@ -445,11 +516,16 @@ export default function App() {
         decision: decision,
         fields: editFields,
       };
-      await fetch(`${API_BASE}/records/${activeRecord.record_id}`, {
+      const res = await fetch(`${API_BASE}/records/${activeRecord.record_id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+      if (res.ok) {
+        setBackendConnected(true);
+        await fetchDashboardData();
+        await fetchQueue();
+      }
     } catch (e) {
       console.log("Backend offline, updating local state.");
     }
@@ -494,10 +570,10 @@ export default function App() {
           </button>
 
           {/* Navigation Tabs */}
-          <nav className="hidden lg:flex items-center gap-2 text-[13px] font-inter text-[#484758]">
+          <nav className="hidden lg:flex items-center gap-1.5 text-[13px] font-inter text-[#484758]">
             <button
               onClick={() => setActiveTab("home")}
-              className={`px-3.5 py-1.5 rounded-full transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-full transition-all cursor-pointer ${
                 activeTab === "home" ? "bg-[#181825] text-[#ffffff] font-medium" : "hover:text-[#000000]"
               }`}
             >
@@ -505,7 +581,7 @@ export default function App() {
             </button>
             <button
               onClick={() => setActiveTab("upload")}
-              className={`px-3.5 py-1.5 rounded-full transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-full transition-all cursor-pointer ${
                 activeTab === "upload" ? "bg-[#181825] text-[#ffffff] font-medium" : "hover:text-[#000000]"
               }`}
             >
@@ -513,7 +589,7 @@ export default function App() {
             </button>
             <button
               onClick={() => setActiveTab("inspect")}
-              className={`px-3.5 py-1.5 rounded-full transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-full transition-all cursor-pointer ${
                 activeTab === "inspect" ? "bg-[#181825] text-[#ffffff] font-medium" : "hover:text-[#000000]"
               }`}
             >
@@ -521,16 +597,36 @@ export default function App() {
             </button>
             <button
               onClick={() => setActiveTab("queue")}
-              className={`px-3.5 py-1.5 rounded-full transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-full transition-all cursor-pointer ${
                 activeTab === "queue" ? "bg-[#181825] text-[#ffffff] font-medium" : "hover:text-[#000000]"
               }`}
             >
-              📋 3. Revenue Review Queue
+              📋 3. Revenue Review Queue ({queueRecords.length})
+            </button>
+            <button
+              onClick={() => setActiveTab("dashboard")}
+              className={`px-3 py-1.5 rounded-full transition-all cursor-pointer ${
+                activeTab === "dashboard" ? "bg-[#181825] text-[#ffffff] font-medium" : "hover:text-[#000000]"
+              }`}
+            >
+              📊 4. National Analytics
             </button>
           </nav>
 
-          {/* Role & Dashboard Actions */}
-          <div className="flex items-center gap-3">
+          {/* Role & Connection Status */}
+          <div className="flex items-center gap-2.5">
+            {backendConnected ? (
+              <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>FastAPI &amp; PostGIS Online</span>
+              </span>
+            ) : (
+              <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                <span>Local Sandbox</span>
+              </span>
+            )}
+
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
@@ -542,18 +638,64 @@ export default function App() {
               <option>System Auditor</option>
             </select>
 
-            <a
-              href="http://localhost:3001"
-              target="_blank"
-              rel="noreferrer"
-              className="btn-primary-pill text-[13px] px-4 py-2"
+            <button
+              onClick={() => setActiveTab("dashboard")}
+              className={`btn-primary-pill text-[12px] px-3.5 py-1.5 cursor-pointer ${
+                activeTab === "dashboard" ? "bg-[#f69251] text-black font-semibold" : ""
+              }`}
             >
-              <span>Dashboard ↗</span>
-            </a>
+              <span>📊 Analytics</span>
+            </button>
           </div>
 
         </div>
       </header>
+
+      {/* Mobile / Responsive Navigation Sub-Bar */}
+      <div className="lg:hidden fixed top-20 left-0 right-0 z-40 px-4">
+        <div className="max-w-[1240px] mx-auto bg-white/95 backdrop-blur-md border border-black/10 rounded-2xl shadow-sm p-1.5 flex items-center gap-1 overflow-x-auto text-[11px] font-medium">
+          <button
+            onClick={() => setActiveTab("home")}
+            className={`px-3 py-1 rounded-full whitespace-nowrap transition-all cursor-pointer ${
+              activeTab === "home" ? "bg-[#181825] text-white font-medium" : "text-[#636363]"
+            }`}
+          >
+            ✨ Showcase
+          </button>
+          <button
+            onClick={() => setActiveTab("upload")}
+            className={`px-3 py-1 rounded-full whitespace-nowrap transition-all cursor-pointer ${
+              activeTab === "upload" ? "bg-[#181825] text-white font-medium" : "text-[#636363]"
+            }`}
+          >
+            📥 1. Upload
+          </button>
+          <button
+            onClick={() => setActiveTab("inspect")}
+            className={`px-3 py-1 rounded-full whitespace-nowrap transition-all cursor-pointer ${
+              activeTab === "inspect" ? "bg-[#181825] text-white font-medium" : "text-[#636363]"
+            }`}
+          >
+            🔍 2. Inspector
+          </button>
+          <button
+            onClick={() => setActiveTab("queue")}
+            className={`px-3 py-1 rounded-full whitespace-nowrap transition-all cursor-pointer ${
+              activeTab === "queue" ? "bg-[#181825] text-white font-medium" : "text-[#636363]"
+            }`}
+          >
+            📋 3. Queue ({queueRecords.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("dashboard")}
+            className={`px-3 py-1 rounded-full whitespace-nowrap transition-all cursor-pointer ${
+              activeTab === "dashboard" ? "bg-[#181825] text-white font-medium" : "text-[#636363]"
+            }`}
+          >
+            📊 4. Analytics
+          </button>
+        </div>
+      </div>
 
       {/* Global Alerts */}
       <div className="pt-24 max-w-[1240px] mx-auto px-4 sm:px-8">
@@ -1036,6 +1178,237 @@ export default function App() {
                           >
                             Inspect ➔
                           </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: NATIONAL CADASTRAL INTELLIGENCE & ANALYTICS */}
+      {activeTab === "dashboard" && (
+        <div className="py-10 px-4 sm:px-8 max-w-[1240px] mx-auto space-y-6">
+          {/* Header Card */}
+          <div className="bg-[#ffffff] p-6 rounded-[24px] border border-black/5 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="badge-neutral">🏛️ DILRMP National Mission</span>
+                <span className="text-[11px] font-mono text-emerald-600 font-semibold flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  Telemetry Synced: {lastRefreshed.toLocaleTimeString()}
+                </span>
+              </div>
+              <h2 className="heading-md text-[#000000] mt-1">
+                National Digitization &amp; Cadastral Intelligence Analytics
+              </h2>
+              <p className="font-inter text-[13px] text-[#636363] mt-0.5">
+                Real-time operational metrics across Revenue Districts, PostGIS spatial verification, and immutable ledger events.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={fetchDashboardData}
+                disabled={dashboardLoading}
+                className="flex items-center gap-2 bg-[#f7f7f7] hover:bg-[#181825] hover:text-[#ffffff] text-[#181825] px-4 py-2 rounded-full text-[12px] font-medium transition-all border border-black/10 cursor-pointer"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${dashboardLoading ? "animate-spin text-[#f69251]" : ""}`} />
+                <span>Refresh Live Metrics</span>
+              </button>
+            </div>
+          </div>
+
+          {/* KPI Summary 5-Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="bg-[#ffffff] p-5 rounded-[20px] border border-black/5 shadow-sm">
+              <span className="text-[11px] text-[#949494] font-medium uppercase block">Total Digitized</span>
+              <div className="text-[26px] font-extrabold text-[#000000] mt-1">
+                {stats?.total_processed ?? 36}
+              </div>
+              <span className="text-[11px] text-[#636363] mt-1 block">Records in PostgreSQL</span>
+            </div>
+
+            <div className="bg-[#ffffff] p-5 rounded-[20px] border border-black/5 shadow-sm">
+              <span className="text-[11px] text-[#949494] font-medium uppercase block">Certified &amp; Validated</span>
+              <div className="text-[26px] font-extrabold text-emerald-600 mt-1">
+                {stats?.verified_count ?? 4}
+              </div>
+              <span className="text-[11px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full inline-block mt-1 font-semibold">
+                {stats?.total_processed > 0 ? Math.round(((stats.verified_count || 0) / stats.total_processed) * 100) : 11}% completion rate
+              </span>
+            </div>
+
+            <div className="bg-[#ffffff] p-5 rounded-[20px] border border-black/5 shadow-sm">
+              <span className="text-[11px] text-[#949494] font-medium uppercase block">Pending Review</span>
+              <div className="text-[26px] font-extrabold text-amber-600 mt-1">
+                {stats?.pending_review_count ?? 32}
+              </div>
+              <span className="text-[11px] text-[#636363] mt-1 block">Awaiting Tahsildar action</span>
+            </div>
+
+            <div className={`bg-[#ffffff] p-5 rounded-[20px] border shadow-sm ${
+              (stats?.spatial_discrepancy_count || 0) > 0 ? "border-red-200 bg-red-50/20" : "border-black/5"
+            }`}>
+              <span className="text-[11px] text-[#949494] font-medium uppercase block">Spatial Discrepancies</span>
+              <div className="text-[26px] font-extrabold text-red-600 mt-1">
+                {stats?.spatial_discrepancy_count ?? 1}
+              </div>
+              <span className="text-[11px] text-red-700 bg-red-50 px-2 py-0.5 rounded-full inline-block mt-1 font-semibold">
+                Deed vs PostGIS &gt; 5%
+              </span>
+            </div>
+
+            <div className="bg-[#ffffff] p-5 rounded-[20px] border border-black/5 shadow-sm">
+              <span className="text-[11px] text-[#949494] font-medium uppercase block">Avg OCR Accuracy</span>
+              <div className="text-[26px] font-extrabold text-blue-600 mt-1">
+                {stats ? `${Math.round(stats.avg_extraction_accuracy * 100)}%` : "92%"}
+              </div>
+              <span className="text-[11px] text-[#636363] mt-1 block">Multilingual Indic Match</span>
+            </div>
+          </div>
+
+          {/* 2-Column Analytics Distribution */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* District Breakdown */}
+            <div className="bg-[#ffffff] p-6 rounded-[24px] border border-black/5 shadow-sm space-y-4">
+              <h3 className="font-inter font-semibold text-[15px] text-[#000000] flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-[#f69251]" /> Digitization Progress by District
+                </span>
+                <span className="text-[11px] text-[#949494] font-normal">Active Revenue Circles</span>
+              </h3>
+
+              {!stats?.by_district || Object.keys(stats.by_district).length === 0 ? (
+                <div className="p-8 text-center text-[#949494] text-[13px]">No district records logged yet.</div>
+              ) : (
+                <div className="space-y-3.5">
+                  {Object.entries(stats.by_district).map(([district, count]) => {
+                    const total = Math.max(1, stats.total_processed || 1);
+                    const pct = Math.min(100, Math.round((count / total) * 100));
+                    return (
+                      <div key={district} className="space-y-1.5">
+                        <div className="flex justify-between text-[13px]">
+                          <span className="font-medium text-[#181825] truncate max-w-[280px]">{district}</span>
+                          <span className="text-[#636363] font-mono text-[12px]">{count} records ({pct}%)</span>
+                        </div>
+                        <div className="w-full bg-[#f0f0f0] rounded-full h-2 overflow-hidden">
+                          <div
+                            className="bg-[#181825] h-full rounded-full transition-all duration-500"
+                            style={{ width: `${Math.max(5, pct)}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Land Classification & Document Categories */}
+            <div className="bg-[#ffffff] p-6 rounded-[24px] border border-black/5 shadow-sm space-y-4">
+              <h3 className="font-inter font-semibold text-[15px] text-[#000000] flex items-center gap-2">
+                <Layers className="w-4 h-4 text-[#f69251]" /> Land Classification &amp; Categories
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                <div className="bg-[#f7f7f7] p-4 rounded-[16px] border border-black/5 space-y-2">
+                  <div className="text-[11px] font-bold text-[#636363] uppercase tracking-wider">
+                    Land Classification
+                  </div>
+                  {stats?.by_classification && Object.keys(stats.by_classification).length > 0 ? (
+                    Object.entries(stats.by_classification).map(([cls, count]) => (
+                      <div key={cls} className="flex justify-between items-center text-[12px] py-1 border-b border-black/5 last:border-0">
+                        <span className="text-[#181825] font-medium truncate max-w-[130px]">{cls}</span>
+                        <span className="font-mono font-bold text-[#000000] bg-white px-2 py-0.5 rounded border border-black/5">{count}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-[12px] text-[#949494]">Agricultural (Dry/Wet)</div>
+                  )}
+                </div>
+
+                <div className="bg-[#f7f7f7] p-4 rounded-[16px] border border-black/5 space-y-2">
+                  <div className="text-[11px] font-bold text-[#636363] uppercase tracking-wider">
+                    Document Types
+                  </div>
+                  {stats?.by_doc_type && Object.keys(stats.by_doc_type).length > 0 ? (
+                    Object.entries(stats.by_doc_type).map(([dtype, count]) => (
+                      <div key={dtype} className="flex justify-between items-center text-[12px] py-1 border-b border-black/5 last:border-0">
+                        <span className="text-[#181825] font-medium truncate max-w-[130px]">{dtype}</span>
+                        <span className="font-mono font-bold text-emerald-600 bg-white px-2 py-0.5 rounded border border-black/5">{count}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-[12px] text-[#949494]">RTC Pahani, Form XII</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Immutable Audit Ledger */}
+          <div className="bg-[#ffffff] p-6 rounded-[24px] border border-black/5 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+              <div>
+                <h3 className="font-inter font-semibold text-[15px] text-[#000000] flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-[#f69251]" /> Tamper-Evident System Audit Trail
+                </h3>
+                <p className="text-[12px] text-[#636363]">
+                  Cryptographic log of all OCR extractions, GIS spatial calculations, and Tahsildar approval decisions.
+                </p>
+              </div>
+              <span className="text-[11px] font-mono text-[#949494]">
+                Showing last {auditLogs.length} events
+              </span>
+            </div>
+
+            {auditLogs.length === 0 ? (
+              <div className="p-8 text-center text-[#949494] text-[13px]">No audit logs recorded yet.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left font-inter text-[12px]">
+                  <thead>
+                    <tr className="border-b border-black/10 text-[#949494] text-[10px] uppercase tracking-wider">
+                      <th className="pb-2.5 px-3">Time (UTC)</th>
+                      <th className="pb-2.5 px-3">Action</th>
+                      <th className="pb-2.5 px-3">Actor / Role</th>
+                      <th className="pb-2.5 px-3">Record ID</th>
+                      <th className="pb-2.5 px-3">Provenance Details</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-black/5 font-mono">
+                    {auditLogs.map((log) => (
+                      <tr key={log.id} className="hover:bg-[#f7f7f7] transition-colors">
+                        <td className="py-2.5 px-3 text-[#64748B] whitespace-nowrap">
+                          {log.created_at ? new Date(log.created_at).toLocaleTimeString() : "—"}
+                        </td>
+                        <td className="py-2.5 px-3 whitespace-nowrap">
+                          <span className="bg-[#f2f4f7] text-[#181825] px-2 py-0.5 rounded font-sans font-bold text-[10px]">
+                            {log.action?.toUpperCase()}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 font-sans font-medium text-[#374151] whitespace-nowrap">
+                          {log.actor || "System Automated"}
+                        </td>
+                        <td className="py-2.5 px-3">
+                          {log.record_id ? (
+                            <button
+                              onClick={() => loadRecordDetails(log.record_id)}
+                              className="text-[#f69251] hover:underline font-bold cursor-pointer"
+                              title="Click to inspect this record in AI Inspector"
+                            >
+                              {log.record_id.slice(0, 12)}
+                            </button>
+                          ) : (
+                            <span className="text-[#949494]">—</span>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-3 text-[#6B7280] font-sans max-w-[340px] truncate">
+                          {typeof log.details === "object" ? JSON.stringify(log.details) : String(log.details || "")}
                         </td>
                       </tr>
                     ))}
