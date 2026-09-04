@@ -92,7 +92,8 @@ services:
     build: ./frontend/dashboard
     env_file: .env
     ports:
-      - "3001:3000"
+      - "3001:3001"
+
     volumes:
       - ./frontend/dashboard:/app
       - /app/node_modules

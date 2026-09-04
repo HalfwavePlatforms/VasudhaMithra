@@ -6,13 +6,9 @@ name: Deploy (hosted backup)
 
 on:
   workflow_dispatch:      # manual trigger — deploy on your own schedule, not every push
-  push:
-    branches: [main]
-    paths:
-      - "services/api-gateway/**"
-      - "frontend/**"
 
 jobs:
+
   deploy:
     runs-on: ubuntu-latest
     steps:

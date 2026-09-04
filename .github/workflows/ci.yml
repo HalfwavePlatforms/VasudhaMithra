@@ -46,14 +46,27 @@ jobs:
   compose-smoke-test:
     runs-on: ubuntu-latest
     needs: [python-services, frontend-apps]
+    env:
+      POSTGRES_USER: lrms_user
+      POSTGRES_PASSWORD: changeme
+      POSTGRES_DB: land_records
+      DATABASE_URL: postgresql://lrms_user:changeme@postgres:5432/land_records
+      OCR_PROVIDER: tesseract
+      OCR_SERVICE_URL: http://ocr-pipeline:8001
+      EXTRACTION_SERVICE_URL: http://extraction-engine:8002
+      GIS_SERVICE_URL: http://gis-service:8003
+      VITE_API_BASE_URL: http://localhost:8000
     steps:
       - uses: actions/checkout@v4
+      - name: Prepare environment file
+        run: cp .env.example .env
       - name: Boot full stack
         run: docker-compose -f docker-compose.prod.yml up -d --build
       - name: Wait for services
-        run: sleep 15
+        run: sleep 25
       - name: Health check
         run: bash infra/healthchecks/check-all.sh
       - name: Tear down
         if: always()
         run: docker-compose -f docker-compose.prod.yml down
+
