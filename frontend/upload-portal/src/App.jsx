@@ -297,7 +297,7 @@ export default function App() {
     } catch (e) {
       console.log("Backend offline, using VasudhaMithra seeded demo records.");
       filterLocalQueue();
-    } fontinally {
+    } finally {
       setLoadingQueue(false);
     }
   }
