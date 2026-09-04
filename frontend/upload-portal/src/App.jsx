@@ -5,6 +5,8 @@ import {
   TrendingUp, Activity, Clock, AlertTriangle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import ReviewQueue from "./components/ReviewQueue";
+import RecordDetail from "./components/RecordDetail";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
@@ -926,267 +928,20 @@ export default function App() {
 
       {/* TAB 2: INSPECTOR & CONSISTENCY ENGINE */}
       {activeTab === "inspect" && activeRecord && (
-        <div className="py-10 px-4 sm:px-8 max-w-[1240px] mx-auto space-y-6">
-          
-          {/* Header Card */}
-          <div className="bg-[#ffffff] p-6 rounded-[24px] border border-black/5 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <div className="text-[11px] font-mono text-[#949494] uppercase tracking-wider">
-                Record ID: <span className="text-[#000000] font-bold">{activeRecord.record_id}</span> | File: {activeRecord.original_filename}
-              </div>
-              <h2 className="heading-md text-[#000000] mt-1 flex items-center gap-3">
-                {activeRecord.document_type} ({activeRecord.language?.toUpperCase()})
-                <span className={`text-[12px] font-inter px-3 py-1 rounded-full border font-semibold ${
-                  activeRecord.status === "validated"
-                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                    : activeRecord.status === "rejected"
-                    ? "bg-red-50 text-red-700 border-red-200"
-                    : "bg-amber-50 text-amber-800 border-amber-200"
-                }`}>
-                  Status: {activeRecord.status?.toUpperCase().replace("_", " ")}
-                </span>
-              </h2>
-            </div>
-
-            <div className="text-right">
-              <span className="text-[11px] text-[#949494] block">Overall Optical Confidence</span>
-              <span className="text-[24px] font-bold text-emerald-600">
-                {Math.round((activeRecord.ocr_confidence || 0.92) * 100)}%
-              </span>
-            </div>
-          </div>
-
-          {/* 3-Column Inspection Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* Col 1: Raw Text */}
-            <div className="bg-[#ffffff] p-6 rounded-[24px] border border-black/5 shadow-sm space-y-3">
-              <h3 className="font-inter font-semibold text-[15px] text-[#000000] flex items-center gap-2">
-                <FileText className="w-4 h-4 text-[#f69251]" /> 1. OCR Recognized Text
-              </h3>
-              <div className="bg-[#f7f7f7] border border-black/5 rounded-[16px] p-4 h-[360px] overflow-y-auto font-mono text-[12px] text-[#334155] leading-relaxed whitespace-pre-wrap">
-                {activeRecord.raw_ocr_text || "No raw text extracted."}
-              </div>
-            </div>
-
-            {/* Col 2: Extracted Fields & Editing */}
-            <div className="bg-[#ffffff] p-6 rounded-[24px] border border-black/5 shadow-sm space-y-3">
-              <div className="flex justify-between items-center">
-                <h3 className="font-inter font-semibold text-[15px] text-[#000000] flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-[#f69251]" /> 2. Extracted Schema
-                </h3>
-                <span className="text-[11px] text-[#949494]">Field Confidence</span>
-              </div>
-
-              <div className="h-[360px] overflow-y-auto space-y-3 pr-1">
-                {Object.entries(editFields || {}).map(([key, val]) => {
-                  const conf = activeRecord.confidence_per_field?.[key] || 0.85;
-                  return (
-                    <div key={key} className="bg-[#f7f7f7] p-3 rounded-[12px] border border-black/5 space-y-1">
-                      <div className="flex justify-between text-[11px] font-semibold text-[#484758] uppercase">
-                        <span>{key.replace(/_/g, " ")}</span>
-                        <span className="text-emerald-600">{Math.round(conf * 100)}%</span>
-                      </div>
-                      <input
-                        type="text"
-                        value={val ?? ""}
-                        onChange={(e) => setEditFields({ ...editFields, [key]: e.target.value })}
-                        className="w-full bg-[#ffffff] border border-black/10 rounded-[8px] px-3 py-1.5 text-[13px] font-inter text-[#000000] outline-none focus:border-[#f69251]"
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Col 3: Spatial Consistency Engine & Action Buttons */}
-            <div className="bg-[#ffffff] p-6 rounded-[24px] border border-black/5 shadow-sm space-y-4">
-              <h3 className="font-inter font-semibold text-[15px] text-[#000000] flex items-center gap-2">
-                <Layers className="w-4 h-4 text-[#f69251]" /> 3. PostGIS Spatial Engine
-              </h3>
-
-              {/* Spatial Consistency Output */}
-              <div className="bg-[#f7f7f7] p-4 rounded-[16px] border border-black/5 space-y-3">
-                <div className="flex justify-between items-center text-[12px]">
-                  <span className="font-medium text-[#181825]">
-                    Parcel ID: <span className="font-mono">{activeRecord.gis?.parcel_id || "PARCEL-MEDAK-1423B"}</span>
-                  </span>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                    activeRecord.gis?.spatial_consistency === "DISCREPANCY"
-                      ? "bg-red-100 text-red-800"
-                      : "bg-emerald-100 text-emerald-800"
-                  }`}>
-                    {activeRecord.gis?.spatial_consistency === "DISCREPANCY" ? "⚠ AREA CONFLICT" : "✓ SPATIAL MATCH"}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-center bg-[#ffffff] p-3 rounded-[12px] border border-black/5">
-                  <div>
-                    <span className="text-[10px] text-[#949494] uppercase block">Deed Stated Area</span>
-                    <strong className="text-[15px] text-[#181825]">{activeRecord.gis?.area_doc_acres || "2.45"} ac</strong>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-[#949494] uppercase block">GIS Cadastral Area</span>
-                    <strong className="text-[15px] text-emerald-600">{activeRecord.gis?.area_gis_acres || "2.42"} ac</strong>
-                  </div>
-                </div>
-
-                <div className={`text-[11px] text-center font-medium ${
-                  activeRecord.gis?.spatial_consistency === "DISCREPANCY" ? "text-red-700" : "text-emerald-700"
-                }`}>
-                  Spatial Area Deviation: {activeRecord.gis?.spatial_delta_pct || "1.23"}% {activeRecord.gis?.spatial_consistency === "DISCREPANCY" ? "(Exceeds 5% tolerance threshold)" : "(Within permissible tolerance)"}
-                </div>
-              </div>
-
-              {/* Cadastral Polygon SVG Map */}
-              <div className="border border-black/10 rounded-[16px] p-3 bg-[#181825] text-white text-center space-y-1">
-                <span className="text-[11px] text-[#fad7c1] font-medium flex items-center justify-center gap-1">
-                  <MapPin className="w-3.5 h-3.5 text-[#f69251]" /> Cadastral Parcel Geometry
-                </span>
-                <svg width="100%" height="110" viewBox="0 0 240 110">
-                  <polygon points="20,15 220,25 210,95 30,90" fill="rgba(246, 146, 81, 0.25)" stroke="#f69251" strokeWidth="2" />
-                  <text x="120" y="55" fill="#ffffff" fontSize="11" fontWeight="bold" textAnchor="middle">
-                    Survey #{editFields?.survey_number || "142/3B"}
-                  </text>
-                  <text x="120" y="72" fill="#949494" fontSize="9" textAnchor="middle">
-                    PostGIS Spatial Geometry Polygon
-                  </text>
-                </svg>
-              </div>
-
-              {/* Officer Remarks & Decision Form */}
-              <div className="space-y-3 pt-1">
-                <label className="block text-[12px] font-semibold text-[#181825]">
-                  Revenue Officer Remarks / Mutation Order:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter remarks or certified mutation ref..."
-                  value={reviewerNotes}
-                  onChange={(e) => setReviewerNotes(e.target.value)}
-                  className="w-full bg-[#f7f7f7] border border-black/10 rounded-[10px] px-3 py-2 text-[13px] outline-none"
-                />
-
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => handleSaveCorrection("APPROVED")}
-                    disabled={loading}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 px-3 rounded-[12px] text-[13px] transition-colors cursor-pointer"
-                  >
-                    ✓ Approve &amp; Certify
-                  </button>
-                  <button
-                    onClick={() => handleSaveCorrection("REJECTED")}
-                    disabled={loading}
-                    className="bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 px-3 rounded-[12px] text-[13px] transition-colors cursor-pointer"
-                  >
-                    ⚠ Flag for Re-survey
-                  </button>
-                </div>
-                <button
-                  onClick={() => handleSaveCorrection(null)}
-                  disabled={loading}
-                  className="w-full bg-[#f7f7f7] hover:bg-[#181825] hover:text-[#ffffff] text-[#181825] border border-black/10 font-medium py-2 px-3 rounded-[12px] text-[12px] transition-all cursor-pointer"
-                >
-                  Save Edited Fields Only
-                </button>
-              </div>
-
-            </div>
-
-          </div>
-        </div>
+        <RecordDetail
+          recordId={activeRecord.record_id}
+          onBack={() => setActiveTab("queue")}
+        />
       )}
 
       {/* TAB 3: REVIEW QUEUE */}
       {activeTab === "queue" && (
-        <div className="py-10 px-4 sm:px-8 max-w-[1240px] mx-auto">
-          <div className="bg-[#ffffff] p-8 rounded-[24px] border border-black/5 shadow-sm space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <span className="badge-neutral mb-1">📋 Tahsildar Audit Queue</span>
-                <h2 className="heading-md text-[#000000]">Revenue Review Backlog</h2>
-                <p className="font-inter text-[13px] text-[#636363]">
-                  Records flagged for spatial area discrepancy (Δ% &gt; 5.0%), handwritten script triage, or duplicate survey IDs.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                {['all', 'pending', 'validated'].map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => setQueueFilter(f)}
-                    className={`text-[12px] font-inter px-3 py-1.5 rounded-full transition-all cursor-pointer ${
-                      queueFilter === f
-                        ? 'bg-[#181825] text-[#ffffff] font-medium'
-                        : 'bg-[#f7f7f7] text-[#636363] hover:text-[#000000]'
-                    }`}
-                  >
-                    {f === 'all' ? 'All Records' : f === 'pending' ? 'Pending Review' : 'Validated'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {loadingQueue ? (
-              <div className="p-12 text-center text-[#636363] font-inter">Loading review queue...</div>
-            ) : queueRecords.length === 0 ? (
-              <div className="p-12 text-center text-[#636363] font-inter">No land records match filter criteria.</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left font-inter text-[13px]">
-                  <thead>
-                    <tr className="border-b border-black/10 text-[#949494] text-[11px] uppercase tracking-wider">
-                      <th className="pb-3 px-2">Survey No</th>
-                      <th className="pb-3 px-2">Owner Name</th>
-                      <th className="pb-3 px-2">Village / District</th>
-                      <th className="pb-3 px-2">Area (Doc vs GIS)</th>
-                      <th className="pb-3 px-2">Status</th>
-                      <th className="pb-3 px-2">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-black/5">
-                    {queueRecords.map((r) => (
-                      <tr key={r.record_id} className="hover:bg-[#f7f7f7] transition-colors">
-                        <td className="py-3.5 px-2 font-semibold text-[#000000]">
-                          {r.fields?.survey_number || "142/3B"}
-                        </td>
-                        <td className="py-3.5 px-2 font-medium text-[#181825]">
-                          {r.fields?.owner_name || "Ramesh Kumar"}
-                        </td>
-                        <td className="py-3.5 px-2 text-[#636363]">
-                          {r.fields?.village || "Medak"} / {r.fields?.district || "Medak"}
-                        </td>
-                        <td className="py-3.5 px-2">
-                          {r.gis?.area_doc_acres || "2.45"} ac / {r.gis?.area_gis_acres || "2.42"} ac
-                        </td>
-                        <td className="py-3.5 px-2">
-                          <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
-                            r.status === "validated"
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                              : r.status === "rejected"
-                              ? "bg-red-50 text-red-700 border-red-200"
-                              : "bg-amber-50 text-amber-800 border-amber-200"
-                          }`}>
-                            {r.status?.toUpperCase().replace("_", " ") || "VALIDATED"}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-2">
-                          <button
-                            onClick={() => loadRecordDetails(r.record_id)}
-                            className="bg-[#181825] hover:bg-[#000000] text-[#ffffff] px-3.5 py-1.5 rounded-full text-[12px] font-medium transition-colors cursor-pointer"
-                          >
-                            Inspect ➔
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
+        <ReviewQueue
+          onSelectRecord={(recId) => {
+            loadRecordDetails(recId);
+            setActiveTab("inspect");
+          }}
+        />
       )}
 
       {/* TAB 4: NATIONAL CADASTRAL INTELLIGENCE & ANALYTICS */}
