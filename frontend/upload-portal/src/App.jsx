@@ -8,12 +8,27 @@ export default function App() {
   
   // Upload & Inspect State
   const [file, setFile] = useState(null);
+  const [selectedLanguage, setSelectedLanguage] = useState("auto");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [activeRecord, setActiveRecord] = useState(null);
   const [editFields, setEditFields] = useState({});
   const [reviewerNotes, setReviewerNotes] = useState("");
   const [actionSuccess, setActionSuccess] = useState(null);
+
+  function handleFileSelect(f) {
+    setFile(f);
+    if (f) {
+      const name = f.name.toLowerCase();
+      if (name.includes("_kn_") || name.includes("kannada")) setSelectedLanguage("kn");
+      else if (name.includes("_mr_") || name.includes("marathi")) setSelectedLanguage("mr");
+      else if (name.includes("_ta_") || name.includes("tamil")) setSelectedLanguage("ta");
+      else if (name.includes("_te_") || name.includes("telugu")) setSelectedLanguage("te");
+      else if (name.includes("_bn_") || name.includes("bengali")) setSelectedLanguage("bn");
+      else if (name.includes("_hi_") || name.includes("hindi")) setSelectedLanguage("hi");
+      else if (name.includes("_en_") || name.includes("english")) setSelectedLanguage("en");
+    }
+  }
 
   // Review Queue State
   const [queueRecords, setQueueRecords] = useState([]);
@@ -53,6 +68,8 @@ export default function App() {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("actor", role);
+    formData.append("language", selectedLanguage);
+
 
     try {
       const res = await fetch(`${API_BASE}/records/upload`, {
@@ -205,13 +222,13 @@ export default function App() {
                 Upload legacy Land Records, RTCs (Pahani), Form XII Mutation extracts, or Registered Sale Deeds (Image or PDF format).
               </p>
 
-              <div style={{ border: "2px dashed #CBD5E1", borderRadius: 8, padding: "32px 20px", textAlign: "center", backgroundColor: "#F8FAFC", marginBottom: 20 }}>
+              <div style={{ border: "2px dashed #CBD5E1", borderRadius: 8, padding: "26px 20px", textAlign: "center", backgroundColor: "#F8FAFC", marginBottom: 16 }}>
                 <div style={{ fontSize: 32, marginBottom: 12 }}>📄</div>
                 <input
                   type="file"
                   id="file-upload"
                   accept="image/*,.pdf"
-                  onChange={(e) => setFile(e.target.files[0])}
+                  onChange={(e) => handleFileSelect(e.target.files[0])}
                   style={{ display: "none" }}
                 />
                 <label
@@ -230,9 +247,39 @@ export default function App() {
                 </div>
               </div>
 
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 6 }}>
+                  Document Language & Regional Script
+                </label>
+                <select
+                  value={selectedLanguage}
+                  onChange={(e) => setSelectedLanguage(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: 6,
+                    border: "1px solid #CBD5E1",
+                    fontSize: 13,
+                    backgroundColor: "#FFFFFF",
+                    color: "#1F2937",
+                    fontWeight: 600
+                  }}
+                >
+                  <option value="auto">🌐 Auto-Detect Script (From filename or multilingual engine)</option>
+                  <option value="kn">ಕನ್ನಡ (Kannada) — Karnataka Bhoomi RTC / Pahani Form 16</option>
+                  <option value="hi">हिन्दी (Hindi) — MP / UP Bhulekh Khasra & Khatauni</option>
+                  <option value="mr">मराठी (Marathi) — Maharashtra 7/12 & 8A Records</option>
+                  <option value="bn">বাংলা (Bengali) — West Bengal Banglarbhumi RoR / Khatian</option>
+                  <option value="ta">தமிழ் (Tamil) — Tamil Nadu Patta / Chitta Records</option>
+                  <option value="te">తెలుగు (Telugu) — AP / Telangana 1B Adangal Records</option>
+                  <option value="en">English — National Standard / Registered Deeds</option>
+                </select>
+              </div>
+
               <button
                 onClick={handleUpload}
                 disabled={!file || loading}
+
                 style={{
                   width: "100%",
                   backgroundColor: !file || loading ? "#9CA3AF" : "#D97706",

@@ -6,7 +6,8 @@ WORKDIR /app
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-RUN python -m spacy download en_core_web_sm
+# spaCy removed: extraction is fully rule-based (keyword proximity + regex).
+# No model download needed.
 
 COPY src/ ./src
 COPY rules/ ./rules

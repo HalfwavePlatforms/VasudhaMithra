@@ -100,6 +100,7 @@ def _run_mock_ocr(image: np.ndarray) -> dict:
 def _run_tesseract(image: np.ndarray, language_hint: str) -> dict:
     # Tesseract language codes: eng, hin, kan (Kannada), mar (Marathi), ben, tam, tel ...
     lang_map = {
+        "auto": "kan+hin+mar+tam+tel+ben+eng",
         "en": "eng",
         "hi": "hin+eng",
         "kn": "kan+eng",
@@ -108,7 +109,8 @@ def _run_tesseract(image: np.ndarray, language_hint: str) -> dict:
         "ta": "tam+eng",
         "te": "tel+eng",
     }
-    lang = lang_map.get(language_hint, "eng")
+    lang = lang_map.get(language_hint, "kan+hin+eng")
+
 
     # 1. Resolution upscaling for enhanced optical stroke recognition
     h, w = image.shape[:2]
