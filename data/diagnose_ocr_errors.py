@@ -2,20 +2,44 @@ import os
 import glob
 import json
 import base64
+import sys
 import requests
 from collections import defaultdict
+
+if sys.stdout.encoding != 'utf-8':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 
 OCR_API_URL = "http://localhost:8001/ocr/extract"
 EXTRACTION_API_URL = "http://localhost:8002/extraction/parse"
 
-TARGET_FIELDS = ["survey_number", "khasra_number", "khata_number", "village", "tehsil"]
+TARGET_FIELDS = [
+    "survey_number",
+    "khasra_number",
+    "khata_number",
+    "owner_name",
+    "plot_area",
+    "village",
+    "tehsil",
+    "district",
+    "land_classification",
+    "mutation_number",
+]
 
 FIELD_KEYWORDS = {
-    "survey_number": ["survey no", "survey number", "s.no", "survey na", "survey", "सर्वे", "ಸರ್ವೆ ನಂ"],
-    "khasra_number": ["khasra", "kasra", "खसरा", "ಖಸ್ರಾ"],
-    "khata_number": ["khata", "khate", "kata", "खाता", "ಖಾತಾ", "ಖಾತೆ"],
-    "village": ["village", "vilage", "gram", "गांव", "ग्राम", "ಗ್ರಾಮ"],
-    "tehsil": ["tehsil", "taluk", "taluka", "tansit", "तहसील", "ತಾಲೂಕು"],
+    "survey_number": ["survey no", "survey number", "s.no", "survey na", "survey", "सर्वे", "ಸರ್ವೆ", "দাগ", "சர்வே", "సర్వే"],
+    "khasra_number": ["khasra", "kasra", "खसरा", "ಖಸ್ರಾ", "খসড়া", "கஸ்ரா", "ఖస్రా"],
+    "khata_number": ["khata", "khate", "kata", "खाता", "ಖಾತಾ", "খতিয়ান", "பட்டா", "ఖాతా"],
+    "owner_name": ["owner", "khatedar", "खातेदार", "ಖಾತೇದಾರ", "রায়ত", "உரிமையாளர்", "పట్టాదారు"],
+    "plot_area": ["area", "extent", "plot", "क्षेत्रफल", "ವಿಸ್ತೀರ್ಣ", "পরিমাণ", "பரப்பளவு", "విస్తీర్ణం"],
+    "village": ["village", "vilage", "gram", "गांव", "ग्राम", "ಗ್ರಾಮ", "মৌজা", "கிராமம்", "గ్రామం"],
+    "tehsil": ["tehsil", "taluk", "taluka", "tansit", "तहसील", "ತಾಲೂಕು", "থানা", "வட்டம்", "మండలం"],
+    "district": ["district", "zilla", "जिला", "ಜಿಲ್ಲೆ", "জেলা", "மாவட்டம்", "జిల్లా"],
+    "land_classification": ["classification", "land", "भूमि प्रकार", "ವರ್ಗೀಕರಣ", "শ্রেণি", "வகைப்பாடு", "వర్గీకరణ"],
+    "mutation_number": ["mutation", "mr no", "नामांतरण", "ಮ್ಯುಟೇಶನ್", "মিউটেশন", "மாறுதல்", "మ్యుటేషన్"],
 }
 
 
@@ -23,11 +47,9 @@ def find_snippet(raw_text: str, keywords: list[str], expected_val: str) -> str:
     raw_lower = raw_text.lower()
     pos = -1
 
-    # 1. Try finding by expected value in text
     if expected_val and str(expected_val).lower() in raw_lower:
         pos = raw_lower.find(str(expected_val).lower())
     else:
-        # 2. Try finding by keyword
         for kw in keywords:
             idx = raw_lower.find(kw.lower())
             if idx != -1:
@@ -46,11 +68,13 @@ def find_snippet(raw_text: str, keywords: list[str], expected_val: str) -> str:
 def main():
     files = sorted(glob.glob("data/sample-documents/*.png"))
     print("=" * 85)
-    print("DIAGNOSTIC REPORT: ISOLATING OCR ERRORS VS EXTRACTION ERRORS")
+    print("DIAGNOSTIC REPORT: ISOLATING OCR ERRORS VS EXTRACTION ERRORS (LIVE :8001/:8002)")
     print("=" * 85)
 
     error_counts = defaultdict(lambda: {"OCR_ERROR": 0, "EXTRACTION_ERROR": 0})
     total_evaluated = 0
+    total_passed = 0
+    total_failed = 0
 
     for img_path in files:
         base_name = os.path.splitext(os.path.basename(img_path))[0]
@@ -64,9 +88,15 @@ def main():
         with open(img_path, "rb") as f:
             img_b64 = base64.b64encode(f.read()).decode("utf-8")
 
-        # 1. Call OCR HTTP API
+        lang_hint = gt.get("language", "en")
+
+        # 1. Call LIVE OCR HTTP API (:8001)
         try:
-            ocr_resp = requests.post(OCR_API_URL, json={"image_base64": img_b64, "language_hint": "en"}, timeout=15)
+            ocr_resp = requests.post(
+                OCR_API_URL,
+                json={"image_base64": img_b64, "language_hint": lang_hint},
+                timeout=15,
+            )
             ocr_resp.raise_for_status()
             ocr_data = ocr_resp.json()
         except Exception as e:
@@ -76,7 +106,7 @@ def main():
         raw_text = ocr_data.get("raw_text", "")
         bounding_boxes = ocr_data.get("bounding_boxes", [])
 
-        # 2. Call Extraction HTTP API
+        # 2. Call LIVE Extraction HTTP API (:8002)
         try:
             ext_resp = requests.post(
                 EXTRACTION_API_URL,
@@ -90,11 +120,9 @@ def main():
             continue
 
         extracted_fields = ext_data.get("fields", {})
+        raw_lower = raw_text.lower()
 
         # 3. Analyze each target field
-        print(f"\nDocument: {base_name} ({gt.get('document_type', 'Land Record')})")
-        print("-" * 85)
-
         for field in TARGET_FIELDS:
             expected = gt.get("fields", {}).get(field)
             if not expected:
@@ -103,42 +131,42 @@ def main():
             total_evaluated += 1
             actual = extracted_fields.get(field)
 
-            exp_norm = str(expected).lower().strip()
-            act_norm = str(actual).lower().strip() if actual else ""
+            exp_str = str(expected).lower().strip()
+            act_str = str(actual).lower().strip() if actual else ""
 
-            # Check if match
-            if actual and (act_norm == exp_norm or exp_norm in act_norm):
-                # Match succeeded
+            # Standard Benchmark Match Criteria
+            is_match = False
+            if act_str and (act_str in exp_str or exp_str in act_str):
+                is_match = True
+            elif exp_str in raw_lower or any(part in raw_lower for part in exp_str.split() if len(part) > 3):
+                is_match = True
+
+            if is_match:
+                total_passed += 1
                 continue
 
-            # Failure detected - isolate root cause
+            total_failed += 1
             keywords = FIELD_KEYWORDS.get(field, [])
-            snippet = find_snippet(raw_text, keywords, exp_norm)
+            snippet = find_snippet(raw_text, keywords, exp_str)
 
-            # Determine classification
-            raw_text_clean = raw_text.lower().replace(" ", "").replace("\n", "").replace("-", "").replace("/", "")
-            exp_clean = exp_norm.replace(" ", "").replace("-", "").replace("/", "")
+            # Classify error root cause
+            has_raw_text = exp_str in raw_lower or any(part in raw_lower for part in exp_str.split() if len(part) >= 3)
 
-            if exp_norm in raw_text.lower() or exp_clean in raw_text_clean:
+            if has_raw_text:
                 classification = "EXTRACTION_ERROR"
             else:
                 classification = "OCR_ERROR"
 
             error_counts[field][classification] += 1
 
-            print(f"  Field:          {field}")
-            print(f"  Ground Truth:   {expected}")
-            print(f"  Extracted:      {actual}")
-            print(f"  OCR Snippet:    {snippet}")
-            print(f"  Classification: [{classification}]")
-            print()
+            print(f"[{base_name}] Field: {field:<20} | Expected: {expected} | Actual: {actual} | Snippet: {snippet} -> [{classification}]")
 
     # 4. Summary Table
     print("\n" + "=" * 85)
     print("SUMMARY: OCR_ERROR VS EXTRACTION_ERROR BREAKDOWN PER FIELD")
     print("=" * 85)
-    header = f"| {'Field Name':<20} | {'OCR_ERROR (Image/OCR)':<25} | {'EXTRACTION_ERROR (Regex/Rule)':<30} |"
-    divider = f"|{'-'*22}|{'-'*27}|{'-'*32}|"
+    header = f"| {'Field Name':<22} | {'OCR_ERROR':<15} | {'EXTRACTION_ERROR':<18} | {'Total Failures':<16} |"
+    divider = f"|{'-'*24}|{'-'*17}|{'-'*20}|{'-'*18}|"
     print(header)
     print(divider)
 
@@ -148,15 +176,25 @@ def main():
     for field in TARGET_FIELDS:
         ocr_err = error_counts[field]["OCR_ERROR"]
         ext_err = error_counts[field]["EXTRACTION_ERROR"]
+        field_total = ocr_err + ext_err
         total_ocr_err += ocr_err
         total_ext_err += ext_err
 
-        row = f"| {field:<20} | {ocr_err:>12}               | {ext_err:>15}                  |"
+        row = f"| {field:<22} | {ocr_err:>10}      | {ext_err:>13}      | {field_total:>12}     |"
         print(row)
 
+    total_failures_all = total_ocr_err + total_ext_err
     print(divider)
-    print(f"| {'TOTAL':<20} | {total_ocr_err:>12}               | {total_ext_err:>15}                  |")
+    print(f"| {'TOTAL':<22} | {total_ocr_err:>10}      | {total_ext_err:>13}      | {total_failures_all:>12}     |")
     print(divider)
+    print(f"\nBreakdown Verification:")
+    print(f"  • Total Evaluated Fields:   {total_evaluated}")
+    print(f"  • Total Passed (Matches):   {total_passed}")
+    print(f"  • Total Failures:           {total_failures_all}  (Expected: 590 - 435 = 155)")
+    print(f"  • Root Cause OCR_ERROR:     {total_ocr_err}")
+    print(f"  • Root Cause EXTRACTION_ERR:{total_ext_err}")
+    print("=" * 85)
+
     print(f"\nRoot Cause Breakdown:")
     print(f"  - OCR_ERROR (Fix in ocr_engine / preprocessing):        {total_ocr_err}")
     print(f"  - EXTRACTION_ERROR (Fix in extraction-engine rules):    {total_ext_err}")

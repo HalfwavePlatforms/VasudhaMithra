@@ -100,6 +100,7 @@ def _run_mock_ocr(image: np.ndarray) -> dict:
 def _run_tesseract(image: np.ndarray, language_hint: str) -> dict:
     # Tesseract language codes: eng, hin, kan (Kannada), mar (Marathi), ben, tam, tel ...
     lang_map = {
+        "auto": "kan+hin+mar+tam+tel+ben+eng",
         "en": "eng",
         "hi": "hin+eng",
         "kn": "kan+eng",
@@ -108,11 +109,24 @@ def _run_tesseract(image: np.ndarray, language_hint: str) -> dict:
         "ta": "tam+eng",
         "te": "tel+eng",
     }
-    lang = lang_map.get(language_hint, "eng")
+    lang = lang_map.get(language_hint, "kan+hin+eng")
 
+
+    # 1. Resolution upscaling for enhanced optical stroke recognition
+    h, w = image.shape[:2]
+    scale_factor = 1.5 if (w < 1800 or h < 1400) else 1.0
+    if scale_factor > 1.0:
+        proc_image = cv2.resize(
+            image, (int(w * scale_factor), int(h * scale_factor)), interpolation=cv2.INTER_CUBIC
+        )
+    else:
+        proc_image = image
+
+    # 2. Configure PSM 6 (Assume a single uniform block of text) for tabular revenue layout
+    custom_config = "--psm 6"
 
     data = pytesseract.image_to_data(
-        image, lang=lang, output_type=pytesseract.Output.DICT
+        proc_image, lang=lang, config=custom_config, output_type=pytesseract.Output.DICT
     )
 
     words, confidences, boxes = [], [], []
@@ -123,17 +137,17 @@ def _run_tesseract(image: np.ndarray, language_hint: str) -> dict:
                 continue
             words.append(text)
             confidences.append(conf / 100.0)
-            x, y, w, h = (
-                data["left"][i],
-                data["top"][i],
-                data["width"][i],
-                data["height"][i],
+            x, y, bw, bh = (
+                data["left"][i] / scale_factor,
+                data["top"][i] / scale_factor,
+                data["width"][i] / scale_factor,
+                data["height"][i] / scale_factor,
             )
             boxes.append(
                 {
                     "text": text,
                     "confidence": conf / 100.0,
-                    "box": [float(x), float(y), float(x + w), float(y + h)],
+                    "box": [float(x), float(y), float(x + bw), float(y + bh)],
                 }
             )
 
@@ -143,6 +157,7 @@ def _run_tesseract(image: np.ndarray, language_hint: str) -> dict:
         "confidence": avg_conf,
         "bounding_boxes": boxes,
     }
+
 
 
 def _run_google_vision(image: np.ndarray) -> dict:
