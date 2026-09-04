@@ -61,13 +61,17 @@ jobs:
       - name: Prepare environment file
         run: cp .env.example .env
       - name: Boot full stack
-        run: docker-compose -f docker-compose.yml up -d --build
+        run: |
+          docker compose -f docker-compose.yml up -d --build 2>&1 || docker-compose -f docker-compose.yml up -d --build
       - name: Wait for services
         run: sleep 25
       - name: Health check
-        run: bash infra/healthchecks/check-all.sh
+        run: |
+          bash infra/healthchecks/check-all.sh || (docker compose -f docker-compose.yml logs && exit 1)
       - name: Tear down
         if: always()
-        run: docker-compose -f docker-compose.yml down
+        run: |
+          docker compose -f docker-compose.yml down 2>/dev/null || docker-compose -f docker-compose.yml down
+
 
 

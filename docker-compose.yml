@@ -82,9 +82,6 @@ services:
     env_file: .env
     ports:
       - "3000:3000"
-    volumes:
-      - ./frontend/upload-portal:/app
-      - /app/node_modules
     depends_on:
       - api-gateway
 
@@ -93,12 +90,9 @@ services:
     env_file: .env
     ports:
       - "3001:3001"
-
-    volumes:
-      - ./frontend/dashboard:/app
-      - /app/node_modules
     depends_on:
       - api-gateway
+
 
 volumes:
   pgdata:
