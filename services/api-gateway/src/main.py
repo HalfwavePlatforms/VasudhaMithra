@@ -54,12 +54,13 @@ def database_viewer():
         pg_ver = conn.execute(text("SELECT version()")).scalar()
 
 
+    null_span = "<span style='color:#94A3B8;'>null</span>"
     def make_table(headers, rows):
         th_html = "".join(f"<th style='padding:10px 12px;background:#0B3B60;color:white;text-align:left;font-size:12px;'>{h}</th>" for h in headers)
         tr_html = ""
         for i, r in enumerate(rows):
             bg = "#FFFFFF" if i % 2 == 0 else "#F8FAFC"
-            tds = "".join(f"<td style='padding:8px 12px;border-bottom:1px solid #E2E8F0;font-size:12px;color:#1E293B;'>{v if v is not None else '<span style=\"color:#94A3B8;\">null</span>'}</td>" for v in r)
+            tds = "".join(f"<td style='padding:8px 12px;border-bottom:1px solid #E2E8F0;font-size:12px;color:#1E293B;'>{v if v is not None else null_span}</td>" for v in r)
             tr_html += f"<tr style='background:{bg};'>{tds}</tr>"
         return f"<div style='overflow-x:auto;border:1px solid #CBD5E1;border-radius:6px;'><table style='width:100%;border-collapse:collapse;'><thead><tr>{th_html}</tr></thead><tbody>{tr_html}</tbody></table></div>"
 
