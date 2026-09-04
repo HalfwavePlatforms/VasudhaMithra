@@ -239,12 +239,27 @@ export default function App() {
   
   // Upload & Inspect State initialized with first seed record
   const [file, setFile] = useState(null);
+  const [selectedLanguage, setSelectedLanguage] = useState("auto");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [activeRecord, setActiveRecord] = useState(MOCK_DEMO_RECORDS[0]);
   const [editFields, setEditFields] = useState(MOCK_DEMO_RECORDS[0].fields);
   const [reviewerNotes, setReviewerNotes] = useState(MOCK_DEMO_RECORDS[0].review.reviewer_notes);
   const [actionSuccess, setActionSuccess] = useState(null);
+
+  function handleFileSelect(f) {
+    setFile(f);
+    if (f) {
+      const name = f.name.toLowerCase();
+      if (name.includes("_kn_") || name.includes("kannada")) setSelectedLanguage("kn");
+      else if (name.includes("_mr_") || name.includes("marathi")) setSelectedLanguage("mr");
+      else if (name.includes("_ta_") || name.includes("tamil")) setSelectedLanguage("ta");
+      else if (name.includes("_te_") || name.includes("telugu")) setSelectedLanguage("te");
+      else if (name.includes("_bn_") || name.includes("bengali")) setSelectedLanguage("bn");
+      else if (name.includes("_hi_") || name.includes("hindi")) setSelectedLanguage("hi");
+      else if (name.includes("_en_") || name.includes("english")) setSelectedLanguage("en");
+    }
+  }
 
   // Review Queue State
   const [queueRecords, setQueueRecords] = useState(MOCK_DEMO_RECORDS);
@@ -282,7 +297,7 @@ export default function App() {
     } catch (e) {
       console.log("Backend offline, using VasudhaMithra seeded demo records.");
       filterLocalQueue();
-    } finally {
+    } fontinally {
       setLoadingQueue(false);
     }
   }
@@ -306,6 +321,7 @@ export default function App() {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("actor", role);
+    formData.append("language", selectedLanguage);
 
     try {
       const res = await fetch(`${API_BASE}/records/upload`, {
@@ -674,12 +690,12 @@ export default function App() {
                   type="file"
                   id="file-upload"
                   accept="image/*,.pdf"
-                  onChange={(e) => setFile(e.target.files[0])}
+                  onChange={(e) => handleFileSelect(e.target.files[0])}
                   className="hidden"
                 />
                 <label
                   htmlFor="file-upload"
-                  className="btn-primary-pill px-6 py-2.5 cursor-pointer text-[14px]"
+                  className="btn-primary-pill px-6 py-2.5 cursor-pointer text-[14px] inline-block"
                 >
                   Choose Document File
                 </label>
@@ -693,6 +709,26 @@ export default function App() {
                 <p className="text-[12px] text-[#949494] mt-4">
                   Supports High-Resolution Scans, Multi-page PDFs, Photographed Village Records (Bilateral Denoising + Auto Deskewing)
                 </p>
+              </div>
+
+              <div>
+                <label className="block text-[12px] font-bold text-[#374151] mb-1.5">
+                  Document Language &amp; Regional Script
+                </label>
+                <select
+                  value={selectedLanguage}
+                  onChange={(e) => setSelectedLanguage(e.target.value)}
+                  className="w-full p-2.5 rounded-lg border border-[#CBD5E1] text-[13px] bg-[#FFFFFF] text-[#1F2937] font-semibold outline-none focus:border-[#f69251]"
+                >
+                  <option value="auto">🌐 Auto-Detect Script (From filename or multilingual engine)</option>
+                  <option value="kn">ಕನ್ನಡ (Kannada) — Karnataka Bhoomi RTC / Pahani Form 16</option>
+                  <option value="hi">हिन्दी (Hindi) — MP / UP Bhulekh Khasra &amp; Khatauni</option>
+                  <option value="mr">मराठी (Marathi) — Maharashtra 7/12 &amp; 8A Records</option>
+                  <option value="bn">বাংলা (Bengali) — West Bengal Banglarbhumi RoR / Khatian</option>
+                  <option value="ta">தமிழ் (Tamil) — Tamil Nadu Patta / Chitta Records</option>
+                  <option value="te">తెలుగు (Telugu) — AP / Telangana 1B Adangal Records</option>
+                  <option value="en">English — National Standard / Registered Deeds</option>
+                </select>
               </div>
 
               <button
