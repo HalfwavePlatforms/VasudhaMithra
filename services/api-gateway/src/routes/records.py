@@ -23,8 +23,19 @@ EXTRACTION_SERVICE_URL = os.getenv("EXTRACTION_SERVICE_URL", "http://127.0.0.1:8
 GIS_SERVICE_URL = os.getenv("GIS_SERVICE_URL", "http://127.0.0.1:8003")
 
 # Persistent Document Storage Path
-REPO_ROOT = Path(__file__).resolve().parents[4]
-STORAGE_PATH = Path(os.getenv("STORAGE_PATH", str(REPO_ROOT / "storage")))
+BASE_DIR = Path(__file__).resolve().parent
+REPO_ROOT = BASE_DIR
+for p in [BASE_DIR] + list(BASE_DIR.parents):
+    if (p / "storage").exists() or (p / "services").exists():
+        REPO_ROOT = p
+        break
+
+STORAGE_PATH_ENV = os.getenv("STORAGE_PATH")
+if STORAGE_PATH_ENV:
+    STORAGE_PATH = Path(STORAGE_PATH_ENV)
+else:
+    STORAGE_PATH = REPO_ROOT / "storage"
+
 STORAGE_PATH.mkdir(parents=True, exist_ok=True)
 
 # Upload File Constraints
