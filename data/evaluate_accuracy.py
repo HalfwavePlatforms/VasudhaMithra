@@ -79,7 +79,8 @@ for img_path in files:
             total_matched_count += 1
 
         # Check confidence calculation vs fallback
-        conf = field_confs.get(field_name, 0.0)
+        conf_raw = field_confs.get(field_name)
+        conf = conf_raw if (conf_raw is not None and isinstance(conf_raw, (int, float))) else 0.0
         stats["conf_scores"].append(conf)
 
         # Fallback values in field_extractor: 0.0 (not found), 0.5, 0.78, 0.88 (without box match)

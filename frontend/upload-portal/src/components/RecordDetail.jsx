@@ -139,24 +139,33 @@ export default function RecordDetail({ recordId, onBack }) {
   }
 
   const riskUpper = (record.risk_level || "LOW").toUpperCase();
-  let riskBadge = { bg: "#ECFDF5", text: "#059669", border: "#A7F3D0" };
+  let riskBadge = { bg: "#ECFDF5", text: "#059669", border: "#A7F3D0", label: "✓ LOW" };
   if (riskUpper === "MEDIUM") {
-    riskBadge = { bg: "#FFFBEB", text: "#D97706", border: "#FDE68A" };
+    riskBadge = { bg: "#FFFBEB", text: "#D97706", border: "#FDE68A", label: "⚠️ MEDIUM" };
   } else if (riskUpper === "HIGH") {
-    riskBadge = { bg: "#FEF2F2", text: "#DC2626", border: "#FECACA" };
+    riskBadge = { bg: "#FEF2F2", text: "#DC2626", border: "#FECACA", label: "⚠️ HIGH" };
   }
 
-  const ocrConfPct = typeof record.ocr_confidence === "number"
+  const statusNorm = (record.status || "pending_review").toLowerCase();
+  let statusBadge = { bg: "#FFFBEB", text: "#D97706", border: "#FDE68A", label: "⏳ PENDING REVIEW" };
+  if (statusNorm === "validated") {
+    statusBadge = { bg: "#ECFDF5", text: "#059669", border: "#A7F3D0", label: "✓ VALIDATED" };
+  } else if (statusNorm === "rejected") {
+    statusBadge = { bg: "#FEF2F2", text: "#DC2626", border: "#FECACA", label: "✕ REJECTED" };
+  }
+
+  const hasOcrConf = typeof record.ocr_confidence === "number" && !isNaN(record.ocr_confidence) && record.ocr_confidence > 0;
+  const ocrConfPct = hasOcrConf
     ? `${(record.ocr_confidence * 100).toFixed(1)}%`
-    : record.ocr_confidence || "—";
+    : "Unverified";
 
   return (
-    <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "24px 16px", fontFamily: "Inter, system-ui, sans-serif", color: "#1F2937" }}>
+    <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "24px 24px", fontFamily: "Inter, system-ui, -apple-system, sans-serif", color: "#1F2937" }}>
       {/* Top Action Bar */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
         <button
           onClick={onBack}
-          style={{ backgroundColor: "#0B3B60", color: "#FFFFFF", border: "none", padding: "8px 16px", borderRadius: "6px", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}
+          style={{ backgroundColor: "#0B3B60", color: "#FFFFFF", border: "none", padding: "8px 16px", borderRadius: "6px", fontSize: "12px", fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px" }}
         >
           ← Back to Review Queue
         </button>
@@ -166,7 +175,7 @@ export default function RecordDetail({ recordId, onBack }) {
       </div>
 
       {/* Header Info Banner */}
-      <div style={{ backgroundColor: "#FFFFFF", borderRadius: "12px", border: "1px solid #E5E7EB", padding: "20px", marginBottom: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+      <div style={{ backgroundColor: "#FFFFFF", borderRadius: "8px", border: "1px solid #E5E7EB", padding: "20px", marginBottom: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
           <div>
             <div style={{ fontSize: "11px", fontFamily: "monospace", color: "#0B3B60", fontWeight: 700, marginBottom: "4px" }}>
@@ -179,22 +188,22 @@ export default function RecordDetail({ recordId, onBack }) {
 
           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
             <div style={{ textAlign: "right" }}>
-              <span style={{ fontSize: "11px", color: "#6B7280", display: "block" }}>Risk Level</span>
-              <span style={{ fontSize: "12px", fontWeight: 700, padding: "3px 10px", borderRadius: "12px", backgroundColor: riskBadge.bg, color: riskBadge.text, border: `1px solid ${riskBadge.border}`, display: "inline-block" }}>
-                {riskUpper}
+              <span style={{ fontSize: "11px", color: "#6B7280", display: "block", fontWeight: 600, textTransform: "uppercase" }}>Risk Level</span>
+              <span style={{ fontSize: "11px", fontWeight: 700, padding: "3px 8px", borderRadius: "6px", backgroundColor: riskBadge.bg, color: riskBadge.text, border: `1px solid ${riskBadge.border}`, display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                {riskBadge.label}
               </span>
             </div>
 
             <div style={{ textAlign: "right" }}>
-              <span style={{ fontSize: "11px", color: "#6B7280", display: "block" }}>Status</span>
-              <span style={{ fontSize: "12px", fontWeight: 700, padding: "3px 10px", borderRadius: "12px", backgroundColor: record.status === "validated" ? "#ECFDF5" : record.status === "rejected" ? "#FEF2F2" : "#FFFBEB", color: record.status === "validated" ? "#059669" : record.status === "rejected" ? "#DC2626" : "#D97706", border: `1px solid ${record.status === "validated" ? "#A7F3D0" : record.status === "rejected" ? "#FECACA" : "#FDE68A"}`, display: "inline-block" }}>
-                {(record.status || "PENDING_REVIEW").toUpperCase().replace("_", " ")}
+              <span style={{ fontSize: "11px", color: "#6B7280", display: "block", fontWeight: 600, textTransform: "uppercase" }}>Status</span>
+              <span style={{ fontSize: "11px", fontWeight: 700, padding: "3px 8px", borderRadius: "6px", backgroundColor: statusBadge.bg, color: statusBadge.text, border: `1px solid ${statusBadge.border}`, display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                {statusBadge.label}
               </span>
             </div>
 
-            <div style={{ textAlign: "right", paddingLeft: "12px", borderLeft: "1px solid #E5E7EB" }}>
-              <span style={{ fontSize: "11px", color: "#6B7280", display: "block" }}>OCR Confidence</span>
-              <span style={{ fontSize: "20px", fontWeight: 800, color: "#059669" }}>
+            <div style={{ textAlign: "right", paddingLeft: "16px", borderLeft: "1px solid #E5E7EB" }}>
+              <span style={{ fontSize: "11px", color: "#6B7280", display: "block", fontWeight: 600, textTransform: "uppercase" }}>OCR Confidence</span>
+              <span style={{ fontSize: "20px", fontWeight: 800, color: hasOcrConf ? "#059669" : "#6B7280" }}>
                 {ocrConfPct}
               </span>
             </div>
@@ -206,7 +215,7 @@ export default function RecordDetail({ recordId, onBack }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
         
         {/* Left Column: Original Document Viewer */}
-        <div style={{ backgroundColor: "#FFFFFF", borderRadius: "12px", border: "1px solid #E5E7EB", padding: "20px" }}>
+        <div style={{ backgroundColor: "#FFFFFF", borderRadius: "8px", border: "1px solid #E5E7EB", padding: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
           <h3 style={{ fontSize: "14px", fontWeight: 700, color: "#0B3B60", margin: "0 0 16px 0" }}>
             📄 Original Document File Source
           </h3>
@@ -227,7 +236,7 @@ export default function RecordDetail({ recordId, onBack }) {
         <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
           
           {/* Extracted Fields Form Grid */}
-          <div style={{ backgroundColor: "#FFFFFF", borderRadius: "12px", border: "1px solid #E5E7EB", padding: "20px" }}>
+          <div style={{ backgroundColor: "#FFFFFF", borderRadius: "8px", border: "1px solid #E5E7EB", padding: "20px" }}>
             <h3 style={{ fontSize: "14px", fontWeight: 700, color: "#0B3B60", margin: "0 0 16px 0" }}>
               📋 Extracted Land Record Fields
             </h3>
@@ -235,17 +244,22 @@ export default function RecordDetail({ recordId, onBack }) {
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               {Object.keys(editFields).map((key) => {
                 const confRaw = record.confidence_per_field?.[key];
-                const confVal = typeof confRaw === "number" ? confRaw : 0.85;
-                const confPct = Math.round(confVal * 100);
+                const hasConf = typeof confRaw === "number" && !isNaN(confRaw);
+                const confVal = hasConf ? confRaw : null;
+                const confPct = hasConf ? Math.round(confVal * 100) : null;
 
-                let badgeStyle = { bg: "#ECFDF5", text: "#059669", border: "#A7F3D0" };
-                if (confVal < 0.70) {
-                  badgeStyle = { bg: "#FEF2F2", text: "#DC2626", border: "#FECACA" };
-                } else if (confVal < 0.90) {
-                  badgeStyle = { bg: "#FFFBEB", text: "#D97706", border: "#FDE68A" };
+                let badgeStyle = { bg: "#F3F4F6", text: "#6B7280", border: "#E5E7EB" };
+                if (hasConf) {
+                  if (confVal < 0.70) {
+                    badgeStyle = { bg: "#FEF2F2", text: "#DC2626", border: "#FECACA" };
+                  } else if (confVal < 0.85) {
+                    badgeStyle = { bg: "#FFFBEB", text: "#D97706", border: "#FDE68A" };
+                  } else {
+                    badgeStyle = { bg: "#ECFDF5", text: "#059669", border: "#A7F3D0" };
+                  }
                 }
 
-                const isLowConf = confVal < 0.85;
+                const isLowConf = hasConf && confVal < 0.85;
 
                 return (
                   <div
@@ -267,9 +281,16 @@ export default function RecordDetail({ recordId, onBack }) {
                             ⚠️ Low Confidence (&lt;85%)
                           </span>
                         )}
-                        <span style={{ fontSize: "10px", fontWeight: 700, backgroundColor: badgeStyle.bg, color: badgeStyle.text, border: `1px solid ${badgeStyle.border}`, padding: "2px 6px", borderRadius: "4px" }}>
-                          {confPct}%
-                        </span>
+                        {!hasConf && (
+                          <span style={{ fontSize: "10px", fontWeight: 600, backgroundColor: "#F3F4F6", color: "#6B7280", border: "1px solid #E5E7EB", padding: "2px 6px", borderRadius: "4px" }}>
+                            Unverified
+                          </span>
+                        )}
+                        {hasConf && (
+                          <span style={{ fontSize: "10px", fontWeight: 700, backgroundColor: badgeStyle.bg, color: badgeStyle.text, border: `1px solid ${badgeStyle.border}`, padding: "2px 6px", borderRadius: "4px" }}>
+                            {confPct}%
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -295,7 +316,7 @@ export default function RecordDetail({ recordId, onBack }) {
 
           {/* Rule Violations Section */}
           {record.violations && record.violations.length > 0 && (
-            <div style={{ backgroundColor: "#FFFFFF", borderRadius: "12px", border: "1px solid #FECACA", padding: "16px" }}>
+            <div style={{ backgroundColor: "#FFFFFF", borderRadius: "8px", border: "1px solid #FECACA", padding: "16px" }}>
               <h4 style={{ fontSize: "13px", fontWeight: 700, color: "#991B1B", margin: "0 0 12px 0" }}>
                 ⚠️ Rule Violations ({record.violations.length})
               </h4>
@@ -320,7 +341,7 @@ export default function RecordDetail({ recordId, onBack }) {
 
           {/* Review Metadata (Read-Only) */}
           {record.review && (
-            <div style={{ backgroundColor: "#FFFFFF", borderRadius: "12px", border: "1px solid #E5E7EB", padding: "16px" }}>
+            <div style={{ backgroundColor: "#FFFFFF", borderRadius: "8px", border: "1px solid #E5E7EB", padding: "16px" }}>
               <h4 style={{ fontSize: "13px", fontWeight: 700, color: "#0B3B60", margin: "0 0 8px 0" }}>
                 📑 Existing Review Log (Read-Only)
               </h4>
@@ -335,7 +356,7 @@ export default function RecordDetail({ recordId, onBack }) {
           )}
 
           {/* Phase 3: Validation & Decision Controls */}
-          <div style={{ backgroundColor: "#FFFFFF", borderRadius: "12px", border: "1px solid #0B3B60", padding: "20px", boxShadow: "0 2px 4px rgba(0,0,0,0.05)" }}>
+          <div style={{ backgroundColor: "#FFFFFF", borderRadius: "8px", border: "1px solid #0B3B60", padding: "20px", boxShadow: "0 2px 4px rgba(0,0,0,0.05)" }}>
             <h3 style={{ fontSize: "15px", fontWeight: 700, color: "#0B3B60", margin: "0 0 12px 0" }}>
               🛡️ Official Revenue Validation & Decision Controls
             </h3>
@@ -439,7 +460,7 @@ export default function RecordDetail({ recordId, onBack }) {
       </div>
 
       {/* Raw OCR Text Collapsible Drawer */}
-      <div style={{ marginTop: "20px", backgroundColor: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: "12px", padding: "16px" }}>
+      <div style={{ marginTop: "20px", backgroundColor: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: "8px", padding: "16px" }}>
         <button
           onClick={() => setShowRawOcr(!showRawOcr)}
           style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", background: "none", border: "none", cursor: "pointer", padding: 0 }}

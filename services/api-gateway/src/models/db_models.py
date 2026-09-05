@@ -11,6 +11,7 @@ class Record(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     original_filename = Column(String, nullable=False)
+    file_path = Column(String)
     uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
     status = Column(String, nullable=False, default="processing")
     raw_ocr_text = Column(String)

@@ -7,6 +7,7 @@ import {
 import confetti from 'canvas-confetti';
 import ReviewQueue from "./components/ReviewQueue";
 import RecordDetail from "./components/RecordDetail";
+import CadastralLeafletMap from "./components/CadastralLeafletMap";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
@@ -800,7 +801,7 @@ export default function App() {
           </section>
 
           {/* Interactive Browser Frame Demo */}
-          <BrowserMockupFrame onOpenUpload={() => setActiveTab("upload")} />
+          <BrowserMockupFrame onOpenUpload={() => setActiveTab("upload")} activeRecord={activeRecord} />
 
           {/* Metrics */}
           <MetricsBanner />
@@ -1199,7 +1200,27 @@ export default function App() {
 
 /* SUB-COMPONENTS */
 
-function BrowserMockupFrame({ onOpenUpload }) {
+function BrowserMockupFrame({ onOpenUpload, activeRecord }) {
+  const currentGis = activeRecord?.gis || {
+    parcel_id: "PARCEL-1423B",
+    area_doc_acres: 2.45,
+    area_gis_acres: 2.42,
+    spatial_delta_pct: 1.23,
+    spatial_consistency: "MATCH",
+    geometry: {
+      type: "Polygon",
+      coordinates: [
+        [
+          [78.0812, 17.5123],
+          [78.0845, 17.5135],
+          [78.0852, 17.5098],
+          [78.0819, 17.5087],
+          [78.0812, 17.5123]
+        ]
+      ]
+    }
+  };
+
   return (
     <section className="px-4 sm:px-6 bg-[#f7f7f7] pb-16" id="pipeline-demo">
       <div className="max-w-[1200px] mx-auto">
@@ -1223,7 +1244,7 @@ function BrowserMockupFrame({ onOpenUpload }) {
             <div className="bg-[#f7f7f7] p-6 rounded-[20px] border border-black/5 space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-[12px] font-semibold text-[#181825] flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-[#f69251]" /> Scanned Land Record #RTC-9921
+                  <FileText className="w-4 h-4 text-[#f69251]" /> Scanned Land Record #{activeRecord?.record_id || "RTC-9921"}
                 </span>
                 <button
                   onClick={onOpenUpload}
@@ -1236,20 +1257,37 @@ function BrowserMockupFrame({ onOpenUpload }) {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-[13px] bg-[#ffffff] p-4 rounded-[14px] border border-black/5">
                 <div>
                   <span className="text-[10px] text-[#949494] uppercase block">Survey Number</span>
-                  <strong className="text-[#000000]">142/3B</strong>
+                  <strong className="text-[#000000]">{activeRecord?.fields?.survey_number || "142/3B"}</strong>
                 </div>
                 <div>
                   <span className="text-[10px] text-[#949494] uppercase block">Khata Number</span>
-                  <strong className="text-[#000000]">891-A</strong>
+                  <strong className="text-[#000000]">{activeRecord?.fields?.khata_number || "891-A"}</strong>
                 </div>
                 <div>
                   <span className="text-[10px] text-[#949494] uppercase block">Doc Stated Area</span>
-                  <strong className="text-[#000000]">2.45 Acres</strong>
+                  <strong className="text-[#000000]">{currentGis.area_doc_acres || "2.45"} Acres</strong>
                 </div>
                 <div>
                   <span className="text-[10px] text-[#949494] uppercase block">Spatial Δ% Match</span>
-                  <strong className="text-emerald-600 font-bold">1.23% (✓ Match)</strong>
+                  <strong className={`font-bold ${currentGis.spatial_delta_pct > 5 ? "text-red-600" : "text-emerald-600"}`}>
+                    {currentGis.spatial_delta_pct}% ({currentGis.spatial_delta_pct > 5 ? "⚠️ Discrepancy" : "✓ Match"})
+                  </strong>
                 </div>
+              </div>
+
+              {/* Interactive Cadastral Leaflet Map Container */}
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center justify-between text-[11px] text-[#636363] px-1">
+                  <span className="font-semibold text-[#181825] flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-[#f69251]" /> Interactive Cadastral Leaflet Map (OpenStreetMap)
+                  </span>
+                  <span className="text-emerald-600 font-mono font-medium">PostGIS GeoJSON Overlay Active</span>
+                </div>
+                <CadastralLeafletMap
+                  height="240px"
+                  gis={currentGis}
+                  geometry={currentGis.geometry}
+                />
               </div>
             </div>
           </div>

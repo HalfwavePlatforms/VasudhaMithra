@@ -71,12 +71,15 @@ fields:
     window_chars: 120
     keywords:
       # English
+      - "owner / khatedar"
+      - "owner/khatedar"
       - "owner"
       - "landowner"
       - "pattadar"
       - "khatedar"
       - "name of owner"
       # Hindi
+      - "खातेदार का नाम"
       - "मालिक"
       - "स्वामी"
       - "भूमि स्वामी"
@@ -96,12 +99,16 @@ fields:
     pattern: '\d+(\.\d+)?\s*(acre|acres|hectare|hectares|guntha|gunthas|sq\.?\s?ft|sq\.?\s?m|gunta|एकड़|हेक्टेयर|गुंठा|ಎಕರೆ|ಹೆಕ್ಟೇರ್|ஏக்கர்|ఎకరం)'
     keywords:
       # English
-      - "area"
+      - "plot extent / area"
+      - "plot extent"
       - "plot area"
+      - "plot"
+      - "area"
       - "extent"
       - "total area"
       - "land area"
       # Hindi
+      - "क्षेत्रफल (विस्तार)"
       - "क्षेत्रफल"
       - "भूमि क्षेत्र"
       - "क्षेत्र"
@@ -117,6 +124,7 @@ fields:
     pattern: null
     keywords:
       # English
+      - "village (gram)"
       - "village"
       - "gram"
       - "mauza"
@@ -139,6 +147,8 @@ fields:
     pattern: null
     keywords:
       # English
+      - "taluk / tehsil"
+      - "taluk/tehsil"
       - "tehsil"
       - "taluk"
       - "taluka"
@@ -162,6 +172,7 @@ fields:
     pattern: null
     keywords:
       # English
+      - "district (zilla)"
       - "district"
       - "dist"
       - "zila"
@@ -183,18 +194,20 @@ fields:
     window_chars: 120
     keywords:
       # English
+      - "land classification"
       - "classification"
       - "type of land"
       - "land type"
       - "land use"
       - "nature of land"
       # Hindi — previously missing
-      - "भूमि वर्ग"
       - "भूमि प्रकार"
+      - "भूमि वर्ग"
       - "भूमि का प्रकार"
       - "भूमि का वर्ग"
       - "खेत का प्रकार"
       # Kannada
+      - "ಭೂ ವರ್ಗೀಕರಣ"
       - "ಭೂಮಿಯ ವರ್ಗೀಕರಣ"
       - "ಭೂ ಬಳಕೆ"
       # Tamil
@@ -209,17 +222,22 @@ fields:
     pattern: '(MR[-/]?\d+[/]\d+|\d{1,6}/\d{4})'
     keywords:
       # English
+      - "mutation ref no"
+      - "mutation ref"
       - "mutation"
       - "mutation no"
       - "mutation number"
       - "mr no"
       - "mr."
       # Hindi
+      - "नामांतरण पंजी क्र"
+      - "नामांतरण पंजी"
       - "नामांतरण"
       - "नामांतरण संख्या"
       - "दाखिल-खारिज"
       - "दाखिल खारिज"
       # Kannada
+      - "ಮ್ಯುಟೇಶನ್ ನಂ"
       - "ವರ್ಗಾವಣೆ"
       - "ಮ್ಯುಟೇಶನ್"
       # Tamil

@@ -1,14 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import "ol/ol.css";
-import Map from "ol/Map";
-import View from "ol/View";
-import TileLayer from "ol/layer/Tile";
-import XYZ from "ol/source/XYZ";
-import VectorLayer from "ol/layer/Vector";
-import VectorSource from "ol/source/Vector";
-import GeoJSON from "ol/format/GeoJSON";
-import { Style, Fill, Stroke } from "ol/style";
-import { fromLonLat } from "ol/proj";
+import CadastralLeafletMap from "./CadastralLeafletMap";
 
 // ISRO Bhuvan API Tokens & Secret Environment Variables
 const BHUVAN_LULC_STAT_TOKEN = import.meta.env.VITE_BHUVAN_LULC_STAT_KEY || "a4e04896b955567147d228d46f7cf354a28ffc8";
@@ -28,21 +19,8 @@ export default function BhuvanGisMap({ gis }) {
   const [originCoords, setOriginCoords] = useState("");
   const [loadingRoute, setLoadingRoute] = useState(false);
 
-  // Check if GIS spatial data exists
-  if (!gis || !gis.geometry) {
-    return (
-      <div style={{ backgroundColor: "#FFFFFF", borderRadius: "12px", border: "1px solid #E5E7EB", padding: "20px", marginTop: "20px" }}>
-        <h3 style={{ fontSize: "14px", fontWeight: 700, color: "#0B3B60", margin: "0 0 8px 0" }}>
-          🌐 ISRO Bhuvan Cadastral GIS Engine
-        </h3>
-        <div style={{ padding: "40px 20px", textAlign: "center", backgroundColor: "#F9FAFB", border: "2px dashed #D1D5DB", borderRadius: "8px", color: "#6B7280", fontSize: "13px" }}>
-          No spatial data available for this record
-        </div>
-      </div>
-    );
-  }
-
-  const isDiscrepancy = (gis.spatial_delta_pct || 0) > 5 || gis.spatial_consistency === "DISCREPANCY";
+  const currentGis = gis || {};
+  const isDiscrepancy = (currentGis.spatial_delta_pct || 0) > 5 || currentGis.spatial_consistency === "DISCREPANCY";
 
   // Compute centroid coordinates from geometry
   let centerLonLat = [77.4126, 23.2599]; // Default Bhopal / Central India reference
@@ -61,68 +39,7 @@ export default function BhuvanGisMap({ gis }) {
     console.error("Error computing polygon centroid:", e);
   }
 
-  // Initialize OpenLayers Bhuvan Map
-  useEffect(() => {
-    if (!mapElementRef.current) return;
 
-    // Vector source for GeoJSON cadastral parcel polygon
-    const vectorSource = new VectorSource({
-      features: new GeoJSON().readFeatures(
-        {
-          type: "FeatureCollection",
-          features: [
-            {
-              type: "Feature",
-              geometry: gis.geometry,
-              properties: { parcel_id: gis.parcel_id || "PARCEL-CADASTRAL" }
-            }
-          ]
-        },
-        {
-          dataProjection: "EPSG:4326",
-          featureProjection: "EPSG:3857"
-        }
-      )
-    });
-
-    // Color-coded polygon style: Crimson if spatial delta > 5%, Emerald if matching
-    const vectorLayer = new VectorLayer({
-      source: vectorSource,
-      style: new Style({
-        fill: new Fill({
-          color: isDiscrepancy ? "rgba(220, 38, 38, 0.25)" : "rgba(5, 150, 105, 0.25)"
-        }),
-        stroke: new Stroke({
-          color: isDiscrepancy ? "#DC2626" : "#059669",
-          width: 2.5
-        })
-      })
-    });
-
-    // ISRO Bhuvan Base Map WMS Tile Source
-    const bhuvanBaseTileLayer = new TileLayer({
-      source: new XYZ({
-        url: "https://bhuvan-vec1.nrsc.gov.in/bhuvan/gwc/service/wmts?LAYER=bhuvan:india3&style=default&tilematrixset=EPSG:900913&Service=WMTS&Request=GetTile&Version=1.0.0&Format=image/png&TileMatrix=EPSG:900913:{z}&TileCol={x}&TileRow={y}",
-        crossOrigin: "anonymous"
-      })
-    });
-
-    // OpenLayers Map Instance
-    const initialMap = new Map({
-      target: mapElementRef.current,
-      layers: [bhuvanBaseTileLayer, vectorLayer],
-      view: new View({
-        center: fromLonLat(centerLonLat),
-        zoom: 15
-      })
-    });
-
-    mapInstanceRef.current = initialMap;
-
-    return () => {
-      initialMap.setTarget(null);
-    };
-  }, [gis]);
 
   // Fetch Bhuvan Sub-features
   useEffect(() => {
@@ -290,37 +207,28 @@ export default function BhuvanGisMap({ gis }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px", marginBottom: "16px", backgroundColor: isDiscrepancy ? "#FEF2F2" : "#F8FAFC", padding: "12px", borderRadius: "8px", border: isDiscrepancy ? "1px solid #FCA5A5" : "1px solid #E2E8F0" }}>
         <div>
           <span style={{ fontSize: "10px", fontWeight: 700, color: "#64748B", uppercase: "true", display: "block" }}>PARCEL ID</span>
-          <strong style={{ fontSize: "13px", fontFamily: "monospace", color: "#0B3B60" }}>{gis.parcel_id || "PARCEL-CADASTRAL"}</strong>
+          <strong style={{ fontSize: "13px", fontFamily: "monospace", color: "#0B3B60" }}>{currentGis.parcel_id || "PARCEL-CADASTRAL"}</strong>
         </div>
         <div>
           <span style={{ fontSize: "10px", fontWeight: 700, color: "#64748B", uppercase: "true", display: "block" }}>DEED STATED AREA</span>
-          <strong style={{ fontSize: "13px", color: "#1F2937" }}>{gis.area_doc_acres ?? "—"} acres</strong>
+          <strong style={{ fontSize: "13px", color: "#1F2937" }}>{currentGis.area_doc_acres ?? "—"} acres</strong>
         </div>
         <div>
           <span style={{ fontSize: "10px", fontWeight: 700, color: "#64748B", uppercase: "true", display: "block" }}>GIS CADASTRAL AREA</span>
-          <strong style={{ fontSize: "13px", color: "#059669" }}>{gis.area_gis_acres ?? "—"} acres</strong>
+          <strong style={{ fontSize: "13px", color: "#059669" }}>{currentGis.area_gis_acres ?? "—"} acres</strong>
         </div>
         <div>
           <span style={{ fontSize: "10px", fontWeight: 700, color: "#64748B", uppercase: "true", display: "block" }}>SPATIAL DELTA %</span>
           <strong style={{ fontSize: "14px", color: isDiscrepancy ? "#DC2626" : "#059669" }}>
-            {gis.spatial_delta_pct ?? "—"}% {isDiscrepancy ? "(High Risk)" : "(OK)"}
+            {currentGis.spatial_delta_pct ?? "—"}% {isDiscrepancy ? "(High Risk)" : "(OK)"}
           </strong>
         </div>
       </div>
 
-      {/* Map Viewport Container */}
-      <div
-        ref={mapElementRef}
-        style={{
-          width: "100%",
-          height: "320px",
-          borderRadius: "8px",
-          border: "1px solid #D1D5DB",
-          overflow: "hidden",
-          marginBottom: "16px",
-          backgroundColor: "#F3F4F6"
-        }}
-      />
+      {/* Interactive Cadastral Leaflet Map with OpenStreetMap tiles */}
+      <div style={{ marginBottom: "16px" }}>
+        <CadastralLeafletMap geometry={currentGis.geometry} gis={currentGis} height="320px" />
+      </div>
 
       {/* Bhuvan Sub-features Analytics Grid */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>

@@ -5,29 +5,35 @@ import time
 import urllib.request
 import signal
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 SERVICES = [
     {
         "name": "GIS Service",
         "cwd": "services/gis-service/src",
-        "cmd": [sys.executable, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", "8003"],
+        "cmd": [sys.executable, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", "8003", "--reload"],
         "health_url": "http://127.0.0.1:8003/health",
     },
     {
         "name": "Extraction Engine",
         "cwd": "services/extraction-engine/src",
-        "cmd": [sys.executable, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", "8002"],
+        "cmd": [sys.executable, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", "8002", "--reload"],
         "health_url": "http://127.0.0.1:8002/health",
     },
     {
         "name": "OCR Pipeline",
         "cwd": "services/ocr-pipeline/src",
-        "cmd": [sys.executable, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", "8001"],
+        "cmd": [sys.executable, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", "8001", "--reload"],
         "health_url": "http://127.0.0.1:8001/health",
     },
     {
         "name": "API Gateway",
         "cwd": "services/api-gateway/src",
-        "cmd": [sys.executable, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", "8000"],
+        "cmd": [sys.executable, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", "8000", "--reload"],
         "health_url": "http://127.0.0.1:8000/health",
     },
     {

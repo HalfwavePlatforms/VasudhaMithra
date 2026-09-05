@@ -52,7 +52,7 @@ def validate_fields(
 
     for field_name, cfg in rules["fields"].items():
         value = fields.get(field_name)
-        field_conf = conf_dict.get(field_name, 0.85)
+        field_conf = conf_dict.get(field_name)
 
         # 1a. Required field check
         if cfg.get("required") and not value:
@@ -87,10 +87,11 @@ def validate_fields(
 
         # 1c. Confidence threshold check
         threshold = rules.get("confidence_review_threshold", 0.75)
-        if value and field_conf < threshold:
+        if value and (field_conf is None or field_conf < threshold):
+            conf_str = f"{round(field_conf * 100, 1)}%" if field_conf is not None else "null"
             issue_text = (
-                f"{field_name} extracted with low optical confidence "
-                f"({round(field_conf * 100, 1)}% < {int(threshold * 100)}%)."
+                f"{field_name} extracted with unverified or low optical confidence "
+                f"({conf_str} < {int(threshold * 100)}%)."
             )
             violations.append(
                 {
@@ -130,10 +131,8 @@ def validate_fields(
 
     # ── Phase 3: Risk level & status ─────────────────────────────────────────
 
-    if conf_dict:
-        overall_conf = round(sum(conf_dict.values()) / max(1, len(conf_dict)), 3)
-    else:
-        overall_conf = 0.90
+    valid_scores = [v for v in conf_dict.values() if v is not None and isinstance(v, (int, float))]
+    overall_conf = round(sum(valid_scores) / len(valid_scores), 3) if valid_scores else None
 
     high_sev_count = sum(1 for v in violations if v.get("severity") == "HIGH")
     med_sev_count = sum(1 for v in violations if v.get("severity") == "MEDIUM")
@@ -141,7 +140,7 @@ def validate_fields(
     if high_sev_count > 0:
         risk_level = "HIGH"
         status = "REVIEW_REQUIRED"
-    elif med_sev_count > 0 or overall_conf < 0.75:
+    elif med_sev_count > 0 or (overall_conf is not None and overall_conf < 0.75):
         risk_level = "MEDIUM"
         status = "REVIEW_REQUIRED"
     elif len(violations) > 0:

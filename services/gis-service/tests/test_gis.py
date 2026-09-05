@@ -10,6 +10,8 @@ def test_health():
     data = client.get("/health").json()
     assert data.get("status") == "ok"
     assert "tier" in data
+    assert "mode" in data
+    assert data["mode"] in ("PostGIS: live", "PostGIS: unavailable, using seeded fallback")
 
 
 def test_get_seeded_parcel():

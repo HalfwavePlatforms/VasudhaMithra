@@ -156,3 +156,63 @@ Following bicubic resolution upscaling ($1.5\times$) and `--psm 6` tabular segme
 }
 ```
 *Backward Compatibility Note: Existing fields `raw_text`, `confidence`, and `bounding_boxes` remain identical so downstream consumers are never broken.*
+
+---
+
+## 8. Legacy Tabular Registers (Disclosed Phase 2 Roadmap)
+
+### 8.1 Architectural Context & Limitations of Keyword Proximity
+Traditional Indian land revenue archives contain dense legacy Khasra/Khatauni registers organized in multi-column tabular grids (often featuring Hindi/regional script column headers such as `(1) खसरा नं`, `(2) खाता संख्या`, `(3) भूमि स्वामी / काश्तकार`, `(4) रकबा`, `(5) भूमि प्रकार`).
+
+Standard information extraction engines rely on **keyword proximity heuristics** (e.g., locating an anchor label like `"Owner / खातेदार:"` and extracting the token immediately adjacent or below). On multi-row tabular registers, this paradigm breaks down:
+1. **Vertical/Horizontal Decoupling**: Column headers reside at the top of the ledger, separated from entry rows by several centimeters or variable numbers of intervening data cells.
+2. **Multi-Record Coexistence**: Multiple distinct parcels/owners exist in consecutive rows within a single image; linear proximity cannot associate which value belongs to which record.
+3. **Broken Linear Text Flow**: Standard line-by-line OCR reading orders interleave text fragments across adjacent columns, destroying semantic key-value relationships.
+
+Attempting keyword-proximity extraction on dense tabular registers inevitably leads to catastrophic hallucination or spurious extractions.
+
+### 8.2 The Honest Smart Triage Mechanism
+Rather than producing low-confidence or erroneous automated extractions, VasudhaMithra implements a **smart triage mechanism**:
+
+```
+[Incoming Document] 
+       │
+       ▼
+[OCR & Preprocessing] ──▶ Bounding Box Tokens & Text
+       │
+       ▼
+[Document Classifier] ──▶ Detects Grid Density & Column Headers
+       │
+       ├─────────────────────────────────────────────────┐
+       ▼ (linear extract)                                ▼ (legacy tabular)
+[Normal Extraction Engine]                   [Safe Triage Bypass]
+ • field_rules.yaml Regex                     • Skip linear field parsing
+ • Proximity Scoring                          • Set fields = None, confidences = None
+ • GIS Cross-Verification                     • Preserve full raw OCR text
+       │                                      • Flag status = "pending_review"
+       │                                      • Rule: "legacy_tabular_format"
+       │                                      • Route to Officer Review Queue
+       ▼                                                 │
+[Automated Validation]                                   ▼
+                                            [Human-in-the-Loop Transcription]
+```
+
+1. **Detection**:
+   - `is_tabular_layout()` checks for table-specific column markers (`स्तंभ`, `कॉलम`, `column`, `अनुक्रमांक`), numbered column headers (`(1) (2) (3)` or `स्तंभ १, स्तंभ २`), and geometric 2D bounding-box spatial clustering (identifying $\ge 3$ distinct rows with $\ge 3$ short tokens spanning horizontal clusters).
+   - Classified as `legacy_tabular_register`.
+2. **Safe Bypass & Routing**:
+   - Skips linear `field_rules.yaml` extraction.
+   - Sets standard schema fields to `None` and field confidences to `None` (preventing synthetic or hallucinated values).
+   - Ingests and stores raw OCR text and bounding boxes for verbatim reference.
+   - Directs record status to `"pending_review"` with risk level `MEDIUM` and explainable audit trail:
+     `"Legacy tabular format detected — automated field extraction not yet supported, routed for manual transcription."`
+   - Surfaces immediately in the Revenue Officer Review Queue for manual verification and transcription.
+
+### 8.3 Phase 2 Roadmap: Full Table-Structure Recognition
+To evolve from smart triage to end-to-end automated tabular extraction in Phase 2, the pipeline architecture is designed to integrate:
+1. **Table Detection & Structure Recognition (TD/TSR)**:
+   - Integration of **Table-Transformer (TATR)** or **PaddleOCR Table Recognition (PP-Structure)** to segment individual table cells, rows, and columns.
+2. **Cell Coordinate Association**:
+   - Intersecting OCR bounding-box polygons with detected cell boundary rectangles to reconstruct structured 2D dataframe matrices `(row_idx, col_idx)`.
+3. **Multimodal Layout Models**:
+   - Deployment of LayoutLMv3 or IndicLayoutLM fine-tuned on state revenue registers to classify column roles and multi-row ownership linkages.

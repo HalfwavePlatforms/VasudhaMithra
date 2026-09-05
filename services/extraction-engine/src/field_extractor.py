@@ -72,8 +72,19 @@ def parse_area_to_acres(area_str: str | None) -> tuple[float | None, str | None]
     return result["value"], result["unit"]
 
 
-def extract_fields(raw_text: str, bounding_boxes: list[dict]) -> dict:
+def extract_fields(raw_text: str, bounding_boxes: list[dict], document_type: str | None = None) -> dict:
     rules = _load_rules()
+    if document_type == "legacy_tabular_register":
+        all_field_names = list(rules.get("fields", {}).keys())
+        return {
+            "fields": {fn: None for fn in all_field_names},
+            "structured_record": {},
+            "area_acres": None,
+            "confidence_per_field": {fn: None for fn in all_field_names},
+            "needs_review": ["all_fields_legacy_tabular_format"],
+            "triage_reason": "Legacy tabular format detected — automated field extraction not yet supported, routed for manual transcription.",
+        }
+
     fields = {}
     confidence_per_field = {}
     structured_record = {}

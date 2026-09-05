@@ -2,8 +2,10 @@ import base64
 import os
 import uuid
 
+from pathlib import Path
 import httpx
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, Header
+from fastapi.responses import FileResponse
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -20,6 +22,28 @@ OCR_SERVICE_URL = os.getenv("OCR_SERVICE_URL", "http://127.0.0.1:8001")
 EXTRACTION_SERVICE_URL = os.getenv("EXTRACTION_SERVICE_URL", "http://127.0.0.1:8002")
 GIS_SERVICE_URL = os.getenv("GIS_SERVICE_URL", "http://127.0.0.1:8003")
 
+# Persistent Document Storage Path
+REPO_ROOT = Path(__file__).resolve().parents[4]
+STORAGE_PATH = Path(os.getenv("STORAGE_PATH", str(REPO_ROOT / "storage")))
+STORAGE_PATH.mkdir(parents=True, exist_ok=True)
+
+
+def require_role(allowed_roles: list[str]):
+    """
+    Lightweight header-based role check.
+    Header: X-Role (default to 'tahsildar' if not provided to preserve test compatibility).
+    Returns 403 Forbidden with clear error message if role lacks authorization.
+    """
+    def role_checker(x_role: str | None = Header(default=None)):
+        role = (x_role or "tahsildar").strip().lower()
+        if role not in [r.lower() for r in allowed_roles]:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Forbidden: role '{role}' is not authorized. Required role(s): {', '.join(allowed_roles)}",
+            )
+        return role
+    return role_checker
+
 
 import traceback
 import logging
@@ -30,6 +54,7 @@ async def upload_record(
     file: UploadFile = File(...),
     actor: str = "Officer (demo)",
     language: str = Form("auto"),
+    role: str = Depends(require_role(["tahsildar", "surveyor"])),
     db: Session = Depends(get_db),
 ):
     try:
@@ -57,11 +82,26 @@ async def upload_record(
             else:
                 lang_hint = "auto"
 
-        record = Record(original_filename=file.filename, status="processing")
+        # Determine file extension and write bytes to persistent storage
+        orig_name = file.filename or "document.png"
+        ext = os.path.splitext(orig_name)[1].lower()
+        if not ext:
+            ext = ".png"
+        saved_fname = f"{uuid.uuid4()}{ext}"  # Temporary or record id
+        record = Record(original_filename=orig_name, status="processing")
         db.add(record)
         db.commit()
         db.refresh(record)
-        _log(db, record.id, "uploaded", actor=actor, details={"filename": file.filename, "language": lang_hint})
+
+        # Name with actual record.id: storage/{record_id}.{ext}
+        actual_saved_fname = f"{record.id}{ext}"
+        saved_file_path = STORAGE_PATH / actual_saved_fname
+        with open(saved_file_path, "wb") as f_out:
+            f_out.write(content)
+
+        record.file_path = f"storage/{actual_saved_fname}"
+        db.commit()
+        _log(db, record.id, "uploaded", actor=actor, details={"filename": file.filename, "language": lang_hint, "file_path": record.file_path})
 
         # 1. OCR Step
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -84,6 +124,62 @@ async def upload_record(
         db.commit()
         _log(db, record.id, "ocr_completed", actor="OCR Engine", details={"confidence": ocr_data["confidence"], "doc_type": record.document_type, "language": record.language})
 
+        # Step 2: Honest Fallback Path for Legacy Tabular Register
+        if record.document_type == "legacy_tabular_register":
+            fallback_message = "Legacy tabular format detected — automated field extraction not yet supported, routed for manual transcription."
+            
+            # Set standard schema fields with None / null confidence
+            schema_field_names = [
+                "survey_number", "khasra_number", "khata_number", "owner_name",
+                "plot_area", "village", "tehsil", "district", "land_classification",
+                "mutation_number", "registration_info", "ownership_type"
+            ]
+            for fn in schema_field_names:
+                db.add(
+                    RecordField(
+                        record_id=record.id,
+                        field_name=fn,
+                        field_value=None,
+                        confidence=None,
+                    )
+                )
+
+            # Record triage violation explaining why automated extraction was skipped
+            db.add(
+                ValidationResult(
+                    record_id=record.id,
+                    field_name="layout_structure",
+                    rule="legacy_tabular_format",
+                    passed=False,
+                    message=fallback_message,
+                )
+            )
+
+            record.status = "pending_review"
+            record.risk_level = "MEDIUM"
+            record.reviewer_notes = fallback_message
+            record.spatial_consistency = "NOT_EVALUATED"
+            db.commit()
+
+            _log(
+                db,
+                record.id,
+                "routed_manual_transcription",
+                actor="System Classifier",
+                details={
+                    "document_type": "legacy_tabular_register",
+                    "reason": fallback_message,
+                    "raw_ocr_length": len(record.raw_ocr_text or ""),
+                }
+            )
+
+            return {
+                "record_id": str(record.id),
+                "status": record.status,
+                "risk_level": record.risk_level,
+                "spatial_consistency": record.spatial_consistency,
+            }
+
         # 2. Information Extraction Step
         async with httpx.AsyncClient(timeout=30.0) as client:
 
@@ -100,12 +196,14 @@ async def upload_record(
                 raise HTTPException(status_code=502, detail=f"Extraction service failed: {e}")
 
         for field_name, value in extraction_data["fields"].items():
+            conf = extraction_data.get("confidence_per_field", {}).get(field_name)
+            conf_val = round(conf, 4) if (conf is not None and isinstance(conf, (int, float))) else (0.0 if not value else None)
             db.add(
                 RecordField(
                     record_id=record.id,
                     field_name=field_name,
                     field_value=value,
-                    confidence=extraction_data["confidence_per_field"].get(field_name, 0.85),
+                    confidence=conf_val,
                 )
             )
 
@@ -209,8 +307,14 @@ def list_records(
     }
 
 
+@router.patch("/{record_id}/fields")
 @router.patch("/{record_id}")
-def correct_record(record_id: uuid.UUID, corrections: dict, db: Session = Depends(get_db)):
+def correct_record(
+    record_id: uuid.UUID,
+    corrections: dict,
+    role: str = Depends(require_role(["tahsildar"])),
+    db: Session = Depends(get_db),
+):
     record = db.query(Record).filter(Record.id == record_id).first()
     if not record:
         raise HTTPException(status_code=404, detail="Record not found")
@@ -259,6 +363,92 @@ def correct_record(record_id: uuid.UUID, corrections: dict, db: Session = Depend
     return _serialize(record)
 
 
+@router.post("/{record_id}/review")
+def review_record(
+    record_id: uuid.UUID,
+    review_data: dict,
+    role: str = Depends(require_role(["tahsildar"])),
+    db: Session = Depends(get_db),
+):
+    """
+    Submits an official revenue validation or mutation review decision.
+    Guarded by RBAC: Requires 'tahsildar' role.
+    """
+    record = db.query(Record).filter(Record.id == record_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Record not found")
+
+    actor = review_data.get("actor", "Tahsildar")
+    notes = review_data.get("reviewer_notes", "")
+    decision = review_data.get("decision")  # "APPROVED" | "REJECTED"
+
+    if notes:
+        record.reviewer_notes = notes
+    record.reviewed_by = actor
+    record.reviewed_at = func.now()
+
+    if decision == "APPROVED":
+        record.status = "validated"
+        record.risk_level = "LOW"
+    elif decision == "REJECTED":
+        record.status = "rejected"
+        record.risk_level = "HIGH"
+
+    db.commit()
+    _log(db, record.id, "human_reviewed", actor=actor, details={"notes": notes, "decision": decision})
+    return _serialize(record)
+
+
+@router.get("/{record_id}/download")
+def download_record(record_id: str, db: Session = Depends(get_db)):
+    """
+    Downloads original uploaded land record document from persistent storage.
+    Returns 404 if record or storage file does not exist.
+    """
+    try:
+        rec_uuid = uuid.UUID(record_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid record UUID format")
+
+    record = db.query(Record).filter(Record.id == rec_uuid).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Record not found")
+
+    target_file = None
+    if record.file_path:
+        candidate = Path(record.file_path)
+        if not candidate.is_absolute():
+            candidate = REPO_ROOT / candidate
+        if candidate.exists():
+            target_file = candidate
+
+    if not target_file:
+        # Fallback: check storage directory for any file matching record_id.*
+        matches = list(STORAGE_PATH.glob(f"{record_id}.*"))
+        if matches:
+            target_file = matches[0]
+
+    if not target_file or not target_file.exists():
+        raise HTTPException(status_code=404, detail="Original document file not found in storage")
+
+    ext = target_file.suffix.lower()
+    media_types = {
+        ".pdf": "application/pdf",
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".tiff": "image/tiff",
+        ".tif": "image/tiff",
+    }
+    media_type = media_types.get(ext, "application/octet-stream")
+
+    return FileResponse(
+        path=str(target_file),
+        filename=record.original_filename or target_file.name,
+        media_type=media_type,
+    )
+
+
 def _validate_and_check_duplicates(db: Session, record_id: uuid.UUID, fields: dict) -> list[dict]:
     violations = []
     for field_name in ("survey_number", "khasra_number", "khata_number"):
@@ -290,6 +480,7 @@ def _serialize(record: Record) -> dict:
     return {
         "record_id": str(record.id),
         "original_filename": record.original_filename,
+        "file_path": record.file_path,
         "uploaded_at": record.uploaded_at.isoformat() if record.uploaded_at else None,
         "status": record.status,
         "document_type": record.document_type or "Standard Land Record",

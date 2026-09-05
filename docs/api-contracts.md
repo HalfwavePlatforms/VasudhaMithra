@@ -183,6 +183,11 @@ Request:
 ```
 Response: Updated record serialized.
 
+### GET /records/{record_id}/download
+Downloads the original uploaded document (PDF/PNG/JPEG) from persistent server storage (`storage/{record_id}.{ext}`).
+- Status 200: Streamed file content with appropriate `Content-Disposition: attachment; filename="<original_filename>"` and MIME type (`application/pdf`, `image/png`, etc.).
+- Status 404: `{ "detail": "Original document file not found in storage" }` if record or file missing.
+
 ### GET /dashboard/stats
 Response:
 ```json

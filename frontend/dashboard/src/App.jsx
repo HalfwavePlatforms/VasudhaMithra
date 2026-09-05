@@ -207,36 +207,62 @@ export default function App() {
           {auditLogs.length === 0 ? (
             <div style={{ padding: 24, textAlign: "center", color: "#9CA3AF", fontSize: 13 }}>No audit logs recorded yet.</div>
           ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
               <thead>
-                <tr style={{ backgroundColor: "#F8FAFC", borderBottom: "2px solid #E2E8F0", textAlign: "left", color: "#475569" }}>
-                  <th style={{ padding: "8px 12px" }}>Timestamp (UTC)</th>
-                  <th style={{ padding: "8px 12px" }}>Action</th>
-                  <th style={{ padding: "8px 12px" }}>Actor / Role</th>
-                  <th style={{ padding: "8px 12px" }}>Record ID</th>
-                  <th style={{ padding: "8px 12px" }}>Audit Details</th>
+                <tr style={{ backgroundColor: "#F8FAFC", borderBottom: "2px solid #E2E8F0", textAlign: "left", color: "#475569", textTransform: "uppercase", fontSize: "11px", letterSpacing: "0.5px" }}>
+                  <th style={{ padding: "10px 14px" }}>Timestamp (UTC)</th>
+                  <th style={{ padding: "10px 14px" }}>Action</th>
+                  <th style={{ padding: "10px 14px" }}>Actor / Role</th>
+                  <th style={{ padding: "10px 14px" }}>Record ID</th>
+                  <th style={{ padding: "10px 14px" }}>Audit Details</th>
                 </tr>
               </thead>
               <tbody>
-                {auditLogs.map((log) => (
-                  <tr key={log.id} style={{ borderBottom: "1px solid #F1F5F9" }}>
-                    <td style={{ padding: "8px 12px", color: "#64748B", fontFamily: "monospace" }}>
-                      {log.created_at ? new Date(log.created_at).toLocaleTimeString() : "—"}
-                    </td>
-                    <td style={{ padding: "8px 12px" }}>
-                      <span style={{ backgroundColor: "#EFF6FF", color: "#1E40AF", padding: "2px 6px", borderRadius: 4, fontWeight: 700, fontSize: 10 }}>
-                        {log.action?.toUpperCase()}
-                      </span>
-                    </td>
-                    <td style={{ padding: "8px 12px", fontWeight: 600, color: "#374151" }}>{log.actor || "System"}</td>
-                    <td style={{ padding: "8px 12px", fontFamily: "monospace", color: "#0B3B60" }}>
-                      {log.record_id ? log.record_id.slice(0, 8) : "—"}
-                    </td>
-                    <td style={{ padding: "8px 12px", color: "#6B7280", maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {JSON.stringify(log.details)}
-                    </td>
-                  </tr>
-                ))}
+                {auditLogs.map((log) => {
+                  const act = (log.action || "EVENT").toUpperCase();
+                  let badge = { bg: "#EFF6FF", text: "#1E40AF", border: "#BFDBFE", label: `ℹ️ ${act}` };
+                  if (act.includes("VALIDATED") || act.includes("APPROVED")) {
+                    badge = { bg: "#ECFDF5", text: "#059669", border: "#A7F3D0", label: `✓ ${act}` };
+                  } else if (act.includes("REJECT")) {
+                    badge = { bg: "#FEF2F2", text: "#DC2626", border: "#FECACA", label: `✕ ${act}` };
+                  } else if (act.includes("REVIEW") || act.includes("SURVEY")) {
+                    badge = { bg: "#FFFBEB", text: "#D97706", border: "#FDE68A", label: `⚠️ ${act}` };
+                  }
+
+                  return (
+                    <tr key={log.id} style={{ borderBottom: "1px solid #F1F5F9" }}>
+                      <td style={{ padding: "10px 14px", color: "#64748B", fontFamily: "monospace" }}>
+                        {log.created_at ? new Date(log.created_at).toLocaleTimeString() : "—"}
+                      </td>
+                      <td style={{ padding: "10px 14px" }}>
+                        <span
+                          style={{
+                            backgroundColor: badge.bg,
+                            color: badge.text,
+                            border: `1px solid ${badge.border}`,
+                            padding: "3px 8px",
+                            borderRadius: "6px",
+                            fontWeight: 700,
+                            fontSize: "11px",
+                            letterSpacing: "0.2px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                          }}
+                        >
+                          {badge.label}
+                        </span>
+                      </td>
+                      <td style={{ padding: "10px 14px", fontWeight: 600, color: "#374151" }}>{log.actor || "System"}</td>
+                      <td style={{ padding: "10px 14px", fontFamily: "monospace", color: "#0B3B60", fontWeight: 600 }}>
+                        {log.record_id ? log.record_id.slice(0, 8) : "—"}
+                      </td>
+                      <td style={{ padding: "10px 14px", color: "#6B7280", maxWidth: 320, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {JSON.stringify(log.details)}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}

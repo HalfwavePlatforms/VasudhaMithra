@@ -17,7 +17,16 @@ def stats(db: Session = Depends(get_db)):
     errors = db.query(ValidationResult).filter(ValidationResult.passed == False).count()  # noqa: E712
     spatial_discrepancies = db.query(Record).filter(Record.spatial_consistency == "DISCREPANCY").count()
 
-    avg_conf_row = db.query(func.avg(RecordField.confidence)).scalar()
+    avg_conf_row = (
+        db.query(func.avg(RecordField.confidence))
+        .filter(
+            RecordField.field_value.isnot(None),
+            RecordField.field_value != "None",
+            RecordField.field_value != "",
+            RecordField.confidence > 0.0,
+        )
+        .scalar()
+    )
     avg_conf = round(float(avg_conf_row), 3) if avg_conf_row is not None else 0.0
 
     by_district = (

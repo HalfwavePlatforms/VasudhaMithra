@@ -19,12 +19,23 @@ Area discrepancy integration:
 No fake confidence or AI fraud claims: this service returns spatial facts only.
 """
 import json
+import logging
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+    load_dotenv(Path(__file__).resolve().parent.parent.parent.parent / ".env")
+except ImportError:
+    pass
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+logger = logging.getLogger("gis-service")
 
 # ── Data paths ────────────────────────────────────────────────────────────────
 # Resolve relative to this file so it works from any working directory
@@ -49,19 +60,6 @@ def _build_seeded_index() -> dict[str, dict]:
     return {_normalise_sn(p["survey_number"]): p for p in parcels}
 
 
-# ── FastAPI lifespan (replaces deprecated on_event) ──────────────────────────
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    global _SEEDED_INDEX
-    _SEEDED_INDEX = _build_seeded_index()
-    yield
-    # No cleanup needed
-
-
-app = FastAPI(title="GIS Cadastral Service", lifespan=lifespan)
-
-
 # ── PostGIS helpers ───────────────────────────────────────────────────────────
 
 def _get_db_engine():
@@ -78,6 +76,41 @@ def _get_db_engine():
         return create_engine(db_url, pool_pre_ping=True)
     except Exception:
         return None
+
+
+def _check_postgis_live() -> bool:
+    """Verify whether PostGIS is connected and ready to serve live queries."""
+    engine = _get_db_engine()
+    if engine is None:
+        return False
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1 FROM parcels LIMIT 1"))
+        return True
+    except Exception:
+        return False
+
+
+# ── FastAPI lifespan (replaces deprecated on_event) ──────────────────────────
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global _SEEDED_INDEX
+    _SEEDED_INDEX = _build_seeded_index()
+
+    if _check_postgis_live():
+        logger.info("PostGIS: live")
+    else:
+        logger.info("PostGIS: unavailable, using seeded fallback")
+
+    yield
+    # No cleanup needed
+
+
+app = FastAPI(title="GIS Cadastral Service", lifespan=lifespan)
+
+
 
 
 def _query_postgis(survey_number: str) -> Optional[dict]:
@@ -178,10 +211,12 @@ def health():
     global _SEEDED_INDEX
     if not _SEEDED_INDEX:
         _SEEDED_INDEX = _build_seeded_index()
-    db_available = _get_db_engine() is not None
+    postgis_live = _check_postgis_live()
+    mode = "PostGIS: live" if postgis_live else "PostGIS: unavailable, using seeded fallback"
     return {
         "status": "ok",
-        "tier": "postgis" if db_available else "seeded_json",
+        "mode": mode,
+        "tier": "postgis" if postgis_live else "seeded_json",
         "seeded_parcel_count": len(_SEEDED_INDEX),
     }
 
