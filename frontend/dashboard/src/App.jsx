@@ -1,292 +1,329 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 export default function App() {
   const [stats, setStats] = useState(null);
   const [auditLogs, setAuditLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [lastRefreshed, setLastRefreshed] = useState(new Date());
 
-  function loadData() {
+  const loadData = () => {
     fetch(`${API_BASE}/dashboard/stats`)
       .then((res) => {
-        if (!res.ok) throw new Error(`Failed to load stats: ${res.status}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
       })
       .then((data) => {
         setStats(data);
-        setLastRefreshed(new Date());
+        setError(null);
       })
-      .catch((e) => setError(e.message));
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
 
-    fetch(`${API_BASE}/dashboard/audit-trail?limit=15`)
+    fetch(`${API_BASE}/dashboard/audit-trail?limit=10`)
       .then((res) => (res.ok ? res.json() : { audit_logs: [] }))
       .then((data) => setAuditLogs(data.audit_logs || []))
       .catch(() => {});
-  }
+  };
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 6000);
+    const interval = setInterval(loadData, 8000);
     return () => clearInterval(interval);
   }, []);
 
-  if (error) {
-    return (
-      <div style={{ padding: 32, fontFamily: "Inter, sans-serif" }}>
-        <div style={{ backgroundColor: "#FEE2E2", color: "#991B1B", padding: 16, borderRadius: 6 }}>
-          <strong>Error connecting to API Gateway:</strong> {error}
-        </div>
-      </div>
-    );
-  }
-
-  if (!stats) {
-    return (
-      <div style={{ padding: 48, textAlign: "center", fontFamily: "Inter, sans-serif", color: "#4B5563" }}>
-        Loading VasudhaMithra Intelligence Analytics...
-      </div>
-    );
-  }
-
-  const verifiedPct = stats.total_processed > 0 ? Math.round((stats.verified_count / stats.total_processed) * 100) : 0;
+  const totalProcessed = stats?.total_processed || 0;
+  const pendingCount = stats?.pending_review_count || 0;
+  const accuracyPct = stats?.avg_extraction_accuracy
+    ? (stats.avg_extraction_accuracy * 100).toFixed(1)
+    : "0.0";
+  const discrepancyCount = stats?.spatial_discrepancy_count || 0;
+  const byDistrict = stats?.by_district || {};
+  const byDocType = stats?.by_doc_type || {};
 
   return (
-    <div style={{ fontFamily: "Inter, system-ui, -apple-system, sans-serif", backgroundColor: "#F4F6F9", minHeight: "100vh", color: "#1F2937" }}>
-      {/* Gov Top Banner */}
-      <header style={{ backgroundColor: "#0B3B60", color: "#FFFFFF", padding: "12px 24px", borderBottom: "4px solid #D97706" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 42, height: 42, borderRadius: "50%", backgroundColor: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center", color: "#0B3B60", fontWeight: 900, fontSize: 20 }}>
-              🏛️
+    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#F7F5EF", color: "#16241F" }}>
+      {/* Sidebar matching visual system */}
+      <aside style={{ width: 260, backgroundColor: "#16241F", color: "#E6E3DB", display: "flex", flexDirection: "column", height: "100vh", position: "fixed", left: 0, top: 0, borderRight: "1px solid #22332B" }}>
+        {/* Logo */}
+        <div style={{ padding: "20px", borderBottom: "1px solid #22332B" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ position: "relative", width: 32, height: 32 }}>
+              <div style={{ position: "absolute", top: 0, left: 0, width: 20, height: 20, backgroundColor: "#1D8374", borderRadius: 4 }} />
+              <div style={{ position: "absolute", bottom: 0, right: 0, width: 20, height: 20, backgroundColor: "#D9714B", borderRadius: 4, opacity: 0.9 }} />
             </div>
             <div>
-              <div style={{ fontSize: 11, letterSpacing: 1.2, textTransform: "uppercase", color: "#FCD34D", fontWeight: 700 }}>
-                Digital India Land Records Modernization Programme (DILRMP)
-              </div>
-              <h1 style={{ fontSize: 20, margin: 0, fontWeight: 700 }}>
-                VasudhaMithra — National Digitization & Cadastral Intelligence Analytics
+              <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 18, fontWeight: "bold", color: "#FFFFFF", lineHeight: 1.2 }}>
+                VasudhaMithra
               </h1>
+              <p style={{ color: "#8FA396", fontSize: 11, fontWeight: 500 }}>
+                भूमि अभिलेख प्रणाली
+              </p>
             </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <span style={{ fontSize: 11, color: "#D1D5DB" }}>
-              Live Polling (Synced: {lastRefreshed.toLocaleTimeString()})
-            </span>
-            <a
-              href="http://localhost:3000"
-              target="_blank"
-              rel="noreferrer"
-              style={{ backgroundColor: "#D97706", color: "#FFF", padding: "8px 14px", borderRadius: 6, fontSize: 12, fontWeight: 700, textDecoration: "none" }}
-            >
-              📥 Open Upload & Review Portal
+        </div>
+
+        {/* Nav Items */}
+        <div style={{ flex: 1, padding: "16px 12px", overflowY: "auto" }}>
+          <div style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px", color: "#637C6F", padding: "0 12px 8px" }}>
+            OPERATIONS
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderRadius: 8, backgroundColor: "#22382F", color: "#FFFFFF", fontSize: 13, fontWeight: 600, border: "1px solid #2D4A3E" }}>
+              <span>⊞ Command centre</span>
+              <span style={{ fontSize: 10, backgroundColor: "#D9714B", color: "#FFF", padding: "2px 6px", borderRadius: 10 }}>Live</span>
+            </div>
+
+            <a href="http://localhost:3000" target="_blank" rel="noreferrer" style={{ textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderRadius: 8, color: "#A7B9AE", fontSize: 13, fontWeight: 500 }}>
+              <span>↑ Document intake</span>
+              <span style={{ fontSize: 10, color: "#637C6F" }}>Portal ↗</span>
+            </a>
+
+            <a href="http://localhost:3000" target="_blank" rel="noreferrer" style={{ textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderRadius: 8, color: "#A7B9AE", fontSize: 13, fontWeight: 500 }}>
+              <span>✓ Verification desk</span>
+              {pendingCount > 0 && (
+                <span style={{ fontSize: 11, fontWeight: "bold", backgroundColor: "#D9714B", color: "#FFF", padding: "1px 6px", borderRadius: 10 }}>
+                  {pendingCount}
+                </span>
+              )}
+            </a>
+
+            <a href="http://localhost:3000" target="_blank" rel="noreferrer" style={{ textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderRadius: 8, color: "#A7B9AE", fontSize: 13, fontWeight: 500 }}>
+              <span>📄 Land records</span>
+              <span style={{ fontSize: 10, color: "#637C6F" }}>Master</span>
+            </a>
+
+            <a href="http://localhost:3000" target="_blank" rel="noreferrer" style={{ textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderRadius: 8, color: "#A7B9AE", fontSize: 13, fontWeight: 500 }}>
+              <span>🗺 GIS & parcels</span>
+              {discrepancyCount > 0 && (
+                <span style={{ fontSize: 10, backgroundColor: "rgba(217,113,75,0.2)", color: "#D9714B", padding: "1px 6px", borderRadius: 10 }}>
+                  {discrepancyCount} alert
+                </span>
+              )}
             </a>
           </div>
         </div>
-      </header>
 
-      {/* Main Content Area */}
-      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "24px 24px" }}>
-        {/* KPI Grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 16, marginBottom: 24 }}>
-          <KPICard
-            label="Total Digitized Records"
-            value={stats.total_processed}
-            sub="Across all tehsils"
-            color="#0B3B60"
-          />
-          <KPICard
-            label="Certified & Validated"
-            value={stats.verified_count || 0}
-            sub={`${verifiedPct}% conversion rate`}
-            color="#059669"
-          />
-          <KPICard
-            label="Pending Officer Review"
-            value={stats.pending_review_count}
-            sub="Backlog queue"
-            color="#D97706"
-          />
-          <KPICard
-            label="Spatial Discrepancies"
-            value={stats.spatial_discrepancy_count || 0}
-            sub="Deed vs GIS conflict (>5%)"
-            color="#DC2626"
-            highlight={stats.spatial_discrepancy_count > 0}
-          />
-          <KPICard
-            label="Avg. Extraction Accuracy"
-            value={`${(stats.avg_extraction_accuracy * 100).toFixed(1)}%`}
-            sub="Optical character match"
-            color="#2563EB"
-          />
+        {/* Status widget */}
+        <div style={{ padding: 12, borderTop: "1px solid #22332B", backgroundColor: "#13201B" }}>
+          <div style={{ backgroundColor: "#1A2B24", border: "1px solid #263D33", borderRadius: 8, padding: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: "#A7F3D0" }}>● Systems operational</span>
+              <span style={{ fontSize: 10, color: "#718A7D" }}>Port 3001</span>
+            </div>
+            <div style={{ fontSize: 10, color: "#637C6F", marginTop: 6, borderTop: "1px solid #243930", paddingTop: 6, display: "flex", justifyContent: "space-between" }}>
+              <span>NIC Cloud · Bengaluru</span>
+              <span style={{ fontFamily: "monospace" }}>v2.4.0</span>
+            </div>
+          </div>
         </div>
+      </aside>
 
-        {/* 2-Column Analytics Section */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
-          {/* District Breakdown */}
-          <div style={{ backgroundColor: "#FFFFFF", padding: 20, borderRadius: 8, border: "1px solid #E5E7EB", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-            <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0B3B60", margin: "0 0 16px 0" }}>
-              📍 Digitization by Revenue District
+      {/* Main Area */}
+      <div style={{ flex: 1, marginLeft: 260, display: "flex", flexDirection: "column" }}>
+        {/* Top Header Bar */}
+        <header style={{ height: 64, backgroundColor: "#F7F5EF", borderBottom: "1px solid #E6E3DB", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 32px", position: "sticky", top: 0, zIndex: 10 }}>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "1px", color: "#8A887E", textTransform: "uppercase" }}>
+              KARNATAKA / REVENUE DEPARTMENT
+            </div>
+            <div style={{ fontSize: 16, fontWeight: "bold", color: "#16241F" }}>
+              Command centre
+            </div>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <a
+              href="http://localhost:3000"
+              style={{ textDecoration: "none", padding: "8px 14px", backgroundColor: "#16241F", color: "#FFF", borderRadius: 8, fontSize: 12, fontWeight: 600 }}
+            >
+              Open Full Upload & Verification Portal ↗
+            </a>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 32, height: 32, borderRadius: "50%", backgroundColor: "#16241F", color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: "bold", fontFamily: "serif" }}>
+                DG
+              </div>
+              <div style={{ textAlign: "left" }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "#16241F" }}>Deepak G.M.</div>
+                <div style={{ fontSize: 10, color: "#8A887E" }}>District Admin</div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Content View */}
+        <main style={{ padding: 32, maxWidth: 1200, width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
+          {error && (
+            <div style={{ padding: 16, backgroundColor: "#FEE2E2", color: "#991B1B", borderRadius: 10, border: "1px solid #FCA5A5", marginBottom: 24, fontSize: 13 }}>
+              <strong>API Connection Issue:</strong> {error}. Ensure API Gateway is running on port 8000.
+            </div>
+          )}
+
+          {/* Heading */}
+          <div style={{ marginBottom: 28 }}>
+            <span style={{ fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: "1px", color: "#D9714B" }}>
+              DIGITIZATION OVERVIEW
+            </span>
+            <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 32, fontWeight: "bold", color: "#16241F", marginTop: 4 }}>
+              Good morning, Deepak.
             </h2>
-            {Object.keys(stats.by_district || {}).length === 0 ? (
-              <div style={{ color: "#9CA3AF", fontSize: 13 }}>No district data yet</div>
-            ) : (
-              <div>
-                {Object.entries(stats.by_district).map(([district, count]) => {
-                  const pct = Math.round((count / Math.max(1, stats.total_processed)) * 100);
-                  return (
-                    <div key={district} style={{ marginBottom: 12 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
-                        <span style={{ fontWeight: 600 }}>{district}</span>
-                        <span style={{ color: "#6B7280" }}>{count} records ({pct}%)</span>
+            <p style={{ fontSize: 14, color: "#737167", marginTop: 4 }}>
+              Here's what needs attention across your land record operations today.
+            </p>
+          </div>
+
+          {/* Alert Banner */}
+          {pendingCount > 0 && (
+            <div style={{ backgroundColor: "#FAF3EE", border: "1px solid #F3DFC7", borderRadius: 12, padding: "18px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 8, backgroundColor: "#D9714B", color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
+                  ✦
+                </div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: "bold", color: "#16241F" }}>
+                    {pendingCount} records need verification
+                  </div>
+                  <div style={{ fontSize: 12, color: "#8A7A71" }}>
+                    AI confidence below threshold or flagged for revenue officer review.
+                  </div>
+                </div>
+              </div>
+
+              <a
+                href="http://localhost:3000"
+                style={{ textDecoration: "none", fontSize: 12, fontWeight: "bold", color: "#D9714B" }}
+              >
+                Open verification desk →
+              </a>
+            </div>
+          )}
+
+          {/* 4 Stat Cards */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16, marginBottom: 32 }}>
+            {/* Card 1: Records */}
+            <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #E6E3DB", borderRadius: 12, padding: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#8A887E", letterSpacing: "0.5px" }}>
+                Records digitized
+              </div>
+              <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 32, fontWeight: "bold", color: "#16241F", marginTop: 12 }}>
+                {totalProcessed.toLocaleString()}
+              </div>
+              <div style={{ fontSize: 12, color: "#1D8374", fontWeight: 500, marginTop: 4 }}>
+                ● Live database records
+              </div>
+            </div>
+
+            {/* Card 2: Accuracy */}
+            <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #E6E3DB", borderRadius: 12, padding: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#8A887E", letterSpacing: "0.5px" }}>
+                Field accuracy
+              </div>
+              <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 32, fontWeight: "bold", color: "#16241F", marginTop: 12 }}>
+                {accuracyPct}%
+              </div>
+              <div style={{ fontSize: 12, color: "#1D8374", fontWeight: 500, marginTop: 4 }}>
+                Optical token derived
+              </div>
+            </div>
+
+            {/* Card 3: Spatial Discrepancies */}
+            <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #E6E3DB", borderRadius: 12, padding: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#8A887E", letterSpacing: "0.5px" }}>
+                Spatial discrepancies
+              </div>
+              <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 32, fontWeight: "bold", color: "#16241F", marginTop: 12 }}>
+                {discrepancyCount}
+              </div>
+              <div style={{ fontSize: 12, color: discrepancyCount > 0 ? "#D9714B" : "#1D8374", fontWeight: 500, marginTop: 4 }}>
+                {discrepancyCount > 0 ? "Flagged for parcel survey" : "All boundaries consistent"}
+              </div>
+            </div>
+
+            {/* Card 4: Dark Pending Card */}
+            <div style={{ backgroundColor: "#16241F", color: "#FFFFFF", borderRadius: 12, padding: 20, border: "1px solid #22332B" }}>
+              <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#8FA396", letterSpacing: "0.5px" }}>
+                Pending validation
+              </div>
+              <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 32, fontWeight: "bold", color: "#FFFFFF", marginTop: 12 }}>
+                {pendingCount}
+              </div>
+              <div style={{ fontSize: 12, color: "#D9714B", fontWeight: 600, marginTop: 8 }}>
+                <a href="http://localhost:3000" style={{ color: "#D9714B", textDecoration: "none" }}>
+                  Review queue →
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Activity & Coverage */}
+          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 24 }}>
+            {/* Recent Activity */}
+            <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #E6E3DB", borderRadius: 12, padding: 24 }}>
+              <div style={{ fontSize: 10, fontWeight: "bold", textTransform: "uppercase", color: "#D9714B", letterSpacing: "0.5px" }}>
+                LATEST ACTIVITY
+              </div>
+              <h3 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 18, fontWeight: "bold", color: "#16241F", marginTop: 2, marginBottom: 16 }}>
+                Recent audit events
+              </h3>
+
+              {auditLogs && auditLogs.length > 0 ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {auditLogs.slice(0, 5).map((l) => (
+                    <div key={l.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: 12, borderBottom: "1px solid #F2EFE8", fontSize: 12 }}>
+                      <div>
+                        <span style={{ fontWeight: 600, backgroundColor: "#EBF7F2", color: "#1D8374", padding: "2px 6px", borderRadius: 4, marginRight: 8, fontSize: 11 }}>
+                          {l.action}
+                        </span>
+                        <span style={{ color: "#16241F", fontWeight: 500 }}>
+                          {l.record_id ? `Record: ${l.record_id.slice(0, 8)}...` : "System Event"}
+                        </span>
                       </div>
-                      <div style={{ backgroundColor: "#E5E7EB", height: 8, borderRadius: 4, overflow: "hidden" }}>
-                        <div style={{ width: `${pct}%`, backgroundColor: "#0B3B60", height: "100%", borderRadius: 4 }} />
+                      <div style={{ fontSize: 11, color: "#8A887E" }}>
+                        {l.actor || "System"} · {l.created_at ? new Date(l.created_at).toLocaleTimeString() : ""}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ fontSize: 12, color: "#8A887E", padding: "16px 0" }}>
+                  No recent audit events logged.
+                </div>
+              )}
+            </div>
+
+            {/* Coverage */}
+            <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #E6E3DB", borderRadius: 12, padding: 24 }}>
+              <div style={{ fontSize: 10, fontWeight: "bold", textTransform: "uppercase", color: "#D9714B", letterSpacing: "0.5px" }}>
+                COVERAGE
+              </div>
+              <h3 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 18, fontWeight: "bold", color: "#16241F", marginTop: 2, marginBottom: 16 }}>
+                District records
+              </h3>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {Object.entries(byDistrict).slice(0, 5).map(([dist, count]) => {
+                  const safeName = dist.replace(/[()]/g, "").slice(0, 16);
+                  const pct = totalProcessed > 0 ? Math.round((count / totalProcessed) * 100) : 0;
+                  return (
+                    <div key={dist}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
+                        <span>{safeName}</span>
+                        <span style={{ color: "#8A887E" }}>{count} ({pct}%)</span>
+                      </div>
+                      <div style={{ width: "100%", height: 6, backgroundColor: "#F2EFE8", borderRadius: 3, overflow: "hidden" }}>
+                        <div style={{ width: `${pct}%`, height: "100%", backgroundColor: "#1D8374", borderRadius: 3 }} />
                       </div>
                     </div>
                   );
                 })}
               </div>
-            )}
-          </div>
-
-          {/* Land Classification & Document Type Breakdown */}
-          <div style={{ backgroundColor: "#FFFFFF", padding: 20, borderRadius: 8, border: "1px solid #E5E7EB", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-            <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0B3B60", margin: "0 0 16px 0" }}>
-              🌾 Land Classification & Document Types
-            </h2>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#4B5563", marginBottom: 8, textTransform: "uppercase" }}>
-                  Land Classification
-                </div>
-                {Object.entries(stats.by_classification || {}).map(([cls, count]) => (
-                  <div key={cls} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "6px 0", borderBottom: "1px solid #F3F4F6" }}>
-                    <span>{cls}</span>
-                    <span style={{ fontWeight: 700, color: "#0B3B60" }}>{count}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#4B5563", marginBottom: 8, textTransform: "uppercase" }}>
-                  Document Categories
-                </div>
-                {Object.entries(stats.by_doc_type || {}).map(([dtype, count]) => (
-                  <div key={dtype} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "6px 0", borderBottom: "1px solid #F3F4F6" }}>
-                    <span style={{ textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", maxWidth: 160 }}>{dtype}</span>
-                    <span style={{ fontWeight: 700, color: "#059669" }}>{count}</span>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
-        </div>
-
-        {/* Live Immutable Audit Log Table */}
-        <div style={{ backgroundColor: "#FFFFFF", padding: 20, borderRadius: 8, border: "1px solid #E5E7EB", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-            <div>
-              <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0B3B60", margin: 0 }}>
-                🛡️ Live System Audit Trail (Tamper-evident Event Ledger)
-              </h2>
-              <p style={{ fontSize: 12, color: "#6B7280", margin: "2px 0 0 0" }}>
-                Records provenance of every ingestion, OCR extraction, spatial validation, and human review decision.
-              </p>
-            </div>
-            <button
-              onClick={loadData}
-              style={{ backgroundColor: "#F3F4F6", border: "1px solid #D1D5DB", padding: "5px 12px", borderRadius: 4, fontSize: 12, cursor: "pointer", fontWeight: 600 }}
-            >
-              ⟳ Refresh Log
-            </button>
-          </div>
-
-          {auditLogs.length === 0 ? (
-            <div style={{ padding: 24, textAlign: "center", color: "#9CA3AF", fontSize: 13 }}>No audit logs recorded yet.</div>
-          ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
-              <thead>
-                <tr style={{ backgroundColor: "#F8FAFC", borderBottom: "2px solid #E2E8F0", textAlign: "left", color: "#475569", textTransform: "uppercase", fontSize: "11px", letterSpacing: "0.5px" }}>
-                  <th style={{ padding: "10px 14px" }}>Timestamp (UTC)</th>
-                  <th style={{ padding: "10px 14px" }}>Action</th>
-                  <th style={{ padding: "10px 14px" }}>Actor / Role</th>
-                  <th style={{ padding: "10px 14px" }}>Record ID</th>
-                  <th style={{ padding: "10px 14px" }}>Audit Details</th>
-                </tr>
-              </thead>
-              <tbody>
-                {auditLogs.map((log) => {
-                  const act = (log.action || "EVENT").toUpperCase();
-                  let badge = { bg: "#EFF6FF", text: "#1E40AF", border: "#BFDBFE", label: `ℹ️ ${act}` };
-                  if (act.includes("VALIDATED") || act.includes("APPROVED")) {
-                    badge = { bg: "#ECFDF5", text: "#059669", border: "#A7F3D0", label: `✓ ${act}` };
-                  } else if (act.includes("REJECT")) {
-                    badge = { bg: "#FEF2F2", text: "#DC2626", border: "#FECACA", label: `✕ ${act}` };
-                  } else if (act.includes("REVIEW") || act.includes("SURVEY")) {
-                    badge = { bg: "#FFFBEB", text: "#D97706", border: "#FDE68A", label: `⚠️ ${act}` };
-                  }
-
-                  return (
-                    <tr key={log.id} style={{ borderBottom: "1px solid #F1F5F9" }}>
-                      <td style={{ padding: "10px 14px", color: "#64748B", fontFamily: "monospace" }}>
-                        {log.created_at ? new Date(log.created_at).toLocaleTimeString() : "—"}
-                      </td>
-                      <td style={{ padding: "10px 14px" }}>
-                        <span
-                          style={{
-                            backgroundColor: badge.bg,
-                            color: badge.text,
-                            border: `1px solid ${badge.border}`,
-                            padding: "3px 8px",
-                            borderRadius: "6px",
-                            fontWeight: 700,
-                            fontSize: "11px",
-                            letterSpacing: "0.2px",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "4px",
-                          }}
-                        >
-                          {badge.label}
-                        </span>
-                      </td>
-                      <td style={{ padding: "10px 14px", fontWeight: 600, color: "#374151" }}>{log.actor || "System"}</td>
-                      <td style={{ padding: "10px 14px", fontFamily: "monospace", color: "#0B3B60", fontWeight: 600 }}>
-                        {log.record_id ? log.record_id.slice(0, 8) : "—"}
-                      </td>
-                      <td style={{ padding: "10px 14px", color: "#6B7280", maxWidth: 320, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {JSON.stringify(log.details)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
+        </main>
       </div>
     </div>
   );
 }
-
-function KPICard({ label, value, sub, color, highlight }) {
-  return (
-    <div
-      style={{
-        backgroundColor: highlight ? "#FEF2F2" : "#FFFFFF",
-        border: highlight ? "2px solid #DC2626" : "1px solid #E5E7EB",
-        borderRadius: 8,
-        padding: "16px 14px",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-      }}
-    >
-      <div style={{ fontSize: 24, fontWeight: 800, color: color, marginBottom: 2 }}>{value}</div>
-      <div style={{ color: "#374151", fontSize: 13, fontWeight: 700 }}>{label}</div>
-      <div style={{ color: "#9CA3AF", fontSize: 11, marginTop: 4 }}>{sub}</div>
-    </div>
-  );
-}
-

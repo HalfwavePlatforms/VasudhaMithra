@@ -29,6 +29,34 @@ app.add_middleware(
 app.include_router(records.router)
 app.include_router(dashboard.router)
 
+import os
+import httpx
+from fastapi import HTTPException
+GIS_SERVICE_URL = os.getenv("GIS_SERVICE_URL", "http://127.0.0.1:8003")
+
+@app.get("/gis/parcel/{survey_number:path}")
+async def proxy_gis_parcel(survey_number: str):
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        try:
+            resp = await client.get(f"{GIS_SERVICE_URL}/gis/parcel/{survey_number}")
+            if resp.status_code == 404:
+                raise HTTPException(status_code=404, detail="Parcel not found")
+            return resp.json()
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=f"GIS service unreachable: {e}")
+
+@app.get("/gis/parcels")
+async def proxy_gis_parcels():
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        try:
+            resp = await client.get(f"{GIS_SERVICE_URL}/gis/parcels")
+            return resp.json()
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=f"GIS service unreachable: {e}")
+
+
 
 @app.on_event("startup")
 def on_startup():

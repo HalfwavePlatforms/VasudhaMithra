@@ -48,22 +48,27 @@
 }
 
 @theme {
-  --color-tangerine-tag: #f69251;
-  --color-midnight-ink: #181825;
-  --color-graphite: #484758;
-  --color-deep-slate: #242433;
-  --color-carbon: #000000;
-  --color-stone: #636363;
-  --color-pebble: #949494;
-  --color-ash: #8b8b8b;
-  --color-fog: #f7f7f7;
-  --color-snow: #ffffff;
-  --color-peach-whisper: #fad7c1;
-  --color-dusty-rose: #c97b84;
+  --color-forest: #16241F;
+  --color-cream: #F7F5EF;
+  --color-coral: #D9714B;
+  --color-teal: #1D8374;
+  --color-teal-light: #E6F4F1;
+  --color-amber-badge: #D97706;
+  --color-amber-light: #FEF3C7;
+  --color-card-border: #E6E3DB;
 
   --font-pp-radio-grotesk-light: 'Instrument Sans', 'DM Sans', 'Plus Jakarta Sans', sans-serif;
-  --font-inter: 'Inter', sans-serif;
+  --font-inter: 'Inter', system-ui, sans-serif;
+  --font-serif: 'Playfair Display', Georgia, Cambria, serif;
 }
+
+.font-serif-title {
+  font-family: 'Playfair Display', Georgia, Cambria, serif;
+}
+.font-sans-body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
 
 /* Base Body Styles */
 body {
