@@ -89,9 +89,19 @@ export default function DocumentIntake({
       setUploadProgress(100);
       setUploadResult(data);
 
+      if (setSelectedRecordId) {
+        setSelectedRecordId(data.record_id);
+      }
       if (onUploadSuccess) {
         onUploadSuccess(data);
       }
+
+      // Automatically navigate to Verification Desk pre-loaded with this exact record
+      setTimeout(() => {
+        if (setActiveTab) {
+          setActiveTab("verification_desk");
+        }
+      }, 750);
     } catch (err) {
       setError(err.message || "Failed to upload document. Ensure API Gateway is running.");
     } finally {

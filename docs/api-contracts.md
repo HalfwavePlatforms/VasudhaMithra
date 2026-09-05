@@ -139,6 +139,30 @@ Response:
 }
 ```
 
+### Contract Change Log — Phase B5 (Upload Size & MIME Validation)
+- **OLD**: Upload validation lacked configurable size limits and MIME-type enforcement before database/OCR execution.
+- **NEW**: `POST /records/upload` enforces `MAX_UPLOAD_SIZE_MB` (default 15 MB) and `ALLOWED_MIME_TYPES` (PNG, JPG, WEBP, PDF) prior to DB row creation, disk storage write, or OCR calls. Rejects invalid files with `HTTP 400 Bad Request`.
+- **WHY**: Protects storage and downstream processing from corrupt, invalid, or oversized file uploads.
+- **MIGRATION**: Backward-compatible addition.
+
+### Contract Change Log — Phase B3 (Basic RBAC & Actor Headers)
+- **OLD**: API endpoints lacked role verification (or defaulted missing headers), CORS allowed all origins (`*`), and audit logs recorded hardcoded placeholder actor strings.
+- **NEW**: HTTP request headers `X-Role` and `X-Actor` are enforced across protected routes. Missing `X-Role` returns `401 Unauthorized`. Unauthorized role returns `403 Forbidden`. Admin-only route `GET /dashboard/audit-trail` requires `X-Role: admin`. `PATCH /records/{record_id}` records actor identity from `X-Actor`/`X-Role` headers. Narrowed CORS origins to `http://localhost:3000`, `http://localhost:3001`.
+- **WHY**: Secures revenue decision endpoints for human-in-the-loop review and populates realistic actor provenance trails.
+- **MIGRATION**: Backward-compatible. Frontend includes `X-Role` and `X-Actor` headers in API requests.
+
+### Contract Change Log — Phase B2 (Store Uploaded Files)
+- **OLD**: Uploaded document images/PDFs were not persisted to disk or retrievable after processing.
+- **NEW**: Uploaded documents are saved to `storage/{record_id}.{ext}` upon upload with MIME/size validation. Added `GET /records/{record_id}/document` streaming endpoint and `document_url` field in `GET /records/{record_id}`.
+- **WHY**: Frontend document-viewer pane requires an accessible document URL/stream to display original deed scans alongside extracted fields.
+- **MIGRATION**: Backward-compatible addition. Migration `002_add_file_path_column.py` adds `file_path` column to `records` table.
+
+### Contract Change Log — Phase B1 (GIS Integration into Upload Flow)
+- **OLD**: `GET /records/{record_id}` returned `gis: null` or unpopulated GIS data when GIS call was unhandled.
+- **NEW**: `GET /records/{record_id}` returns a fully populated `gis` object (`parcel_id`, `area_doc_acres`, `area_gis_acres`, `spatial_consistency`, `spatial_delta_pct`, `geometry`) when GIS lookup succeeds, and `gis: null` when lookup fails/times out.
+- **WHY**: Frontend Cadastral Leaflet Map renderer requires geometry JSON and parcel details to overlay survey boundaries.
+- **MIGRATION**: Backward-compatible addition. Migration `001_add_geom_column.py` adds `geom` column to `records` table.
+
 ### GET /records/{record_id}
 Response:
 ```json
@@ -188,6 +212,12 @@ Downloads the original uploaded document (PDF/PNG/JPEG) from persistent server s
 - Status 200: Streamed file content with appropriate `Content-Disposition: attachment; filename="<original_filename>"` and MIME type (`application/pdf`, `image/png`, etc.).
 - Status 404: `{ "detail": "Original document file not found in storage" }` if record or file missing.
 
+### Contract Change Log — Phase B4 (state Column & State-Wise Dashboard Breakdown)
+- **OLD**: `GET /dashboard/stats` returned district, classification, and doc_type breakdowns, but lacked state-wise aggregation.
+- **NEW**: `GET /dashboard/stats` includes `"by_state": { "Madhya Pradesh": 45, ... }` aggregation dictionary alongside existing metrics.
+- **WHY**: Enables macro state-level analytics across multi-jurisdictional land digitization deployments.
+- **MIGRATION**: Backward-compatible addition. Migration `003_add_state_column.py` adds `state` column to `records` table with default `'Madhya Pradesh'`.
+
 ### GET /dashboard/stats
 Response:
 ```json
@@ -199,6 +229,7 @@ Response:
   "error_count": 5,
   "spatial_discrepancy_count": 4,
   "avg_extraction_accuracy": 0.912,
+  "by_state": { "Madhya Pradesh": 142 },
   "by_district": { "Bhopal": 45, "Indore": 52 },
   "by_classification": { "Agricultural": 110, "Residential": 32 },
   "by_doc_type": { "Record of Rights / RTC (Pahani)": 98, "Mutation Extract (Form XII)": 44 }

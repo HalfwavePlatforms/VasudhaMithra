@@ -25,6 +25,10 @@ build/
 data/sample-documents/*
 !data/sample-documents/.gitkeep
 
+# Persistent storage
+storage/*
+!storage/.gitkeep
+
 # OS
 .DS_Store
 Thumbs.db

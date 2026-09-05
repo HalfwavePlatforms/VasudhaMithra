@@ -52,11 +52,8 @@ CREATE INDEX idx_record_fields_name_value ON record_fields(field_name, field_val
     -- speeds up duplicate detection: WHERE field_name='khasra_number' AND field_value = X
 ```
 
-## Why this shape
-- **`record_fields` is a narrow table, not one wide column per field.** Land records
-  have ~10 fields today; the ministry's real spec could add more. A narrow schema
-  means adding a new field type is a data change, not a migration.
-- **`geom` is nullable and separate from the GIS service's mock response** — the
-  DB is ready for real cadastral polygons even though the hackathon demo fakes them.
-- **`audit_log` is append-only and generic** — it's what lets you show a judge a full
-  provenance trail for any record without designing a bespoke history table per entity.
+## Schema Migration Notes
+- **Migration `003_add_state_column.py`**: Added `state` column (`TEXT`) to `records` table with server default `'Madhya Pradesh'` for state-level analytics aggregation.
+- **Migration `002_add_file_path_column.py`**: Added `file_path` column (`TEXT`) to `records` table for storing local storage file paths (`storage/{record_id}.{ext}`).
+- **Migration `001_add_geom_column.py`**: Added `geom` column (`JSONB`/`JSON`) to `records` table. Storing GeoJSON structures as JSONB is an interim step when standard PostgreSQL (without the optional PostGIS binary extension) is used, ensuring GeoJSON polygon coordinates are fully persisted and retrievable by `api-gateway` and the frontend map.
+

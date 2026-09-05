@@ -11,6 +11,8 @@ try:
 except ImportError:
     pass
 
+NPM_DEV_CMD = ["cmd.exe", "/c", "npm", "run", "dev"] if os.name == "nt" else ["npm", "run", "dev"]
+
 SERVICES = [
     {
         "name": "GIS Service",
@@ -39,13 +41,13 @@ SERVICES = [
     {
         "name": "Upload Portal",
         "cwd": "frontend/upload-portal",
-        "cmd": ["cmd.exe", "/c", "npm", "run", "dev"],
+        "cmd": NPM_DEV_CMD,
         "health_url": "http://localhost:3000",
     },
     {
         "name": "Dashboard",
         "cwd": "frontend/dashboard",
-        "cmd": ["cmd.exe", "/c", "npm", "run", "dev"],
+        "cmd": NPM_DEV_CMD,
         "health_url": "http://localhost:3001",
     },
 ]

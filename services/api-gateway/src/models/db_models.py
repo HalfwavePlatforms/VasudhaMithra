@@ -19,6 +19,7 @@ class Record(Base):
     document_type = Column(String, default="Standard Land Record")
     language = Column(String, default="en")
     risk_level = Column(String, default="LOW")
+    state = Column(String, default="Madhya Pradesh")
 
     # Spatial Consistency Engine fields (Document <-> Data <-> GIS)
     parcel_id = Column(String)
@@ -27,6 +28,7 @@ class Record(Base):
     spatial_consistency = Column(String, default="NOT_EVALUATED")  # MATCH | DISCREPANCY | NOT_EVALUATED
     spatial_delta_pct = Column(Float)
     gis_geojson = Column(JSON)
+    geom = Column(JSON)
 
     # Human Verification & Audit
     reviewer_notes = Column(String)

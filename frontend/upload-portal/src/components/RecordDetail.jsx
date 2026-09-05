@@ -88,7 +88,11 @@ export default function RecordDetail({ recordId, onBack }) {
     try {
       const res = await fetch(`${API_BASE}/records/${recordId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Role": "officer",
+          "X-Actor": "Revenue Officer"
+        },
         body: JSON.stringify(payload)
       });
 

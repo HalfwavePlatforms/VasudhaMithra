@@ -21,6 +21,7 @@ export default function VerificationDesk({
   selectedRecordId,
   setSelectedRecordId,
   onRecordUpdated,
+  setActiveTab,
 }) {
   const [pendingRecords, setPendingRecords] = useState([]);
   const [currentRecord, setCurrentRecord] = useState(null);
@@ -57,28 +58,45 @@ export default function VerificationDesk({
     fetchPendingRecords();
   }, [apiBase]);
 
-  // 2. Fetch specific record details when selectedRecordId changes
+  // 2. Fetch specific record details, and poll if status is "processing"
   useEffect(() => {
     if (!selectedRecordId) return;
 
+    let isMounted = true;
+    let pollTimer = null;
+
+    const fetchDetail = () => {
+      fetch(`${apiBase}/records/${selectedRecordId}`)
+        .then((res) => {
+          if (!res.ok) throw new Error("Record not found");
+          return res.json();
+        })
+        .then((data) => {
+          if (!isMounted) return;
+          setCurrentRecord(data);
+          setEditedFields(data.fields || {});
+          setReviewerNotes(data.review?.reviewer_notes || "");
+          setLoadingRecord(false);
+
+          // If still processing, re-poll in 1.5s
+          if (data.status === "processing") {
+            pollTimer = setTimeout(fetchDetail, 1500);
+          }
+        })
+        .catch((err) => {
+          console.error("Error fetching record:", err);
+          if (isMounted) setLoadingRecord(false);
+        });
+    };
+
     setLoadingRecord(true);
     setImageError(false);
-    fetch(`${apiBase}/records/${selectedRecordId}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Record not found");
-        return res.json();
-      })
-      .then((data) => {
-        setCurrentRecord(data);
-        setEditedFields(data.fields || {});
-        setReviewerNotes(data.review?.reviewer_notes || "");
-      })
-      .catch((err) => {
-        console.error("Error fetching record:", err);
-      })
-      .finally(() => {
-        setLoadingRecord(false);
-      });
+    fetchDetail();
+
+    return () => {
+      isMounted = false;
+      if (pollTimer) clearTimeout(pollTimer);
+    };
   }, [selectedRecordId, apiBase]);
 
   const handleFieldChange = (key, val) => {
@@ -125,15 +143,15 @@ export default function VerificationDesk({
     }
   };
 
-  // 4. Submit Official Decision (Approve or Reject via POST /records/{id}/review)
+  // 4. Submit Official Decision (Approve or Reject via PATCH /records/{id})
   const handleDecision = async (decision) => {
     if (!currentRecord) return;
     setActionLoading(true);
     setNotification(null);
 
     try {
-      const res = await fetch(`${apiBase}/records/${currentRecord.record_id}/review`, {
-        method: "POST",
+      const res = await fetch(`${apiBase}/records/${currentRecord.record_id}`, {
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           "X-Role": "tahsildar",
@@ -142,6 +160,7 @@ export default function VerificationDesk({
           actor: "Deepak G.M. (Tahsildar / Admin)",
           reviewer_notes: reviewerNotes || (decision === "APPROVED" ? "Approved by revenue officer." : "Rejected due to validation discrepancies."),
           decision: decision,
+          fields: editedFields,
         }),
       });
 
@@ -154,18 +173,26 @@ export default function VerificationDesk({
       setCurrentRecord(updated);
       setNotification({
         type: "success",
-        text: `Record successfully ${decision === "APPROVED" ? "approved & validated" : "flagged as rejected"}.`,
+        text: `Record ${currentRecord.record_id.slice(0, 8)}... successfully ${decision === "APPROVED" ? "approved & validated" : "flagged as rejected"}. Transitioning to Land Records...`,
       });
 
-      // Refresh pending list
+      // Refresh pending list and dashboard stats
       fetchPendingRecords();
       if (onRecordUpdated) onRecordUpdated();
+
+      // Navigate user to Land Records per Step 2
+      setTimeout(() => {
+        if (setActiveTab) {
+          setActiveTab("land_records");
+        }
+      }, 1000);
     } catch (e) {
       setNotification({ type: "error", text: e.message });
     } finally {
       setActionLoading(false);
     }
   };
+
 
   const schemaLabels = {
     survey_number: "Survey Number",
@@ -251,6 +278,16 @@ export default function VerificationDesk({
           </h3>
           <p className="text-xs text-[#8A887E] mt-1">
             Select a record from the queue above or upload a new deed from Document Intake.
+          </p>
+        </div>
+      ) : currentRecord.status === "processing" ? (
+        <div className="bg-white border border-[#E6E3DB] rounded-xl p-12 text-center text-[#737167] space-y-3">
+          <Loader2 className="w-10 h-10 animate-spin text-[#D9714B] mx-auto mb-2" />
+          <h3 className="text-base font-bold text-[#16241F]">
+            Pipeline In Progress for Record {currentRecord.record_id.slice(0, 8)}...
+          </h3>
+          <p className="text-xs text-[#8A887E] max-w-md mx-auto">
+            Optical OCR and AI layout extraction are active. Real confidence scores, schema fields, and Cadastral GIS spatial validation will populate automatically.
           </p>
         </div>
       ) : (

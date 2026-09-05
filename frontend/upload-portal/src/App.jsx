@@ -44,6 +44,11 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // Step 5: Refetch stats and audit trail on every navigation return so views are never stale
+  useEffect(() => {
+    loadDashboardData();
+  }, [activeTab]);
+
   const pageTitles = {
     command_centre: "Command centre",
     document_intake: "Document intake",
@@ -95,6 +100,7 @@ export default function App() {
                 loadDashboardData();
                 if (uploadData?.record_id) {
                   setSelectedRecordId(uploadData.record_id);
+                  setActiveTab("verification_desk");
                 }
               }}
               setActiveTab={setActiveTab}
@@ -108,6 +114,7 @@ export default function App() {
               selectedRecordId={selectedRecordId}
               setSelectedRecordId={setSelectedRecordId}
               onRecordUpdated={loadDashboardData}
+              setActiveTab={setActiveTab}
             />
           )}
 
@@ -115,6 +122,7 @@ export default function App() {
             <LandRecords
               apiBase={API_BASE}
               stats={stats}
+              selectedRecordId={selectedRecordId}
               setActiveTab={setActiveTab}
               setSelectedRecordId={setSelectedRecordId}
             />

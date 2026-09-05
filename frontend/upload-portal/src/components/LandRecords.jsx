@@ -12,7 +12,8 @@ import {
   AlertTriangle,
   CheckCircle2,
   XCircle,
-  Loader2
+  Loader2,
+  RefreshCw
 } from "lucide-react";
 
 export default function LandRecords({
@@ -20,6 +21,7 @@ export default function LandRecords({
   stats,
   setActiveTab,
   setSelectedRecordId,
+  selectedRecordId,
 }) {
   const [records, setRecords] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -52,7 +54,8 @@ export default function LandRecords({
 
   useEffect(() => {
     fetchRecords(currentPage, statusFilter);
-  }, [currentPage, statusFilter, apiBase]);
+  }, [currentPage, statusFilter, apiBase, selectedRecordId]);
+
 
   // Client-side search filtering
   const filteredRecords = records.filter((r) => {
@@ -223,6 +226,15 @@ export default function LandRecords({
             </select>
           </div>
 
+          <button
+            onClick={() => fetchRecords(currentPage, statusFilter)}
+            disabled={loading}
+            title="Refresh records from database"
+            className="p-1.5 bg-white border border-[#DDD9CE] hover:bg-[#F2EFE8] rounded-lg text-[#737167] transition-colors"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-[#D9714B]" : ""}`} />
+          </button>
+
           <span className="text-xs text-[#8A887E]">
             {filteredRecords.length} records shown
           </span>
@@ -266,13 +278,24 @@ export default function LandRecords({
                   const isValidated = r.status === "validated";
                   const isRejected = r.status === "rejected";
 
+                  const isSelected = r.record_id === selectedRecordId;
+
                   return (
                     <tr
                       key={r.record_id}
-                      className="hover:bg-[#FAF9F5] transition-colors group"
+                      className={`transition-colors group ${
+                        isSelected
+                          ? "bg-[#FAF3EE] ring-1 ring-[#D9714B]/40"
+                          : "hover:bg-[#FAF9F5]"
+                      }`}
                     >
                       <td className="py-3.5 px-4 font-mono font-bold text-[#16241F]">
-                        {fields.survey_number || fields.khasra_number || "—"}
+                        <div className="flex items-center gap-1.5">
+                          {isSelected && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#D9714B]" title="Active record in current workflow" />
+                          )}
+                          <span>{fields.survey_number || fields.khasra_number || "—"}</span>
+                        </div>
                       </td>
                       <td className="py-3.5 px-4 font-semibold text-[#16241F] max-w-[180px] truncate">
                         {fields.owner_name || "—"}

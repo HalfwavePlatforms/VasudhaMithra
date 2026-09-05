@@ -23,25 +23,59 @@ EXTRACTION_SERVICE_URL = os.getenv("EXTRACTION_SERVICE_URL", "http://127.0.0.1:8
 GIS_SERVICE_URL = os.getenv("GIS_SERVICE_URL", "http://127.0.0.1:8003")
 
 # Persistent Document Storage Path
-REPO_ROOT = Path(__file__).resolve().parents[4]
-STORAGE_PATH = Path(os.getenv("STORAGE_PATH", str(REPO_ROOT / "storage")))
+BASE_DIR = Path(__file__).resolve().parent
+REPO_ROOT = BASE_DIR
+for p in [BASE_DIR] + list(BASE_DIR.parents):
+    if (p / "storage").exists() or (p / "services").exists():
+        REPO_ROOT = p
+        break
+
+STORAGE_PATH_ENV = os.getenv("STORAGE_PATH")
+if STORAGE_PATH_ENV:
+    STORAGE_PATH = Path(STORAGE_PATH_ENV)
+else:
+    STORAGE_PATH = REPO_ROOT / "storage"
+
 STORAGE_PATH.mkdir(parents=True, exist_ok=True)
+
+# Upload File Constraints
+MAX_UPLOAD_SIZE_MB = int(os.getenv("MAX_UPLOAD_SIZE_MB", "15"))
+MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024
+
+ALLOWED_MIME_TYPES = {
+    "image/png",
+    "image/jpeg",
+    "image/jpg",
+    "image/webp",
+    "application/pdf",
+}
+ALLOWED_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".webp"}
 
 
 def require_role(allowed_roles: list[str]):
     """
-    Lightweight header-based role check.
-    Header: X-Role (default to 'tahsildar' if not provided to preserve test compatibility).
-    Returns 403 Forbidden with clear error message if role lacks authorization.
+    Lightweight header-based RBAC check.
+    Headers:
+      - X-Role: required role string (e.g. 'tahsildar', 'officer', 'admin', 'surveyor')
+      - X-Actor: optional display name for audit trails (e.g. 'Tahsildar Officer')
+    Raises 401 Unauthorized if X-Role header is missing.
+    Raises 403 Forbidden if role is not authorized.
     """
-    def role_checker(x_role: str | None = Header(default=None)):
-        role = (x_role or "tahsildar").strip().lower()
-        if role not in [r.lower() for r in allowed_roles]:
+    def role_checker(x_role: str | None = Header(default=None), x_actor: str | None = Header(default=None)):
+        if not x_role or not x_role.strip():
+            raise HTTPException(
+                status_code=401,
+                detail="Unauthorized: Missing required X-Role header.",
+            )
+        role = x_role.strip().lower()
+        allowed_lower = [r.lower() for r in allowed_roles]
+        if role not in allowed_lower:
             raise HTTPException(
                 status_code=403,
-                detail=f"Forbidden: role '{role}' is not authorized. Required role(s): {', '.join(allowed_roles)}",
+                detail=f"Forbidden: role '{role}' is not authorized for this endpoint. Required role(s): {', '.join(allowed_roles)}",
             )
-        return role
+        actor_name = x_actor.strip() if (x_actor and x_actor.strip()) else role
+        return {"role": role, "actor": actor_name}
     return role_checker
 
 
@@ -54,11 +88,29 @@ async def upload_record(
     file: UploadFile = File(...),
     actor: str = "Officer (demo)",
     language: str = Form("auto"),
-    role: str = Depends(require_role(["tahsildar", "surveyor"])),
+    auth: dict = Depends(require_role(["tahsildar", "surveyor", "officer", "admin"])),
     db: Session = Depends(get_db),
 ):
     try:
+        orig_name = file.filename or "document.png"
+        ext = os.path.splitext(orig_name)[1].lower()
+        if not ext:
+            ext = ".png"
+
+        content_type = (file.content_type or "").lower().strip()
+        if ext not in ALLOWED_EXTENSIONS and content_type not in ALLOWED_MIME_TYPES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported file format (extension '{ext}', MIME type '{file.content_type}'). Allowed formats: PNG, JPG, WEBP, PDF.",
+            )
+
         content = await file.read()
+        if len(content) > MAX_UPLOAD_SIZE_BYTES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"File size ({round(len(content)/(1024*1024), 2)} MB) exceeds maximum allowed limit of {MAX_UPLOAD_SIZE_MB} MB.",
+            )
+
         image_b64 = base64.b64encode(content).decode("utf-8")
 
         # Resolve language hint
@@ -82,25 +134,24 @@ async def upload_record(
             else:
                 lang_hint = "auto"
 
-        # Determine file extension and write bytes to persistent storage
-        orig_name = file.filename or "document.png"
-        ext = os.path.splitext(orig_name)[1].lower()
-        if not ext:
-            ext = ".png"
-        saved_fname = f"{uuid.uuid4()}{ext}"  # Temporary or record id
         record = Record(original_filename=orig_name, status="processing")
         db.add(record)
         db.commit()
         db.refresh(record)
 
-        # Name with actual record.id: storage/{record_id}.{ext}
+        # Write bytes to persistent local disk storage: storage/{record_id}.{ext}
         actual_saved_fname = f"{record.id}{ext}"
         saved_file_path = STORAGE_PATH / actual_saved_fname
-        with open(saved_file_path, "wb") as f_out:
-            f_out.write(content)
+        try:
+            with open(saved_file_path, "wb") as f_out:
+                f_out.write(content)
+            record.file_path = f"storage/{actual_saved_fname}"
+            db.commit()
+        except Exception as store_err:
+            logger.error("Failed to write document file to storage: %s", store_err)
+            record.file_path = None
+            db.commit()
 
-        record.file_path = f"storage/{actual_saved_fname}"
-        db.commit()
         _log(db, record.id, "uploaded", actor=actor, details={"filename": file.filename, "language": lang_hint, "file_path": record.file_path})
 
         # 1. OCR Step
@@ -223,7 +274,9 @@ async def upload_record(
                         gis_data = gis_resp.json()
                         record.parcel_id = gis_data.get("parcel_id")
                         record.area_gis_acres = gis_data.get("area_gis")
-                        record.gis_geojson = gis_data.get("geometry")
+                        geom_val = gis_data.get("geometry")
+                        record.gis_geojson = geom_val
+                        record.geom = geom_val
 
                         if doc_acres and record.area_gis_acres:
                             delta_pct = abs(doc_acres - record.area_gis_acres) / record.area_gis_acres * 100.0
@@ -241,8 +294,17 @@ async def upload_record(
                                 })
                         else:
                             record.spatial_consistency = "MATCH"
-                except Exception:
+
+                        db.commit()
+                        _log(db, record.id, "gis_lookup_succeeded", actor="GIS Service", details={"parcel_id": record.parcel_id, "area_gis_acres": record.area_gis_acres, "spatial_consistency": record.spatial_consistency})
+                    else:
+                        record.spatial_consistency = "NOT_EVALUATED"
+                        db.commit()
+                        _log(db, record.id, "gis_lookup_failed", actor="GIS Service", details={"survey_number": survey_no, "status_code": gis_resp.status_code})
+                except Exception as e:
                     record.spatial_consistency = "NOT_EVALUATED"
+                    db.commit()
+                    _log(db, record.id, "gis_lookup_failed", actor="GIS Service", details={"survey_number": survey_no, "error": str(e)})
 
         for v in violations:
             db.add(
@@ -312,14 +374,14 @@ def list_records(
 def correct_record(
     record_id: uuid.UUID,
     corrections: dict,
-    role: str = Depends(require_role(["tahsildar"])),
+    auth: dict = Depends(require_role(["tahsildar", "officer", "admin"])),
     db: Session = Depends(get_db),
 ):
     record = db.query(Record).filter(Record.id == record_id).first()
     if not record:
         raise HTTPException(status_code=404, detail="Record not found")
 
-    actor = corrections.get("actor", "Revenue Officer")
+    actor = auth.get("actor") or corrections.get("actor", "Revenue Officer")
     notes = corrections.get("reviewer_notes", "")
     decision = corrections.get("decision")  # "APPROVED" | "REJECTED" | None
 
@@ -343,9 +405,52 @@ def correct_record(
     # Re-validate after correction
     current_fields = {rf.field_name: (rf.corrected_value or rf.field_value) for rf in record.fields}
     violations = _validate_and_check_duplicates(db, record.id, current_fields)
+
+    # Re-check GIS spatial consistency on correction
+    survey_no = current_fields.get("survey_number") or current_fields.get("khasra_number")
+    if survey_no:
+        try:
+            with httpx.Client(timeout=5.0) as client:
+                gis_resp = client.get(f"{GIS_SERVICE_URL}/gis/parcel/{survey_no}")
+                if gis_resp.status_code == 200:
+                    gis_data = gis_resp.json()
+                    record.parcel_id = gis_data.get("parcel_id")
+                    record.area_gis_acres = gis_data.get("area_gis")
+                    geom_val = gis_data.get("geometry")
+                    record.gis_geojson = geom_val
+                    record.geom = geom_val
+
+                    raw_area = current_fields.get("plot_area")
+                    doc_acres = record.area_doc_acres
+                    if raw_area:
+                        import re
+                        m = re.search(r"(\d+(\.\d+)?)", str(raw_area))
+                        if m:
+                            doc_acres = float(m.group(1))
+                            record.area_doc_acres = doc_acres
+
+                    if doc_acres and record.area_gis_acres:
+                        delta_pct = abs(doc_acres - record.area_gis_acres) / record.area_gis_acres * 100.0
+                        record.spatial_delta_pct = round(delta_pct, 2)
+                        if delta_pct <= 5.0:
+                            record.spatial_consistency = "MATCH"
+                        else:
+                            record.spatial_consistency = "DISCREPANCY"
+                            violations.append({
+                                "field": "plot_area",
+                                "rule": "spatial_consistency",
+                                "severity": "HIGH",
+                                "message": f"Spatial Discrepancy: Deed extent ({doc_acres} ac) differs by {round(delta_pct, 1)}% from Cadastral GIS parcel ({record.area_gis_acres} ac).",
+                            })
+                    else:
+                        record.spatial_consistency = "MATCH"
+        except Exception:
+            pass
+
     db.query(ValidationResult).filter(ValidationResult.record_id == record_id).delete()
     for v in violations:
         db.add(ValidationResult(record_id=record.id, field_name=v["field"], rule=v["rule"], passed=False, message=v["message"]))
+
 
     if decision == "APPROVED":
         record.status = "validated"
@@ -367,18 +472,18 @@ def correct_record(
 def review_record(
     record_id: uuid.UUID,
     review_data: dict,
-    role: str = Depends(require_role(["tahsildar"])),
+    auth: dict = Depends(require_role(["tahsildar", "officer", "admin"])),
     db: Session = Depends(get_db),
 ):
     """
     Submits an official revenue validation or mutation review decision.
-    Guarded by RBAC: Requires 'tahsildar' role.
+    Guarded by RBAC: Requires 'tahsildar', 'officer', or 'admin' role.
     """
     record = db.query(Record).filter(Record.id == record_id).first()
     if not record:
         raise HTTPException(status_code=404, detail="Record not found")
 
-    actor = review_data.get("actor", "Tahsildar")
+    actor = auth.get("actor") or review_data.get("actor", "Tahsildar")
     notes = review_data.get("reviewer_notes", "")
     decision = review_data.get("decision")  # "APPROVED" | "REJECTED"
 
@@ -399,6 +504,7 @@ def review_record(
     return _serialize(record)
 
 
+@router.get("/{record_id}/document")
 @router.get("/{record_id}/download")
 def download_record(record_id: str, db: Session = Depends(get_db)):
     """
@@ -477,10 +583,12 @@ def _validate_and_check_duplicates(db: Session, record_id: uuid.UUID, fields: di
 
 
 def _serialize(record: Record) -> dict:
+    doc_url = f"/records/{record.id}/document" if record.file_path else None
     return {
         "record_id": str(record.id),
         "original_filename": record.original_filename,
         "file_path": record.file_path,
+        "document_url": doc_url,
         "uploaded_at": record.uploaded_at.isoformat() if record.uploaded_at else None,
         "status": record.status,
         "document_type": record.document_type or "Standard Land Record",
@@ -500,8 +608,8 @@ def _serialize(record: Record) -> dict:
             "area_gis_acres": record.area_gis_acres,
             "spatial_consistency": record.spatial_consistency or "NOT_EVALUATED",
             "spatial_delta_pct": record.spatial_delta_pct,
-            "geometry": record.gis_geojson,
-        },
+            "geometry": record.gis_geojson or record.geom,
+        } if (record.parcel_id or record.gis_geojson or record.geom) else None,
         "review": {
             "reviewer_notes": record.reviewer_notes,
             "reviewed_by": record.reviewed_by,
