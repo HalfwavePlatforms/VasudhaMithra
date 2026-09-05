@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models.db_models import AuditLog, Record, RecordField, ValidationResult
 
+from routes.records import require_role
+
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 
@@ -49,6 +51,31 @@ def stats(db: Session = Depends(get_db)):
         .all()
     )
 
+    by_state_fields = (
+        db.query(RecordField.field_value, func.count(func.distinct(RecordField.record_id)))
+        .filter(RecordField.field_name == "state", RecordField.field_value.isnot(None))
+        .group_by(RecordField.field_value)
+        .all()
+    )
+
+    by_state_records = (
+        db.query(Record.state, func.count(Record.id))
+        .filter(Record.state.isnot(None))
+        .group_by(Record.state)
+        .all()
+    )
+
+    state_counts = {}
+    for st, count in by_state_records:
+        if st:
+            state_counts[st] = count
+    for st, count in by_state_fields:
+        if st:
+            state_counts[st] = max(state_counts.get(st, 0), count)
+
+    if not state_counts and total > 0:
+        state_counts["Madhya Pradesh"] = total
+
     return {
         "total_processed": total,
         "verified_count": verified,
@@ -57,6 +84,7 @@ def stats(db: Session = Depends(get_db)):
         "error_count": errors,
         "spatial_discrepancy_count": spatial_discrepancies,
         "avg_extraction_accuracy": avg_conf,
+        "by_state": state_counts,
         "by_district": {district: count for district, count in by_district},
         "by_classification": {cls: count for cls, count in by_classification},
         "by_doc_type": {dtype: count for dtype, count in by_doc_type if dtype},
@@ -64,7 +92,11 @@ def stats(db: Session = Depends(get_db)):
 
 
 @router.get("/audit-trail")
-def audit_trail(limit: int = 30, db: Session = Depends(get_db)):
+def audit_trail(
+    limit: int = 30,
+    auth: dict = Depends(require_role(["admin"])),
+    db: Session = Depends(get_db),
+):
     logs = db.query(AuditLog).order_by(AuditLog.created_at.desc()).limit(limit).all()
     return {
         "total": len(logs),
