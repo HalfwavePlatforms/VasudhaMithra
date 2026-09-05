@@ -65,6 +65,9 @@ jobs:
           docker compose -f docker-compose.yml up -d --build 2>&1 || docker-compose -f docker-compose.yml up -d --build
       - name: Wait for services
         run: sleep 25
+      - name: Initialize database
+        run: |
+          docker compose -f docker-compose.yml exec -T api-gateway python -c "import sys; sys.path.insert(0, '/app'); from database import engine; from models.db_models import Base; Base.metadata.create_all(bind=engine)" || true
       - name: Health check
         run: |
           bash infra/healthchecks/check-all.sh || (docker compose -f docker-compose.yml logs && exit 1)
