@@ -37,17 +37,96 @@ if tess_cmd and os.path.exists(tess_cmd):
     logger.info(f"Using Tesseract binary at: {tess_cmd}")
 
 
+# Hybrid Mode Configuration
+HYBRID_THRESHOLD = float(os.getenv("OCR_HYBRID_THRESHOLD", "0.80"))
+HYBRID_MAX_CALLS = int(os.getenv("OCR_HYBRID_MAX_CALLS", "200"))
+
+# In-memory session counter tracking Google Vision hybrid fallback calls
+_hybrid_vision_calls = 0
+
+
+def get_hybrid_vision_calls() -> int:
+    """Return the total number of Google Vision calls triggered via hybrid fallback in this session."""
+    return _hybrid_vision_calls
+
+
+def reset_hybrid_vision_calls():
+    """Reset the session counter (useful for test suites)."""
+    global _hybrid_vision_calls
+    _hybrid_vision_calls = 0
+
+
+def _increment_hybrid_vision_calls():
+    global _hybrid_vision_calls
+    _hybrid_vision_calls += 1
+
+
 def run_ocr(image: np.ndarray, language_hint: str = "en") -> dict:
-    provider = os.getenv("OCR_PROVIDER", "tesseract")
+    provider = os.getenv("OCR_PROVIDER", "tesseract").lower().strip()
     if provider == "google_vision":
-        return _run_google_vision(image)
+        res = _run_google_vision(image)
+        res.setdefault("fallback_triggered", False)
+        return res
     if provider == "mock":
-        return _run_mock_ocr(image)
+        res = _run_mock_ocr(image)
+        res.setdefault("fallback_triggered", False)
+        return res
+
+    # Hybrid Mode: Tesseract first, fallback to Google Vision if confidence < HYBRID_THRESHOLD
+    if provider == "hybrid":
+        try:
+            tesseract_result = _run_tesseract(image, language_hint)
+        except (pytesseract.TesseractNotFoundError, FileNotFoundError, Exception) as e:
+            logger.warning(f"Tesseract execution encountered issue: {e}. Falling back to mock OCR for demonstration.")
+            tesseract_result = _run_mock_ocr(image)
+
+        t_conf = tesseract_result.get("confidence", 0.0)
+
+        # Check threshold
+        if t_conf < HYBRID_THRESHOLD:
+            # Step 2: Rate-limit and cost safeguards
+            if _hybrid_vision_calls >= HYBRID_MAX_CALLS:
+                logger.warning(
+                    f"Hybrid Vision fallback limit reached ({_hybrid_vision_calls}/{HYBRID_MAX_CALLS}). "
+                    "Skipping Vision fallback."
+                )
+                tesseract_result["fallback_triggered"] = False
+                tesseract_result["fallback_attempted"] = False
+                tesseract_result["fallback_note"] = "hybrid_fallback_disabled: monthly call budget reached"
+                return tesseract_result
+
+            try:
+                vision_result = _run_google_vision(image)
+                _increment_hybrid_vision_calls()
+                vision_result["fallback_triggered"] = True
+                vision_result["tesseract_confidence"] = t_conf
+                logger.info(
+                    f"Hybrid fallback succeeded: Tesseract conf {t_conf:.3f} < {HYBRID_THRESHOLD:.2f}, "
+                    f"Vision conf {vision_result.get('confidence', 0.0):.3f} (Call #{_hybrid_vision_calls}/{HYBRID_MAX_CALLS})"
+                )
+                return vision_result
+            except Exception as e:
+                # Vision failed (no key, billing disabled, quota exceeded, network) —
+                # do NOT crash the request, fall back to Tesseract result we already have, flagged clearly
+                logger.warning(f"Google Vision fallback attempt failed: {e}. Preserving Tesseract result.")
+                tesseract_result["fallback_attempted"] = True
+                tesseract_result["fallback_error"] = str(e)
+                tesseract_result["fallback_triggered"] = False
+                return tesseract_result
+
+        tesseract_result["fallback_triggered"] = False
+        return tesseract_result
+
+    # Default: Tesseract
     try:
-        return _run_tesseract(image, language_hint)
+        res = _run_tesseract(image, language_hint)
+        res.setdefault("fallback_triggered", False)
+        return res
     except (pytesseract.TesseractNotFoundError, FileNotFoundError, Exception) as e:
         logger.warning(f"Tesseract execution encountered issue: {e}. Falling back to mock OCR for demonstration.")
-        return _run_mock_ocr(image)
+        res = _run_mock_ocr(image)
+        res.setdefault("fallback_triggered", False)
+        return res
 
 
 
@@ -161,33 +240,107 @@ def _run_tesseract(image: np.ndarray, language_hint: str) -> dict:
 
 
 def _run_google_vision(image: np.ndarray) -> dict:
-    from google.cloud import vision
+    import json
+    import base64
 
-    client = vision.ImageAnnotatorClient()
-    success, encoded = cv2.imencode(".png", image)
-    content = encoded.tobytes()
-    gv_image = vision.Image(content=content)
+    # 1. Prefer REST API if GOOGLE_VISION_API_KEY is available (works without external cloud SDK)
+    api_key = os.getenv("GOOGLE_VISION_API_KEY")
+    if api_key and api_key.strip():
+        import urllib.request
+        success, encoded = cv2.imencode(".png", image)
+        if not success:
+            raise RuntimeError("Failed to encode image for Google Vision API")
+        b64_content = base64.b64encode(encoded.tobytes()).decode("utf-8")
 
-    response = client.document_text_detection(image=gv_image)
-    if response.error.message:
-        raise RuntimeError(response.error.message)
-
-    full_text = response.full_text_annotation.text
-    boxes = []
-    confidences = []
-    for page in response.full_text_annotation.pages:
-        for block in page.blocks:
-            confidences.append(block.confidence)
-            vertices = block.bounding_box.vertices
-            xs = [v.x for v in vertices]
-            ys = [v.y for v in vertices]
-            boxes.append(
+        url = f"https://vision.googleapis.com/v1/images:annotate?key={api_key.strip()}"
+        payload = {
+            "requests": [
                 {
-                    "text": "",  # block-level text not trivially available here
-                    "confidence": block.confidence,
-                    "box": [min(xs), min(ys), max(xs), max(ys)],
+                    "image": {"content": b64_content},
+                    "features": [{"type": "DOCUMENT_TEXT_DETECTION"}],
                 }
-            )
+            ]
+        }
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json", "User-Agent": "VasudhaMithra/1.0"},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=20) as res:
+                data = json.loads(res.read().decode("utf-8"))
+        except Exception as err:
+            err_msg = str(err)
+            if hasattr(err, "read"):
+                try:
+                    err_json = json.loads(err.read().decode("utf-8"))
+                    err_msg = err_json.get("error", {}).get("message", err_msg)
+                except Exception:
+                    pass
+            raise RuntimeError(f"Google Vision API request failed: {err_msg}")
 
-    avg_conf = sum(confidences) / len(confidences) if confidences else 0.0
-    return {"raw_text": full_text, "confidence": avg_conf, "bounding_boxes": boxes}
+        responses = data.get("responses", [])
+        if not responses:
+            raise RuntimeError("Empty response from Google Vision API")
+
+        resp_obj = responses[0]
+        if "error" in resp_obj:
+            raise RuntimeError(resp_obj["error"].get("message", "Google Vision error"))
+
+        full_text = resp_obj.get("fullTextAnnotation", {}).get("text", "")
+        boxes = []
+        confidences = []
+        pages = resp_obj.get("fullTextAnnotation", {}).get("pages", [])
+        for page in pages:
+            for block in page.get("blocks", []):
+                conf = block.get("confidence", 0.95)
+                confidences.append(conf)
+                vertices = block.get("boundingBox", {}).get("vertices", [])
+                xs = [v.get("x", 0) for v in vertices]
+                ys = [v.get("y", 0) for v in vertices]
+                if xs and ys:
+                    boxes.append({
+                        "text": "",
+                        "confidence": conf,
+                        "box": [float(min(xs)), float(min(ys)), float(max(xs)), float(max(ys))],
+                    })
+
+        avg_conf = float(sum(confidences) / len(confidences)) if confidences else 0.95
+        return {"raw_text": full_text, "confidence": avg_conf, "bounding_boxes": boxes}
+
+    # 2. Fall back to google.cloud.vision SDK if installed
+    try:
+        from google.cloud import vision
+
+        client = vision.ImageAnnotatorClient()
+        success, encoded = cv2.imencode(".png", image)
+        if not success:
+            raise RuntimeError("Failed to encode image for Google Vision")
+        content = encoded.tobytes()
+        gv_image = vision.Image(content=content)
+
+        response = client.document_text_detection(image=gv_image)
+        if response.error.message:
+            raise RuntimeError(response.error.message)
+
+        full_text = response.full_text_annotation.text
+        boxes = []
+        confidences = []
+        for page in response.full_text_annotation.pages:
+            for block in page.blocks:
+                confidences.append(block.confidence)
+                vertices = block.bounding_box.vertices
+                xs = [v.x for v in vertices]
+                ys = [v.y for v in vertices]
+                boxes.append(
+                    {
+                        "text": "",
+                        "confidence": block.confidence,
+                        "box": [float(min(xs)), float(min(ys)), float(max(xs)), float(max(ys))],
+                    }
+                )
+
+        avg_conf = sum(confidences) / len(confidences) if confidences else 0.0
+        return {"raw_text": full_text, "confidence": avg_conf, "bounding_boxes": boxes}
+    except ImportError:
+        raise RuntimeError("Google Vision API is not configured: GOOGLE_VISION_API_KEY is not set and google-cloud-vision SDK is not installed.")

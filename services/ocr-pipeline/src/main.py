@@ -30,6 +30,8 @@ class OCRResponse(BaseModel):
     bounding_boxes: list[BoundingBox]
     handwriting: dict = {}
     metadata: dict = {}
+    fallback_triggered: bool = False
+    fallback_details: dict = {}
 
 
 @app.get("/health")
@@ -47,6 +49,8 @@ def extract(req: OCRRequest):
         confidences = []
         all_boxes = []
         page_metas = []
+        any_fallback_triggered = False
+        fallback_details = {}
 
         for idx, (processed_img, page_meta) in enumerate(pages_data):
             page_num = idx + 1
@@ -61,6 +65,22 @@ def extract(req: OCRRequest):
             confidences.append(result.get("confidence", 0.0))
             all_boxes.extend(result.get("bounding_boxes", []))
             page_metas.append(page_meta)
+
+            if result.get("fallback_triggered"):
+                any_fallback_triggered = True
+                fallback_details[f"page_{page_num}"] = {
+                    "fallback_triggered": True,
+                    "tesseract_confidence": result.get("tesseract_confidence"),
+                }
+            elif result.get("fallback_attempted"):
+                fallback_details[f"page_{page_num}"] = {
+                    "fallback_attempted": True,
+                    "fallback_error": result.get("fallback_error"),
+                }
+            elif result.get("fallback_note"):
+                fallback_details[f"page_{page_num}"] = {
+                    "fallback_note": result.get("fallback_note"),
+                }
 
         combined_text = "\n\n".join(raw_text_parts) if total_pages > 1 else (raw_text_parts[0] if raw_text_parts else "")
         avg_confidence = round(float(sum(confidences) / len(confidences)), 4) if confidences else 0.0
@@ -78,10 +98,14 @@ def extract(req: OCRRequest):
             "confidence": avg_confidence,
             "bounding_boxes": all_boxes,
             "handwriting": hw_analysis,
+            "fallback_triggered": any_fallback_triggered,
+            "fallback_details": fallback_details,
             "metadata": {
                 "pages": total_pages,
                 "is_pdf": doc_meta.get("is_pdf", False),
                 "page_details": page_metas,
+                "fallback_triggered": any_fallback_triggered,
+                "fallback_details": fallback_details,
             },
         }
     except Exception as e:
