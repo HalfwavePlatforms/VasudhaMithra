@@ -11,7 +11,16 @@ import AuditTrailView from "./components/AuditTrailView";
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState("command_centre");
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab");
+      if (tab && ["command_centre", "document_intake", "verification_desk", "land_records", "gis_parcels", "audit_trail"].includes(tab)) {
+        return tab;
+      }
+    } catch {}
+    return "command_centre";
+  });
   const [selectedRecordId, setSelectedRecordId] = useState(null);
   const [stats, setStats] = useState(null);
   const [auditLogs, setAuditLogs] = useState([]);

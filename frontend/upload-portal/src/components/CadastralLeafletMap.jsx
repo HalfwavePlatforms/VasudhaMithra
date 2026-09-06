@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import "./CadastralLeafletMap.css";
 
 // Fix default Leaflet marker icon asset paths for Vite bundling
 delete L.Icon.Default.prototype._getIconUrl;
@@ -10,9 +11,16 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-export default function CadastralLeafletMap({ geometry, gis, height = "280px" }) {
+export default function CadastralLeafletMap({
+  geometry,
+  gis,
+  height = "280px",
+  collapsedLayers = true,
+}) {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
+  const parcelLayerGroupRef = useRef(null);
+  const layerControlRef = useRef(null);
 
   const hasGeometry = Boolean(
     geometry &&
@@ -22,35 +30,101 @@ export default function CadastralLeafletMap({ geometry, gis, height = "280px" })
     )
   );
 
+  const isDiscrepancy = (gis?.spatial_delta_pct || 0) > 5 || gis?.spatial_consistency === "DISCREPANCY";
+  const strokeColor = isDiscrepancy ? "#DC2626" : "#059669";
+  const fillColor = isDiscrepancy ? "#EF4444" : "#10B981";
+
+  // 1. Initialize Map, Base Tile Layers, Overlay LayerGroup & Layer Control (once on mount)
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
-    // Clean up any existing map instance on container
+    // Clean up previous instance if any
     if (mapInstanceRef.current) {
       mapInstanceRef.current.remove();
       mapInstanceRef.current = null;
     }
 
-    const isDiscrepancy = (gis?.spatial_delta_pct || 0) > 5 || gis?.spatial_consistency === "DISCREPANCY";
-    const strokeColor = isDiscrepancy ? "#DC2626" : "#059669";
-    const fillColor = isDiscrepancy ? "#EF4444" : "#10B981";
-
-    // 1. Initialize interactive Leaflet map
+    // A. Initialize Leaflet map instance
     const map = L.map(mapContainerRef.current, {
       zoomControl: true,
       attributionControl: true,
     });
     mapInstanceRef.current = map;
 
-    // 2. OpenStreetMap tile layer
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    // B. Real Base Tile Layers (Step 1)
+    // 1. OpenStreetMap (existing default, keep as-is)
+    const osmLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | VasudhaMithra GIS',
-    }).addTo(map);
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors | VasudhaMithra GIS',
+    });
+
+    // 2. Esri World Imagery (Satellite)
+    const esriSatelliteLayer = L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      {
+        maxZoom: 19,
+        attribution: 'Tiles &copy; <a href="https://www.esri.com/" target="_blank" rel="noopener">Esri</a> &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and GIS User Community',
+      }
+    );
+
+    // 3. CartoDB Positron (clean light basemap matching cream UI aesthetic)
+    const cartoPositronLayer = L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+      {
+        maxZoom: 20,
+        subdomains: "abcd",
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>',
+      }
+    );
+
+    // Add OpenStreetMap as default active base layer
+    osmLayer.addTo(map);
+
+    const baseMaps = {
+      "OpenStreetMap": osmLayer,
+      "Esri World Imagery": esriSatelliteLayer,
+      "CartoDB Positron": cartoPositronLayer,
+    };
+
+    // C. Real Cadastral Parcel Overlay LayerGroup (Step 2)
+    const parcelLayerGroup = L.layerGroup();
+    parcelLayerGroup.addTo(map);
+    parcelLayerGroupRef.current = parcelLayerGroup;
+
+    const overlayMaps = {
+      "Cadastral Parcels": parcelLayerGroup,
+    };
+
+    // D. Multi-layer switcher control with styled design system overrides (Step 1, 2, 4)
+    const layerControl = L.control.layers(baseMaps, overlayMaps, {
+      position: "topright",
+      collapsed: collapsedLayers,
+    });
+    layerControl.addTo(map);
+    layerControlRef.current = layerControl;
+
+    // Set initial default view
+    map.setView([20.5937, 78.9629], 5);
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, [collapsedLayers]);
+
+  // 2. Update parcel polygon geometry inside parcelLayerGroup (preserves active basemap on parcel change)
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    const parcelGroup = parcelLayerGroupRef.current;
+    if (!map || !parcelGroup) return;
+
+    // Clear previous geometry from overlay group
+    parcelGroup.clearLayers();
 
     if (hasGeometry) {
       try {
-        // 3. Render GeoJSON parcel boundary
         const geojsonFeature = {
           type: "Feature",
           geometry: geometry,
@@ -73,42 +147,37 @@ export default function CadastralLeafletMap({ geometry, gis, height = "280px" })
           },
           onEachFeature: (feature, layer) => {
             const props = feature.properties;
-            const statusText = isDiscrepancy ? "⚠️ SPATIAL DISCREPANCY (>5%)" : "✓ CONSISTENT BOUNDARY MATCH";
+            const statusText = isDiscrepancy
+              ? "⚠️ SPATIAL DISCREPANCY (>5%)"
+              : "✓ CONSISTENT BOUNDARY MATCH";
             layer.bindPopup(`
-              <div style="font-family: Inter, sans-serif; font-size: 12px; line-height: 1.4; min-width: 180px;">
-                <strong style="color: #0B3B60; font-size: 13px;">${props.parcel_id}</strong><br/>
-                <span style="color: ${strokeColor}; font-weight: bold;">${statusText}</span><hr style="margin: 6px 0; border: none; border-top: 1px solid #E5E7EB;"/>
-                <div><strong>GIS Computed Area:</strong> ${props.area_gis_acres ? `${props.area_gis_acres} Acres` : "N/A"}</div>
-                <div><strong>Deed Stated Area:</strong> ${props.area_doc_acres ? `${props.area_doc_acres} Acres` : "N/A"}</div>
-                <div><strong>Spatial Delta:</strong> ${props.spatial_delta_pct !== undefined ? `${props.spatial_delta_pct}%` : "N/A"}</div>
+              <div style="font-family: 'Inter', sans-serif; font-size: 12px; line-height: 1.45; min-width: 200px; color: #16241F;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                  <strong style="color: #16241F; font-size: 13px;">${props.parcel_id}</strong>
+                  <span style="font-size: 10px; font-weight: 700; color: ${strokeColor};">${statusText}</span>
+                </div>
+                <hr style="margin: 6px 0; border: none; border-top: 1px solid #EAE7DF;"/>
+                <div style="margin-bottom: 2px;"><strong>Cadastral GIS Area:</strong> ${props.area_gis_acres ? `${props.area_gis_acres} Acres` : "N/A"}</div>
+                <div style="margin-bottom: 2px;"><strong>Deed Stated Area:</strong> ${props.area_doc_acres ? `${props.area_doc_acres} Acres` : "N/A"}</div>
+                <div><strong>Spatial Delta:</strong> ${props.spatial_delta_pct !== undefined ? `${props.spatial_delta_pct}%` : "0.0%"}</div>
               </div>
             `);
           },
-        }).addTo(map);
+        });
 
-        // 4. Fit map bounds to parcel polygon on load
+        // Add to the toggleable parcelLayerGroup
+        geoJsonLayer.addTo(parcelGroup);
+
+        // Fit map bounds to parcel boundary
         const bounds = geoJsonLayer.getBounds();
         if (bounds.isValid()) {
           map.fitBounds(bounds, { padding: [30, 30], maxZoom: 16 });
-        } else {
-          map.setView([20.5937, 78.9629], 5);
         }
       } catch (err) {
-        console.error("Failed to render GeoJSON parcel polygon on Leaflet map:", err);
-        map.setView([20.5937, 78.9629], 5);
+        console.error("Failed to render GeoJSON parcel polygon:", err);
       }
-    } else {
-      // Default regional cadastral view
-      map.setView([20.5937, 78.9629], 5);
     }
-
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-    };
-  }, [geometry, gis, hasGeometry]);
+  }, [geometry, gis, hasGeometry, isDiscrepancy, strokeColor, fillColor]);
 
   return (
     <div
@@ -126,20 +195,21 @@ export default function CadastralLeafletMap({ geometry, gis, height = "280px" })
         ref={mapContainerRef}
         style={{ height: height, width: "100%", zIndex: 1 }}
       />
+      {/* Real-time Spatial Status Badge positioned next to zoom controls */}
       <div
         style={{
           position: "absolute",
           top: "10px",
-          right: "10px",
+          left: "52px",
           zIndex: 400,
-          backgroundColor: "rgba(255, 255, 255, 0.95)",
+          backgroundColor: "rgba(255, 255, 255, 0.96)",
           padding: "4px 10px",
-          borderRadius: "6px",
+          borderRadius: "8px",
           fontSize: "11px",
           fontWeight: 600,
-          color: "#1F2937",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
-          border: "1px solid #E5E7EB",
+          color: "#16241F",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+          border: "1px solid #DDD9CE",
           display: "flex",
           alignItems: "center",
           gap: "6px",
@@ -150,10 +220,22 @@ export default function CadastralLeafletMap({ geometry, gis, height = "280px" })
             width: "8px",
             height: "8px",
             borderRadius: "50%",
-            backgroundColor: (gis?.spatial_delta_pct || 0) > 5 ? "#DC2626" : "#059669",
+            backgroundColor: strokeColor,
           }}
         />
         <span>{gis?.parcel_id || "Cadastral Parcel"}</span>
+        <span
+          style={{
+            fontSize: "10px",
+            fontWeight: 700,
+            padding: "1px 6px",
+            borderRadius: "4px",
+            backgroundColor: isDiscrepancy ? "#FEE2E2" : "#D1FAE5",
+            color: isDiscrepancy ? "#991B1B" : "#065F46",
+          }}
+        >
+          {isDiscrepancy ? "Discrepancy" : "Match"}
+        </span>
       </div>
     </div>
   );
