@@ -9,7 +9,7 @@ sys.path.insert(0, "services/ocr-pipeline/src")
 sys.path.insert(0, "services/extraction-engine/src")
 
 from preprocess import preprocess_image, classify_document
-from ocr_engine import run_ocr
+from ocr_engine import run_ocr, get_hybrid_vision_calls, HYBRID_THRESHOLD, HYBRID_MAX_CALLS
 from field_extractor import extract_fields
 
 files = sorted(glob.glob("data/sample-documents/*.png"))
@@ -22,6 +22,9 @@ print("=" * 80)
 total_fields_count = 0
 total_matched_count = 0
 ocr_confidences = []
+hybrid_triggered_count = 0
+hybrid_attempted_count = 0
+fallback_errors = set()
 
 per_field_stats = defaultdict(lambda: {
     "total": 0,
@@ -47,6 +50,13 @@ for img_path in files:
     thresh, meta = preprocess_image(b64)
     res = run_ocr(thresh, language_hint=lang_hint)
     ocr_confidences.append(res["confidence"])
+
+    if res.get("fallback_triggered"):
+        hybrid_triggered_count += 1
+    if res.get("fallback_attempted"):
+        hybrid_attempted_count += 1
+        if res.get("fallback_error"):
+            fallback_errors.add(res["fallback_error"][:90] + "...")
 
 
     extracted = extract_fields(res["raw_text"], res.get("bounding_boxes", []))
@@ -126,4 +136,15 @@ print(f"\n======================================================================
 print(f"Total Fields Evaluated:     {total_fields_count}")
 print(f"Overall Recognition Match:  {total_matched_count}/{total_fields_count} ({overall_acc:.1f}%)")
 print(f"Average Optical Confidence: {overall_conf:.1f}%")
+print(f"--------------------------------------------------------------------------------")
+print(f"HYBRID OCR FALLBACK METRICS:")
+print(f"  - Active Provider:          {os.getenv('OCR_PROVIDER', 'hybrid')}")
+print(f"  - Hybrid Threshold:         {HYBRID_THRESHOLD:.2f} (80% confidence trigger)")
+print(f"  - Hybrid Max Budget Calls:  {HYBRID_MAX_CALLS}")
+print(f"  - Documents Evaluated:      {len(files)}")
+print(f"  - Low-Conf Fallback Needs:  {hybrid_attempted_count} documents (< {HYBRID_THRESHOLD:.2f})")
+print(f"  - Vision Fallback Triggered:{hybrid_triggered_count} documents")
+print(f"  - Session Vision Calls Made:{get_hybrid_vision_calls()}")
+if fallback_errors:
+    print(f"  - Fallback Status/Errors:   {list(fallback_errors)[0]}")
 print(f"================================================================================\n")
