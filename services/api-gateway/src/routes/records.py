@@ -293,49 +293,58 @@ async def upload_record(
         violations = _validate_and_check_duplicates(db, record.id, extraction_data["fields"])
 
         # 4. WINNING FEATURE: Document <-> Data <-> GIS Spatial Consistency Engine
-        survey_no = extraction_data["fields"].get("survey_number")
+        survey_no = extraction_data["fields"].get("survey_number") or extraction_data["fields"].get("khasra_number")
+        khasra_no = extraction_data["fields"].get("khasra_number")
         doc_acres = extraction_data.get("area_acres")
         record.area_doc_acres = doc_acres
 
         if survey_no:
+            lookup_keys = [survey_no]
+            if khasra_no and khasra_no != survey_no:
+                lookup_keys.insert(0, f"{survey_no}/{khasra_no}")
+                lookup_keys.append(khasra_no)
+
+            gis_data = None
             async with httpx.AsyncClient(timeout=10.0) as client:
-                try:
-                    gis_resp = await client.get(f"{GIS_SERVICE_URL}/gis/parcel/{survey_no}")
-                    if gis_resp.status_code == 200:
-                        gis_data = gis_resp.json()
-                        record.parcel_id = gis_data.get("parcel_id")
-                        record.area_gis_acres = gis_data.get("area_gis")
-                        geom_val = gis_data.get("geometry")
-                        record.gis_geojson = geom_val
-                        record.geom = geom_val
+                for lk in lookup_keys:
+                    try:
+                        gis_resp = await client.get(f"{GIS_SERVICE_URL}/gis/parcel/{lk}")
+                        if gis_resp.status_code == 200:
+                            gis_data = gis_resp.json()
+                            break
+                    except Exception:
+                        pass
 
-                        if doc_acres and record.area_gis_acres:
-                            delta_pct = abs(doc_acres - record.area_gis_acres) / record.area_gis_acres * 100.0
-                            record.spatial_delta_pct = round(delta_pct, 2)
+            if gis_data:
+                record.parcel_id = gis_data.get("parcel_id")
+                record.area_gis_acres = gis_data.get("area_gis")
+                geom_val = gis_data.get("geometry")
+                record.gis_geojson = geom_val
+                record.geom = geom_val
 
-                            if delta_pct <= 5.0:
-                                record.spatial_consistency = "MATCH"
-                            else:
-                                record.spatial_consistency = "DISCREPANCY"
-                                violations.append({
-                                    "field": "plot_area",
-                                    "rule": "spatial_consistency",
-                                    "severity": "HIGH",
-                                    "message": f"Spatial Discrepancy: Deed extent ({doc_acres} ac) differs by {round(delta_pct, 1)}% from Cadastral GIS parcel ({record.area_gis_acres} ac).",
-                                })
-                        else:
-                            record.spatial_consistency = "MATCH"
+                if doc_acres and record.area_gis_acres:
+                    delta_pct = abs(doc_acres - record.area_gis_acres) / record.area_gis_acres * 100.0
+                    record.spatial_delta_pct = round(delta_pct, 2)
 
-                        db.commit()
-                        _log(db, record.id, "gis_lookup_succeeded", actor="GIS Service", details={"parcel_id": record.parcel_id, "area_gis_acres": record.area_gis_acres, "spatial_consistency": record.spatial_consistency})
+                    if delta_pct <= 5.0:
+                        record.spatial_consistency = "MATCH"
                     else:
-                        record.spatial_consistency = "NOT_EVALUATED"
-                        db.commit()
-                        _log(db, record.id, "gis_lookup_failed", actor="GIS Service", details={"survey_number": survey_no, "status_code": gis_resp.status_code})
-                except Exception as e:
-                    record.spatial_consistency = "NOT_EVALUATED"
-                    db.commit()
-                    _log(db, record.id, "gis_lookup_failed", actor="GIS Service", details={"survey_number": survey_no, "error": str(e)})
+                        record.spatial_consistency = "DISCREPANCY"
+                        violations.append({
+                            "field": "plot_area",
+                            "rule": "spatial_consistency",
+                            "severity": "HIGH",
+                            "message": f"Spatial Discrepancy: Deed extent ({doc_acres} ac) differs by {round(delta_pct, 1)}% from Cadastral GIS parcel ({record.area_gis_acres} ac).",
+                        })
+                else:
+                    record.spatial_consistency = "MATCH"
+
+                db.commit()
+                _log(db, record.id, "gis_lookup_succeeded", actor="GIS Service", details={"parcel_id": record.parcel_id, "area_gis_acres": record.area_gis_acres, "spatial_consistency": record.spatial_consistency})
+            else:
+                record.spatial_consistency = "NOT_EVALUATED"
+                db.commit()
+                _log(db, record.id, "gis_lookup_failed", actor="GIS Service", details={"survey_number": survey_no})
 
         for v in violations:
             db.add(

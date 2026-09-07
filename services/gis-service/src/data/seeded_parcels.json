@@ -198,5 +198,45 @@
         [79.5671, 17.9910]
       ]]
     }
+  },
+  {
+    "survey_number": "55",
+    "parcel_id": "PARCEL-55-3",
+    "village": "Hongasandra (ಹೊಂಗಸಂದ್ರ)",
+    "tehsil": "Bengaluru South (ಬೆಂಗಳೂರು ದಕ್ಷಿಣ)",
+    "district": "Bengaluru Urban (ಬೆಂಗಳೂರು ನಗರ)",
+    "state": "Karnataka",
+    "area_acres": 3.75,
+    "source": "seeded_demo_data",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[
+        [77.62447, 12.897403],
+        [77.62553, 12.897403],
+        [77.62553, 12.898597],
+        [77.62447, 12.898597],
+        [77.62447, 12.897403]
+      ]]
+    }
+  },
+  {
+    "survey_number": "55/3",
+    "parcel_id": "PARCEL-55-3",
+    "village": "Hongasandra (ಹೊಂಗಸಂದ್ರ)",
+    "tehsil": "Bengaluru South (ಬೆಂಗಳೂರು ದಕ್ಷಿಣ)",
+    "district": "Bengaluru Urban (ಬೆಂಗಳೂರು ನಗರ)",
+    "state": "Karnataka",
+    "area_acres": 3.75,
+    "source": "seeded_demo_data",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[
+        [77.62447, 12.897403],
+        [77.62553, 12.897403],
+        [77.62553, 12.898597],
+        [77.62447, 12.898597],
+        [77.62447, 12.897403]
+      ]]
+    }
   }
 ]
