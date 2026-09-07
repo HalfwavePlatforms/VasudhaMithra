@@ -5,6 +5,7 @@ with zero API keys out of the box; switch to Google Vision for real accuracy
 on Indic printed text once you have a key.
 """
 import os
+import time
 import cv2
 import numpy as np
 import pytesseract
@@ -43,7 +44,7 @@ HYBRID_MAX_CALLS = int(os.getenv("OCR_HYBRID_MAX_CALLS", "200"))
 
 # In-memory session counter tracking Google Vision hybrid fallback calls
 _hybrid_vision_calls = 0
-_vision_billing_disabled = False
+_vision_billing_disabled_until = 0.0
 
 
 def get_hybrid_vision_calls() -> int:
@@ -53,9 +54,9 @@ def get_hybrid_vision_calls() -> int:
 
 def reset_hybrid_vision_calls():
     """Reset the session counter (useful for test suites)."""
-    global _hybrid_vision_calls, _vision_billing_disabled
+    global _hybrid_vision_calls, _vision_billing_disabled_until
     _hybrid_vision_calls = 0
-    _vision_billing_disabled = False
+    _vision_billing_disabled_until = 0.0
 
 
 def _increment_hybrid_vision_calls():
@@ -64,7 +65,7 @@ def _increment_hybrid_vision_calls():
 
 
 def run_ocr(image: np.ndarray, language_hint: str = "en") -> dict:
-    global _vision_billing_disabled
+    global _vision_billing_disabled_until
     provider = os.getenv("OCR_PROVIDER", "tesseract").lower().strip()
     if provider == "google_vision":
         res = _run_google_vision(image)
@@ -86,7 +87,7 @@ def run_ocr(image: np.ndarray, language_hint: str = "en") -> dict:
         t_conf = tesseract_result.get("confidence", 0.0)
 
         # Check threshold
-        if t_conf < HYBRID_THRESHOLD and not _vision_billing_disabled:
+        if t_conf < HYBRID_THRESHOLD and time.time() >= _vision_billing_disabled_until:
             # Step 2: Rate-limit and cost safeguards
             if _hybrid_vision_calls >= HYBRID_MAX_CALLS:
                 logger.warning(
@@ -114,8 +115,8 @@ def run_ocr(image: np.ndarray, language_hint: str = "en") -> dict:
                 logger.warning(f"Google Vision fallback attempt failed: {e}. Preserving Tesseract result.")
                 err_str = str(e).lower()
                 if "billing to be enabled" in err_str or "api key not valid" in err_str:
-                    _vision_billing_disabled = True
-                    logger.warning("Google Vision disabled due to project billing/key status. Defaulting to Tesseract.")
+                    _vision_billing_disabled_until = time.time() + 30.0
+                    logger.warning("Google Vision retry suspended for 30s awaiting cloud billing propagation. Defaulting to Tesseract.")
                 tesseract_result["fallback_attempted"] = True
                 tesseract_result["fallback_error"] = str(e)
                 tesseract_result["fallback_triggered"] = False
@@ -370,17 +371,20 @@ def _run_google_vision(image: np.ndarray) -> dict:
         pages = resp_obj.get("fullTextAnnotation", {}).get("pages", [])
         for page in pages:
             for block in page.get("blocks", []):
-                conf = block.get("confidence", 0.95)
-                confidences.append(conf)
-                vertices = block.get("boundingBox", {}).get("vertices", [])
-                xs = [v.get("x", 0) for v in vertices]
-                ys = [v.get("y", 0) for v in vertices]
-                if xs and ys:
-                    boxes.append({
-                        "text": "",
-                        "confidence": conf,
-                        "box": [float(min(xs)), float(min(ys)), float(max(xs)), float(max(ys))],
-                    })
+                for para in block.get("paragraphs", []):
+                    for word in para.get("words", []):
+                        word_text = "".join(s.get("text", "") for s in word.get("symbols", []))
+                        w_conf = float(word.get("confidence", block.get("confidence", 0.95)))
+                        confidences.append(w_conf)
+                        vertices = word.get("boundingBox", {}).get("vertices", [])
+                        xs = [v.get("x", 0) for v in vertices if "x" in v]
+                        ys = [v.get("y", 0) for v in vertices if "y" in v]
+                        if xs and ys and word_text.strip():
+                            boxes.append({
+                                "text": word_text.strip(),
+                                "confidence": w_conf,
+                                "box": [float(min(xs)), float(min(ys)), float(max(xs)), float(max(ys))],
+                            })
 
         avg_conf = float(sum(confidences) / len(confidences)) if confidences else 0.95
         return {"raw_text": full_text, "confidence": avg_conf, "bounding_boxes": boxes}
@@ -405,17 +409,22 @@ def _run_google_vision(image: np.ndarray) -> dict:
         confidences = []
         for page in response.full_text_annotation.pages:
             for block in page.blocks:
-                confidences.append(block.confidence)
-                vertices = block.bounding_box.vertices
-                xs = [v.x for v in vertices]
-                ys = [v.y for v in vertices]
-                boxes.append(
-                    {
-                        "text": "",
-                        "confidence": block.confidence,
-                        "box": [float(min(xs)), float(min(ys)), float(max(xs)), float(max(ys))],
-                    }
-                )
+                for para in block.paragraphs:
+                    for word in para.words:
+                        word_text = "".join(s.text for s in word.symbols)
+                        w_conf = float(word.confidence if word.confidence > 0 else block.confidence)
+                        confidences.append(w_conf)
+                        vertices = word.bounding_box.vertices
+                        xs = [v.x for v in vertices]
+                        ys = [v.y for v in vertices]
+                        if xs and ys and word_text.strip():
+                            boxes.append(
+                                {
+                                    "text": word_text.strip(),
+                                    "confidence": w_conf,
+                                    "box": [float(min(xs)), float(min(ys)), float(max(xs)), float(max(ys))],
+                                }
+                            )
 
         avg_conf = sum(confidences) / len(confidences) if confidences else 0.0
         return {"raw_text": full_text, "confidence": avg_conf, "bounding_boxes": boxes}
