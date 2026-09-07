@@ -11,30 +11,47 @@ from PIL import Image
 
 
 def _enhance_cv2_image(img: np.ndarray, is_pdf: bool = False) -> tuple[np.ndarray, dict]:
-    """Applies grayscale, bilateral noise filter, CLAHE contrast boost, and Otsu deskew."""
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    """
+    Preprocesses image for OCR while preserving fine strokes and small table digits.
+    Applies adaptive contrast boost and deskew when needed without washing out text.
+    """
+    if len(img.shape) == 3:
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = img.copy()
 
-    # Bilateral filtering for edge-preserving noise reduction
-    filtered = cv2.bilateralFilter(gray, 7, 50, 50)
-
-    # Contrast Limited Adaptive Histogram Equalization (CLAHE)
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    enhanced = clahe.apply(filtered)
+    mean_val = float(np.mean(gray))
+    std_val = float(np.std(gray))
 
     # Deskew based on text line orientation
-    _, thresh = cv2.threshold(enhanced, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
     coords = np.column_stack(np.where(thresh > 0))
     angle_deg = 0.0
     if len(coords) > 0:
         angle = cv2.minAreaRect(coords)[-1]
-        angle_deg = -(90 + angle) if angle < -45 else -angle
-        if abs(angle_deg) > 0.5:
-            (h, w) = enhanced.shape[:2]
+        raw_angle = -(90 + angle) if angle < -45 else -angle
+        # Only deskew if slight genuine skew between 0.5 and 15 degrees
+        if 0.5 < abs(raw_angle) < 15.0:
+            angle_deg = raw_angle
+            (h, w) = img.shape[:2]
             center = (w // 2, h // 2)
             M = cv2.getRotationMatrix2D(center, angle_deg, 1.0)
-            enhanced = cv2.warpAffine(
-                enhanced, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE
+            img = cv2.warpAffine(
+                img, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE
             )
+            gray = cv2.warpAffine(
+                gray, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE
+            )
+
+    # For clear digital records/screenshots with high contrast, keep the sharp original
+    # (bilateral blur destroys small font characters in table cells)
+    if mean_val > 175 and std_val > 35:
+        enhanced = img
+    else:
+        # Dim or low-contrast scan: gentle bilateral and moderate CLAHE
+        filtered = cv2.bilateralFilter(gray, 5, 25, 25)
+        clahe = cv2.createCLAHE(clipLimit=1.5, tileGridSize=(8, 8))
+        enhanced = clahe.apply(filtered)
 
     metadata = {
         "width": int(img.shape[1]),
@@ -183,33 +200,60 @@ def classify_document_details(raw_text: str, bounding_boxes: list[dict] | None =
     """
     text_lower = raw_text.lower()
 
-    # Language script detection
-    lang = "en"
-    if any("\u0900" <= c <= "\u097f" for c in raw_text):
-        lang = "hi"  # Devanagari (Hindi/Marathi)
-    elif any("\u0c80" <= c <= "\u0cff" for c in raw_text):
-        lang = "kn"  # Kannada
-    elif any("\u0b80" <= c <= "\u0bff" for c in raw_text):
-        lang = "ta"  # Tamil
-    elif any("\u0c00" <= c <= "\u0c7f" for c in raw_text):
-        lang = "te"  # Telugu
+    # Robust Language script detection based on character frequency
+    script_counts = {
+        "kn": sum(1 for c in raw_text if "\u0c80" <= c <= "\u0cff"),  # Kannada
+        "hi": sum(1 for c in raw_text if "\u0900" <= c <= "\u097f"),  # Devanagari (Hindi/Marathi)
+        "ta": sum(1 for c in raw_text if "\u0b80" <= c <= "\u0bff"),  # Tamil
+        "te": sum(1 for c in raw_text if "\u0c00" <= c <= "\u0c7f"),  # Telugu
+        "bn": sum(1 for c in raw_text if "\u0980" <= c <= "\u09ff"),  # Bengali
+        "gu": sum(1 for c in raw_text if "\u0a80" <= c <= "\u0aff"),  # Gujarati
+        "ml": sum(1 for c in raw_text if "\u0d00" <= c <= "\u0d7f"),  # Malayalam
+    }
+    dominant_script, max_count = max(script_counts.items(), key=lambda x: x[1])
+    if max_count >= 10:
+        lang = dominant_script
+        # Distinguish Marathi if distinctive Marathi administrative keywords appear
+        if lang == "hi" and any(w in raw_text for w in ["गाव नमुना", "७/१२", "गट क्रमांक", "भोगವಟಾದಾರ", "जिल्हा", "तालुका"]):
+            lang = "mr"
+    else:
+        lang = "en"
 
     # Step 1: Detect legacy tabular register format
     if is_tabular_layout(raw_text, bounding_boxes):
         return "legacy_tabular_register", lang, 0.95
 
-    # Document type detection for linear / label:value records
-    if "mutation" in text_lower or "नामांतरण" in raw_text or "ನಮೂನೆ" in raw_text or "form 12" in text_lower:
+    # Document type detection (Pahani / RTC prioritized before mutation to prevent false positive on RTC mutation references)
+    if (
+        "rtc" in text_lower
+        or "pahani" in text_lower
+        or "ಪಹಣಿ" in raw_text
+        or "ರೆಕಾರ್ಡ್" in raw_text
+        or "ರೈಟ್ಸ್" in raw_text
+        or "ಹಕ್ಕು ದಾಖಲೆ" in raw_text
+        or "khasra" in text_lower
+        or "खसरा" in raw_text
+        or "जमाबंदी" in raw_text
+        or "jamabandi" in text_lower
+        or "record of rights" in text_lower
+    ):
+        doc_type = "Record of Rights / RTC (Pahani)"
+        conf = 0.92
+    elif (
+        "mutation" in text_lower
+        or "नामांतरण" in raw_text
+        or "ಮ್ಯುಟೇಶನ್" in raw_text
+        or "ಹಕ್ಕು ಬದಲಾವಣೆ" in raw_text
+        or "form 12" in text_lower
+        or "नमुना १२" in raw_text
+    ):
         doc_type = "Mutation Extract (Form XII)"
         conf = 0.90
-    elif "khata" in text_lower or "खाता प्रमाण" in raw_text or "ಖಾತಾ" in raw_text:
+    elif "khata" in text_lower or "खाता प्रमाण" in raw_text or "ಖಾತಾ" in raw_text or "ಖಾತೆ ಪ್ರಮಾಣ" in raw_text:
         doc_type = "Khata Certificate"
         conf = 0.90
     elif "sale deed" in text_lower or "title deed" in text_lower or "विक्रय पत्र" in raw_text or "ಕ್ರಯ ಪತ್ರ" in raw_text:
         doc_type = "Sale / Title Deed"
-        conf = 0.90
-    elif "pahani" in text_lower or "rtc" in text_lower or "khasra" in text_lower or "खसरा" in raw_text or "ಪಹಣಿ" in raw_text or "land record" in text_lower:
-        doc_type = "Record of Rights / RTC (Pahani)"
         conf = 0.90
     else:
         # Generic unclassified fallback: confidence below 0.5 triggers Tier-2 LLM extraction fallback

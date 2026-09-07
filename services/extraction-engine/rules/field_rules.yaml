@@ -8,38 +8,74 @@
 
 fields:
   survey_number:
-    pattern: '\d+/\d+[A-Za-z]?'
+    pattern: '\b[1-9]\d{0,3}([/-]\d+[A-Za-z]*)?\b'
     keywords:
       # English
       - "survey no"
       - "survey number"
       - "s.no"
       - "survey"
+      # Kannada
+      - "ಹೋಡಿ =e"
+      - "ಹೋಡಿ"
+      - "1. ಸರ್ವೆ ನಂಬರ್"
+      - "1. ಸರ್ವೆ"
+      - "1, ಸರ್ವ ನಂಬರ್‌"
+      - "1, ಸರ್ವ"
+      - "ಸರ್ವೆ ನಂಬರ್"
+      - "ಸರ್ವೆ ನಂ"
+      - "ಸರ್ವೆ ಸಂಖ್ಯೆ"
+      - "ಸರ್ವೆ"
+      - "ಸರ್ವ ನಂಬರ್"
+      - "ಸರ್ವ ನಂ"
+      - "ಸರ್ವ"
+      - "ಸರ್ವೇ ನಂಬರ್"
+      - "ಸರ್ವೇ ನಂ"
+      - "ಸರ್ವೇ"
       # Hindi
       - "सर्वे नं"
       - "सर्वे नंबर"
       - "सर्वे"
-      # Kannada
-      - "ಸರ್ವೆ ನಂ"
-      - "ಸರ್ವೆ ನಂಬರ್"
+      # Marathi
+      - "सर्व्हे नंबर"
+      - "सर्व्हे नं"
+      - "सर्व्हे"
       # Tamil
       - "சர்வே எண்"
       # Telugu
       - "సర్వే నంబరు"
+      # Bengali
+      - "সার্ভে নম্বর"
+      - "সার্ভে"
+      # Gujarati
+      - "સર્વે નંબર"
+      - "સર્વે નં"
+      # Malayalam
+      - "സർവേ നമ്പർ"
+      - "സർവേ"
     required: true
 
   khasra_number:
-    pattern: '\d+(/\d+)*'
+    pattern: '\d+([/-]\d+)*'
     keywords:
       # English
       - "khasra"
       - "khasra no"
+      # Kannada
+      - "ಹಿಸ್ಸಾ ನಂ"
+      - "ಹಿಸ್ಸಾ ಸಂಖ್ಯೆ"
+      - "2. ಹಿಸ್ಸಾ"
+      - "ಹಿಸ್ಸಾ"
+      - "hissa"
+      - "ಖಸ್ರಾ"
       # Hindi
       - "खसरा"
       - "खसरा नं"
       - "खसरा संख्या"
-      # Kannada
-      - "ಖಸ್ರಾ"
+      # Marathi
+      - "गट नंबर"
+      - "गट नं"
+      - "गट"
       # Tamil
       - "கஸ்ரா"
       # Telugu
@@ -47,19 +83,30 @@ fields:
     required: true
 
   khata_number:
-    pattern: '\d+'
+    pattern: '\b[1-9]\d{0,3}\b'
     keywords:
       # English
       - "khata"
       - "khata no"
       - "account no"
+      # Kannada
+      - "000/0000 |"
+      - "0000 |"
+      - "10. ಖಾತೆ"
+      - "ಖಾತೆ ನಂ"
+      - "ಖಾತಾ ನಂ"
+      - "ಖಾತೆ ಸಂಖ್ಯೆ"
+      - "ಖಾತಾ ಸಂಖ್ಯೆ"
+      - "ಖಾತೆ"
+      - "ಖಾತಾ"
       # Hindi
       - "खाता"
       - "खाता संख्या"
       - "खाता नं"
-      # Kannada
-      - "ಖಾತಾ"
-      - "ಖಾತೆ"
+      # Marathi
+      - "खाते क्रमांक"
+      - "खाते क्र"
+      - "खाते"
       # Tamil
       - "காதா"
       # Telugu
@@ -68,7 +115,7 @@ fields:
 
   owner_name:
     pattern: null   # free text — extracted by keyword proximity, not regex
-    window_chars: 120
+    window_chars: 250
     keywords:
       # English
       - "owner / khatedar"
@@ -78,6 +125,32 @@ fields:
       - "pattadar"
       - "khatedar"
       - "name of owner"
+      # Kannada
+      - "10. ಕಟ್ಟೆ ಅಥವ ಸ್ವಾಧೀಂತಿಯ"
+      - "ಕಟ್ಟೆ ಅಥವ ಸ್ವಾಧೀಂತಿಯ"
+      - "ಸ್ವಾಧೀಂತಿಯ"
+      - "ಸ್ವಾಧೀಂತಿ"
+      - "9. ಕಬ್ಜೆ ಅಥವಾ ಸ್ವಾಧೀನದಾರರ ಹೆಸರು"
+      - "ಸ್ವಾಧೀನದಾರರ ಹೆಸರು"
+      - "ಸ್ವಾಧೀನದಾರರು"
+      - "ಸ್ವಾಧೀನದಾರ"
+      - "ಕಬ್ಜೆದಾರರ ಹೆಸರು"
+      - "ಕಬ್ಜೆದಾರರು"
+      - "ಕಬ್ಜೆದಾರ"
+      - "ಖಾತೇದಾರರ ಹೆಸರು"
+      - "ಖಾತೇದಾರರು"
+      - "ಖಾತೇದಾರ"
+      - "ಮಾಲೀಕರ ಹೆಸರು"
+      - "ಮಾಲೀಕರು"
+      - "ಮಾಲೀಕ"
+      - "ಹೆಸರು ತಂದೆಯ ಹೆಸರು"
+      - "ತಂದೆಯ ಹೆಸರು"
+      - "ಸ್ಪಾಭೀಕತಿಯ ರೀತಿ"
+      - "ಸ್ಪಾಭೀಕತಿ"
+      - "ಸ್ವಾಧೀನತೆಯ ರೀತಿ"
+      - "ಸ್ವಾಧೀನತೆ"
+      - "ಸ್ವಾಧೀನ"
+      - "ಕಬ್ಜೆ"
       # Hindi
       - "खातेदार का नाम"
       - "मालिक"
@@ -85,18 +158,29 @@ fields:
       - "भूमि स्वामी"
       - "खातेदार"
       - "पट्टादार"
-      # Kannada
-      - "ಖಾತೇದಾರ"
+      # Marathi
+      - "खातेदाराचे नाव"
+      - "मालकाचे नाव"
+      - "भोगवटादार"
       # Malayalam
       - "ഭൂവുടമ"
+      - "ഉടമസ്ഥന്റെ പേര്"
       # Tamil
       - "நில உரிமையாளர்"
+      - "பட்டாதாரர் பெயர்"
       # Telugu
       - "భూ యజమాని"
+      - "పట్టాదారు పేరు"
+      # Bengali
+      - "মালিকের নাম"
+      - "জমির মালিক"
+      # Gujarati
+      - "ખાતેદારનું નામ"
+      - "જમીન માલિક"
     required: true
 
   plot_area:
-    pattern: '\d+(\.\d+)?\s*(acre|acres|hectare|hectares|guntha|gunthas|sq\.?\s?ft|sq\.?\s?m|gunta|एकड़|हेक्टेयर|गुंठा|ಎಕರೆ|ಹೆಕ್ಟೇರ್|ஏக்கர்|ఎకరం)'
+    pattern: '\d+(\.\d+)+|\d+(\.\d+)?\s*(acre|acres|hectare|hectares|guntha|gunthas|sq\.?\s?ft|sq\.?\s?m|gunta|guntas|एकड़|हेक्टेयर|गुंठा|ಎಕರೆ|ಗುಂಟೆ|ಗುಂಟಿ|ಹೆಕ್ಟೇರ್|ஏக்கர்|ఎకరం)'
     keywords:
       # English
       - "plot extent / area"
@@ -107,17 +191,34 @@ fields:
       - "extent"
       - "total area"
       - "land area"
+      # Kannada
+      - "3. ವಿಸ್ತೀರ್ಣ"
+      - "ವಿಸ್ತೀರ್ಣ (ಎಕರೆ ಗುಂಟೆ)"
+      - "ವಿಸ್ತೀರ್ಣ ಎ ಗುಂ"
+      - "ವಿಸ್ತೀರ್ಣ ಏಕರೆ ಮತ್ತು ಗುಂಟಿಗಳಲ್ಲಿ"
+      - "ವಿಸ್ತೀರ್ಣ"
+      - "ಎಕರೆ ಗುಂಟೆ"
+      - "ಏಕರೆ ಮತ್ತು ಗುಂಟಿಗಳಲ್ಲಿ"
+      - "ಉಳಿದದ್ದು"
+      - "ಖರಾಬ್"
       # Hindi
       - "क्षेत्रफल (विस्तार)"
       - "क्षेत्रफल"
       - "भूमि क्षेत्र"
       - "क्षेत्र"
-      # Kannada
-      - "ವಿಸ್ತೀರ್ಣ"
+      # Marathi
+      - "क्षेत्रफळ"
+      - "एकूण क्षेत्र"
       # Tamil
       - "பரப்பளவு"
       # Telugu
       - "విస్తీర్ణం"
+      # Bengali
+      - "জমির পরিমাণ"
+      - "ক্ষেত্রফল"
+      # Gujarati
+      - "વિસ્તાર (ક્ષેત્રફળ)"
+      - "ક્ષેત્રફળ"
     required: true
 
   village:
@@ -125,22 +226,41 @@ fields:
     keywords:
       # English
       - "village (gram)"
+      - "village:"
       - "village"
       - "gram"
       - "mauza"
-      # Hindi — previously missing
+      # Kannada
+      - "ಗ್ರಾಮ:"
+      - "ಗ್ರಾಮ :"
+      - "ಗ್ರಾಮ"
+      - "ಹಳ್ಳಿ:"
+      - "ಹಳ್ಳಿ"
+      # Hindi
+      - "गाँव:"
       - "गाँव"
+      - "गांव:"
       - "गांव"
+      - "ग्राम:"
       - "ग्राम"
       - "मौज़ा"
       - "मौजा"
-      # Kannada
-      - "ಗ್ರಾಮ"
-      - "ಹಳ್ಳಿ"
+      # Marathi
+      - "गाव:"
+      - "गाव"
+      - "मौजे"
       # Tamil
+      - "கிராமம்:"
       - "கிராமம்"
       # Telugu
+      - "గ్రామం:"
       - "గ్రామం"
+      # Bengali
+      - "গ্রাম:"
+      - "গ্রাম"
+      # Gujarati
+      - "ગામ:"
+      - "ગામ"
     required: false
 
   tehsil:
@@ -149,23 +269,43 @@ fields:
       # English
       - "taluk / tehsil"
       - "taluk/tehsil"
+      - "tehsil:"
       - "tehsil"
+      - "taluk:"
       - "taluk"
+      - "taluka:"
       - "taluka"
+      - "mandal:"
       - "mandal"
       - "block"
-      # Hindi — previously missing
+      # Kannada
+      - "ತಾಲ್ಲೂಕು:"
+      - "ತಾಲ್ಲೂಕು"
+      - "ತಾಲೂಕು:"
+      - "ತಾಲೂಕು"
+      - "ತಾಲ ಕು :"
+      - "ತಾಲ ಕು"
+      # Hindi
+      - "तहसील:"
       - "तहसील"
+      - "तालुका:"
       - "तालुका"
       - "मंडल"
       - "तह"
-      # Kannada
-      - "ತಾಲೂಕು"
+      # Marathi
+      - "तालुका:"
+      - "तालुका"
       # Tamil
+      - "வட்டம்:"
       - "வட்டம்"
       # Telugu
+      - "తాలూకా:"
       - "తాలూకా"
+      - "మండల్:"
       - "మండల్"
+      # Gujarati
+      - "તાલુકો:"
+      - "તાલુકો"
     required: false
 
   district:
@@ -173,20 +313,34 @@ fields:
     keywords:
       # English
       - "district (zilla)"
+      - "district:"
       - "district"
       - "dist"
       - "zila"
-      # Hindi — previously missing
+      # Kannada
+      - "ಜಿಲ್ಲೆ:"
+      - "ಜಿಲ್ಲೆ"
+      # Hindi
+      - "जिला:"
       - "जिला"
       - "ज़िला"
       - "जिले"
       - "जनपद"
-      # Kannada
-      - "ಜಿಲ್ಲೆ"
+      # Marathi
+      - "जिल्हा:"
+      - "जिल्हा"
       # Tamil
+      - "மாவட்டம்:"
       - "மாவட்டம்"
       # Telugu
+      - "జిల్లా:"
       - "జిల్లా"
+      # Bengali
+      - "জেলা:"
+      - "জেলা"
+      # Gujarati
+      - "જિલ્લો:"
+      - "જિલ્લો"
     required: false
 
   land_classification:
@@ -200,16 +354,21 @@ fields:
       - "land type"
       - "land use"
       - "nature of land"
-      # Hindi — previously missing
+      # Kannada
+      - "ಮಣ್ಣಿನ ನಮೂನೆ"
+      - "ಭೂ ವರ್ಗೀಕರಣ"
+      - "ಭೂಮಿಯ ವರ್ಗೀಕರಣ"
+      - "ಭೂ ಬಳಕೆ"
+      - "ಪಟ್ಟಾ"
+      # Hindi
       - "भूमि प्रकार"
       - "भूमि वर्ग"
       - "भूमि का प्रकार"
       - "भूमि का वर्ग"
       - "खेत का प्रकार"
-      # Kannada
-      - "ಭೂ ವರ್ಗೀಕರಣ"
-      - "ಭೂಮಿಯ ವರ್ಗೀಕರಣ"
-      - "ಭೂ ಬಳಕೆ"
+      # Marathi
+      - "जमिनीचा प्रकार"
+      - "जमिनीचा वर्ग"
       # Tamil
       - "நில வகைப்பாடு"
       # Telugu
@@ -218,8 +377,7 @@ fields:
     required: false
 
   mutation_number:
-    # Matches: MR-12/2024, MR12/2024, Mutation No 456, दाखिल-खारिज 123/2024
-    pattern: '(MR[-/]?\d+[/]\d+|\d{1,6}/\d{4})'
+    pattern: '(RR\s*\d+\s*)?MR\s*[-/]?\d+[/–-]\d+([/–-]\d+)?|\d{1,6}/\d{4}|MR[-/]?\d+[/]\d+'
     keywords:
       # English
       - "mutation ref no"
@@ -229,6 +387,13 @@ fields:
       - "mutation number"
       - "mr no"
       - "mr."
+      # Kannada
+      - "ವಿಶೇಷ MR"
+      - "MR"
+      - "ಮ್ಯುಟೇಶನ್ ನಂ"
+      - "ಮ್ಯುಟೇಶನ್"
+      - "ಮ್ಯುಟೇಷನ್"
+      - "ಹಕ್ಕು ಬದಲಾವಣೆ"
       # Hindi
       - "नामांतरण पंजी क्र"
       - "नामांतरण पंजी"
@@ -236,8 +401,9 @@ fields:
       - "नामांतरण संख्या"
       - "दाखिल-खारिज"
       - "दाखिल खारिज"
-      # Kannada
-      - "ಮ್ಯುಟೇಶನ್ ನಂ"
+      # Marathi
+      - "फेरफार क्र"
+      - "फेरफार क्रमांक"
       - "ವರ್ಗಾವಣೆ"
       - "ಮ್ಯುಟೇಶನ್"
       # Tamil

@@ -155,7 +155,7 @@ async def upload_record(
         _log(db, record.id, "uploaded", actor=actor, details={"filename": file.filename, "language": lang_hint, "file_path": record.file_path})
 
         # 1. OCR Step
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=120.0) as client:
             try:
                 ocr_resp = await client.post(
                     f"{OCR_SERVICE_URL}/ocr/extract",
@@ -166,7 +166,15 @@ async def upload_record(
             except httpx.HTTPError as e:
                 record.status = "rejected"
                 db.commit()
-                raise HTTPException(status_code=502, detail=f"OCR service failed: {e}")
+                err_detail = str(e)
+                if hasattr(e, "response") and e.response is not None:
+                    try:
+                        err_json = e.response.json()
+                        err_detail = err_json.get("detail", err_detail)
+                    except Exception:
+                        err_detail = e.response.text or err_detail
+                logger.error(f"OCR service failed for record {record.id}: {err_detail}")
+                raise HTTPException(status_code=502, detail=f"OCR service failed: {err_detail}")
 
         record.raw_ocr_text = ocr_data["raw_text"]
         record.ocr_confidence = ocr_data["confidence"]
@@ -177,7 +185,7 @@ async def upload_record(
         _log(db, record.id, "ocr_completed", actor="OCR Engine", details={"confidence": ocr_data["confidence"], "doc_type": record.document_type, "language": record.language})
 
         # 2. Information Extraction Step (with Tier-2 LLM fallback support)
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=60.0) as client:
             try:
                 extract_resp = await client.post(
                     f"{EXTRACTION_SERVICE_URL}/extraction/parse",
@@ -193,7 +201,15 @@ async def upload_record(
             except httpx.HTTPError as e:
                 record.status = "rejected"
                 db.commit()
-                raise HTTPException(status_code=502, detail=f"Extraction service failed: {e}")
+                err_detail = str(e)
+                if hasattr(e, "response") and e.response is not None:
+                    try:
+                        err_json = e.response.json()
+                        err_detail = err_json.get("detail", err_detail)
+                    except Exception:
+                        err_detail = e.response.text or err_detail
+                logger.error(f"Extraction service failed for record {record.id}: {err_detail}")
+                raise HTTPException(status_code=502, detail=f"Extraction service failed: {err_detail}")
 
         # Step 2b: Honest Fallback Path for Legacy Tabular Register (when LLM is disabled or did not extract fields)
         if record.document_type == "legacy_tabular_register" and not extraction_data.get("has_ai_assisted"):

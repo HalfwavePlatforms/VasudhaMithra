@@ -43,6 +43,7 @@ HYBRID_MAX_CALLS = int(os.getenv("OCR_HYBRID_MAX_CALLS", "200"))
 
 # In-memory session counter tracking Google Vision hybrid fallback calls
 _hybrid_vision_calls = 0
+_vision_billing_disabled = False
 
 
 def get_hybrid_vision_calls() -> int:
@@ -52,8 +53,9 @@ def get_hybrid_vision_calls() -> int:
 
 def reset_hybrid_vision_calls():
     """Reset the session counter (useful for test suites)."""
-    global _hybrid_vision_calls
+    global _hybrid_vision_calls, _vision_billing_disabled
     _hybrid_vision_calls = 0
+    _vision_billing_disabled = False
 
 
 def _increment_hybrid_vision_calls():
@@ -62,6 +64,7 @@ def _increment_hybrid_vision_calls():
 
 
 def run_ocr(image: np.ndarray, language_hint: str = "en") -> dict:
+    global _vision_billing_disabled
     provider = os.getenv("OCR_PROVIDER", "tesseract").lower().strip()
     if provider == "google_vision":
         res = _run_google_vision(image)
@@ -83,7 +86,7 @@ def run_ocr(image: np.ndarray, language_hint: str = "en") -> dict:
         t_conf = tesseract_result.get("confidence", 0.0)
 
         # Check threshold
-        if t_conf < HYBRID_THRESHOLD:
+        if t_conf < HYBRID_THRESHOLD and not _vision_billing_disabled:
             # Step 2: Rate-limit and cost safeguards
             if _hybrid_vision_calls >= HYBRID_MAX_CALLS:
                 logger.warning(
@@ -109,6 +112,10 @@ def run_ocr(image: np.ndarray, language_hint: str = "en") -> dict:
                 # Vision failed (no key, billing disabled, quota exceeded, network) —
                 # do NOT crash the request, fall back to Tesseract result we already have, flagged clearly
                 logger.warning(f"Google Vision fallback attempt failed: {e}. Preserving Tesseract result.")
+                err_str = str(e).lower()
+                if "billing to be enabled" in err_str or "api key not valid" in err_str:
+                    _vision_billing_disabled = True
+                    logger.warning("Google Vision disabled due to project billing/key status. Defaulting to Tesseract.")
                 tesseract_result["fallback_attempted"] = True
                 tesseract_result["fallback_error"] = str(e)
                 tesseract_result["fallback_triggered"] = False
@@ -176,10 +183,30 @@ def _run_mock_ocr(image: np.ndarray) -> dict:
 
 
 
+def _detect_dominant_script(image: np.ndarray) -> str:
+    """Fast header sampling (< 3s) to detect script for 'auto' mode rather than running 7 heavy models simultaneously."""
+    try:
+        h, w = image.shape[:2]
+        header = image[:int(h * 0.30), :]
+        sample_txt = pytesseract.image_to_string(header, lang="kan+hin+tam+tel+ben+eng", config="--psm 6")
+        counts = {
+            "kan+eng": sum(1 for c in sample_txt if "\u0c80" <= c <= "\u0cff"),
+            "hin+eng": sum(1 for c in sample_txt if "\u0900" <= c <= "\u097f"),
+            "tam+eng": sum(1 for c in sample_txt if "\u0b80" <= c <= "\u0bff"),
+            "tel+eng": sum(1 for c in sample_txt if "\u0c00" <= c <= "\u0c7f"),
+            "ben+eng": sum(1 for c in sample_txt if "\u0980" <= c <= "\u09ff"),
+        }
+        dom_lang, count = max(counts.items(), key=lambda x: x[1])
+        if count >= 15:
+            return dom_lang
+    except Exception as e:
+        logger.debug(f"Script auto-sampling error: {e}")
+    return "kan+hin+eng"
+
+
 def _run_tesseract(image: np.ndarray, language_hint: str) -> dict:
-    # Tesseract language codes: eng, hin, kan (Kannada), mar (Marathi), ben, tam, tel ...
+    # Tesseract language codes: eng, hin, kan (Kannada), mar (Marathi), ben, tam, tel, guj, mal ...
     lang_map = {
-        "auto": "kan+hin+mar+tam+tel+ben+eng",
         "en": "eng",
         "hi": "hin+eng",
         "kn": "kan+eng",
@@ -187,13 +214,24 @@ def _run_tesseract(image: np.ndarray, language_hint: str) -> dict:
         "bn": "ben+eng",
         "ta": "tam+eng",
         "te": "tel+eng",
+        "gu": "guj+eng",
+        "ml": "mal+eng",
     }
-    lang = lang_map.get(language_hint, "kan+hin+eng")
 
+    if language_hint == "auto" or not language_hint:
+        lang = _detect_dominant_script(image)
+    else:
+        lang = lang_map.get(language_hint, "kan+hin+eng")
 
     # 1. Resolution upscaling for enhanced optical stroke recognition
     h, w = image.shape[:2]
-    scale_factor = 1.5 if (w < 1800 or h < 1400) else 1.0
+    if min(h, w) < 900:
+        scale_factor = 2.0
+    elif w < 1800 or h < 1400:
+        scale_factor = 1.5
+    else:
+        scale_factor = 1.0
+
     if scale_factor > 1.0:
         proc_image = cv2.resize(
             image, (int(w * scale_factor), int(h * scale_factor)), interpolation=cv2.INTER_CUBIC
@@ -204,9 +242,15 @@ def _run_tesseract(image: np.ndarray, language_hint: str) -> dict:
     # 2. Configure PSM 6 (Assume a single uniform block of text) for tabular revenue layout
     custom_config = "--psm 6"
 
-    data = pytesseract.image_to_data(
-        proc_image, lang=lang, config=custom_config, output_type=pytesseract.Output.DICT
-    )
+    try:
+        data = pytesseract.image_to_data(
+            proc_image, lang=lang, config=custom_config, output_type=pytesseract.Output.DICT
+        )
+    except Exception as err:
+        logger.warning(f"Tesseract failed with lang '{lang}': {err}. Falling back to 'eng'.")
+        data = pytesseract.image_to_data(
+            proc_image, lang="eng", config=custom_config, output_type=pytesseract.Output.DICT
+        )
 
     words, confidences, boxes = [], [], []
     for i, text in enumerate(data["text"]):

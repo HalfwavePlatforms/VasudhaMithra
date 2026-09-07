@@ -27,9 +27,10 @@ def parse_area_to_struct(area_str: str | None) -> dict | None:
     Supported units:
         Acre / एकड़ / ಎಕರೆ / ஏக்கர்  → multiplier 1.0
         Hectare / हेक्टेयर / ಹೆಕ್ಟೇರ್ → 2.47105
-        Guntha / Gunta / गुंठा         → 0.025
+        Guntha / Gunta / ಗುಂಠ         → 0.025
         Sq. Ft                         → 0.0000229568
         Sq. M                          → 0.000247105
+        Bhoomi dot notation (A.GG.00.00 or A.GG) → Acres + Gunthas * 0.025
 
     Returns None if the string cannot be parsed.
     """
@@ -37,6 +38,15 @@ def parse_area_to_struct(area_str: str | None) -> dict | None:
         return None
 
     clean = area_str.lower().strip()
+
+    # Detect Bhoomi multi-dot notation: e.g. "3.30.00.00", "1.34.08.00", "0.01.00.00"
+    bhoomi_match = re.search(r"(\d+)\.(\d{1,2})(?:\.\d+)?(?:\.\d+)?", clean)
+    if bhoomi_match and (clean.count(".") >= 2 or any(u in clean for u in ("ಎಕರೆ", "ಗುಂಟೆ", "ಗುಂಟಿ", "gunta", "guntha"))):
+        acres_part = float(bhoomi_match.group(1))
+        gunthas_part = float(bhoomi_match.group(2))
+        acres = round(acres_part + (gunthas_part * 0.025), 4)
+        return {"value": acres, "unit": "acre_guntha", "raw": area_str}
+
     match = re.search(r"(\d+(\.\d+)?)", clean)
     if not match:
         return None
@@ -47,7 +57,7 @@ def parse_area_to_struct(area_str: str | None) -> dict | None:
     if any(u in clean for u in ("hectare", "hectares", "हेक्टेयर", "ಹೆಕ್ಟೇರ್", "ha")):
         acres = round(val * 2.47105, 4)
         unit = "hectare"
-    elif any(u in clean for u in ("guntha", "gunthas", "gunta", "गुंठा")):
+    elif any(u in clean for u in ("guntha", "gunthas", "gunta", "गुंठा", "ಗುಂಟೆ", "ಗುಂಟಿ")):
         acres = round(val * 0.025, 4)
         unit = "guntha"
     elif any(u in clean for u in ("sq.ft", "sq ft", "sqft", "sq. ft")):
@@ -192,7 +202,7 @@ def extract_fields(
     extraction_sources = {}
 
     for field_name, cfg in field_configs.items():
-        value, confidence = _extract_one_field(raw_text, bounding_boxes, cfg)
+        value, confidence = _extract_one_field(raw_text, bounding_boxes, cfg, field_name=field_name)
         fields[field_name] = value
         confidence_per_field[field_name] = round(confidence, 3)
         extraction_sources[field_name] = "rule_based"
@@ -303,39 +313,92 @@ def extract_fields(
     }
 
 
-def _extract_one_field(raw_text: str, bounding_boxes: list[dict], cfg: dict):
+REVENUE_NOISE_TERMS = {
+    "ಖರಾಬ್", "ಪೂಟ್", "ಹೋಡಿ", "ನಮೂನೆ", "ಗ್ರಾಮ", "ಹೆಸರು", "ವಿಳಾಸ", "ಖಾತೆ", "ವಿಸ್ತೀರ್ಣ",
+    "ಸರ್ವೇ", "ಸರ್ವೆ", "ಪಟ್ಟಾ", "ಸಾಗುವಳಿ", "ಗೇಣಿ", "ಬೆಳೆಯ", "ಬಾಗಾಯ್ತು", "ನೊಷರು", "ಪುಟದ",
+    "ಕ್ರಮ", "ಸಂಖ್ಯೆ", "ರೈಟ್ಸ್", "ಪತ್ರಿಕೆ", "ಕಂದಾಯ",
+    "क्षेत्रफल", "खाता", "खसरा", "नाम", "पिता", "तहसील", "जिला", "गांव", "ग्राम"
+}
+
+
+def _extract_one_field(raw_text: str, bounding_boxes: list[dict], cfg: dict, field_name: str = ""):
     keywords = cfg.get("keywords", [])
     pattern = cfg.get("pattern")
-    # Per-field window size (free-text fields like owner_name need more context)
     window_size = cfg.get("window_chars", 100)
 
     best_val = None
     best_conf = 0.0
 
+    search_text = raw_text.lower()
+
     for kw in keywords:
-        search_text = raw_text.lower()
         kw_lower = kw.lower()
-        idx = search_text.find(kw_lower)
-        if idx == -1:
-            continue
+        start = 0
+        while True:
+            idx = search_text.find(kw_lower, start)
+            if idx == -1:
+                break
 
-        window = raw_text[idx: idx + len(kw) + window_size]
+            window = raw_text[idx: idx + len(kw) + window_size]
 
-        if pattern:
-            match = re.search(pattern, window, re.IGNORECASE)
-            if match:
-                val = match.group(0).strip()
-                conf = _confidence_for_text(val, bounding_boxes, idx, len(raw_text))
-                if conf > best_conf:
-                    best_val, best_conf = val, conf
-        else:
-            after_kw = window[len(kw):].strip(" :–-\t\n")
-            # Take text up to first newline or 60 chars, whichever is shorter
-            candidate = after_kw.split("\n")[0][:60].strip()
-            if candidate:
-                conf = _confidence_for_text(candidate, bounding_boxes, idx, len(raw_text))
-                if conf > best_conf:
-                    best_val, best_conf = candidate, conf
+            if pattern:
+                match = re.search(pattern, window, re.IGNORECASE)
+                if match:
+                    val = match.group(0).strip()
+                    conf = _confidence_for_text(val, bounding_boxes, idx, len(raw_text))
+                    if conf > best_conf:
+                        best_val, best_conf = val, conf
+            else:
+                after_kw = window[len(kw):].strip(" :–-`'\"=\t\n")
+                candidate = ""
+
+                if field_name == "owner_name":
+                    name_matches = re.finditer(
+                        r'[\u0c80-\u0cff]{5,}(\s*[\u0c80-\u0cff]+)*|[\u0900-\u097f]{4,}(\s*[\u0900-\u097f]+)*|[\u0b80-\u0bff]{4,}(\s*[\u0b80-\u0bff]+)*|[\u0c00-\u0c7f]{4,}(\s*[\u0c00-\u0c7f]+)*|[\u0980-\u09ff]{4,}(\s*[\u0980-\u09ff]+)*|[\u0a80-\u0aff]{4,}(\s*[\u0a80-\u0aff]+)*|[\u0d00-\u0d7f]{4,}(\s*[\u0d00-\u0d7f]+)*|[A-Z][a-z]{2,}(\s+[A-Z][a-z]{2,})+',
+                        after_kw
+                    )
+                    for m in name_matches:
+                        tok = m.group(0).strip()
+                        if not any(term in tok for term in REVENUE_NOISE_TERMS):
+                            candidate = tok
+                            break
+                else:
+                    candidate = after_kw.split("\n")[0][:60].strip()
+                    # Stop candidate at subsequent label delimiters
+                    for stop_tok in [
+                        "ತಾಲ್ಲೂಕು", "ತಾಲೂಕು", "ತಾಲ ಕು", "ಹೋಬಳಿ", "ಗ್ರಾಮ", "ಪುಟದ", "ಜಿಲ್ಲೆ",
+                        "तहसील", "जिला", "गाँव", "गांव", "taluk", "tehsil", "district", "village",
+                        "valid from", "print page"
+                    ]:
+                        tok_idx = candidate.lower().find(stop_tok)
+                        if tok_idx != -1:
+                            candidate = candidate[:tok_idx].strip(" :–-`'\"=\t\n")
+
+                    if field_name == "tehsil":
+                        for lead in ["ನೊಷರು", "ಹೆಸರು", "ತಾಲೂಕು", "ತಾಲ್ಲೂಕು", "'", "`", "_"]:
+                            if candidate.startswith(lead):
+                                candidate = candidate[len(lead):].strip(" :–-`'\"=\t\n_|")
+                        candidate = candidate.strip(" :–-`'\"=\t\n_|")
+
+                    if field_name == "village":
+                        for lead in ["ನಮೂನೆ", "ಗ್ರಾಮ", "ಗ್ರಾ", "'", "`", "_"]:
+                            if candidate.startswith(lead):
+                                candidate = candidate[len(lead):].strip(" :–-`'\"=\t\n_|")
+                        candidate = candidate.strip(" :–-`'\"=\t\n_|")
+                        if candidate and (candidate[0].isdigit() or any(tok in candidate.lower() for tok in ["valid from", "print page", "rtc", "page no", "ಸಃ ಶಕೆ"])):
+                            candidate = ""
+
+                if candidate:
+                    conf = _confidence_for_text(candidate, bounding_boxes, idx, len(raw_text))
+                    # Prioritize key-value colon matches over bare prefix keywords
+                    if ":" in kw:
+                        conf += 0.05
+                    if conf > best_conf:
+                        best_val, best_conf = candidate, conf
+
+            start = idx + len(kw_lower)
+            if best_val and best_conf >= 0.85:
+                break
 
     return best_val, best_conf
 
