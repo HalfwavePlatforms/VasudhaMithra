@@ -172,13 +172,33 @@ async def upload_record(
         record.ocr_confidence = ocr_data["confidence"]
         record.document_type = ocr_data.get("document_type", "Standard Land Record")
         record.language = ocr_data.get("language") or lang_hint
+        classification_conf = ocr_data.get("classification_confidence", 0.9 if record.document_type != "Standard Land Record" else 0.4)
         db.commit()
         _log(db, record.id, "ocr_completed", actor="OCR Engine", details={"confidence": ocr_data["confidence"], "doc_type": record.document_type, "language": record.language})
 
-        # Step 2: Honest Fallback Path for Legacy Tabular Register
-        if record.document_type == "legacy_tabular_register":
-            fallback_message = "Legacy tabular format detected — automated field extraction not yet supported, routed for manual transcription."
-            
+        # 2. Information Extraction Step (with Tier-2 LLM fallback support)
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            try:
+                extract_resp = await client.post(
+                    f"{EXTRACTION_SERVICE_URL}/extraction/parse",
+                    json={
+                        "raw_text": ocr_data["raw_text"],
+                        "bounding_boxes": ocr_data.get("bounding_boxes", []),
+                        "document_type": record.document_type,
+                        "classification_confidence": classification_conf,
+                    },
+                )
+                extract_resp.raise_for_status()
+                extraction_data = extract_resp.json()
+            except httpx.HTTPError as e:
+                record.status = "rejected"
+                db.commit()
+                raise HTTPException(status_code=502, detail=f"Extraction service failed: {e}")
+
+        # Step 2b: Honest Fallback Path for Legacy Tabular Register (when LLM is disabled or did not extract fields)
+        if record.document_type == "legacy_tabular_register" and not extraction_data.get("has_ai_assisted"):
+            fallback_message = extraction_data.get("triage_reason") or "Legacy tabular format detected — automated field extraction not yet supported, routed for manual transcription."
+
             # Set standard schema fields with None / null confidence
             schema_field_names = [
                 "survey_number", "khasra_number", "khata_number", "owner_name",
@@ -192,6 +212,7 @@ async def upload_record(
                         field_name=fn,
                         field_value=None,
                         confidence=None,
+                        extraction_source="rule_based",
                     )
                 )
 
@@ -231,30 +252,24 @@ async def upload_record(
                 "spatial_consistency": record.spatial_consistency,
             }
 
-        # 2. Information Extraction Step
-        async with httpx.AsyncClient(timeout=30.0) as client:
-
-            try:
-                extract_resp = await client.post(
-                    f"{EXTRACTION_SERVICE_URL}/extraction/parse",
-                    json={"raw_text": ocr_data["raw_text"], "bounding_boxes": ocr_data.get("bounding_boxes", [])},
-                )
-                extract_resp.raise_for_status()
-                extraction_data = extract_resp.json()
-            except httpx.HTTPError as e:
-                record.status = "rejected"
-                db.commit()
-                raise HTTPException(status_code=502, detail=f"Extraction service failed: {e}")
-
+        # Step 2c: Save Extracted Fields with Provenance Tracking
+        has_ai_field = False
         for field_name, value in extraction_data["fields"].items():
             conf = extraction_data.get("confidence_per_field", {}).get(field_name)
-            conf_val = round(conf, 4) if (conf is not None and isinstance(conf, (int, float))) else (0.0 if not value else None)
+            src = extraction_data.get("extraction_sources", {}).get(field_name, "rule_based")
+            if src == "ai_assisted":
+                has_ai_field = True
+                conf_val = None  # Step 4: Do not attach numeric confidence to ai_assisted fields
+            else:
+                conf_val = round(conf, 4) if (conf is not None and isinstance(conf, (int, float))) else (0.0 if not value else None)
+
             db.add(
                 RecordField(
                     record_id=record.id,
                     field_name=field_name,
                     field_value=value,
                     confidence=conf_val,
+                    extraction_source=src,
                 )
             )
 
@@ -317,8 +332,11 @@ async def upload_record(
                 )
             )
 
-        has_issues = bool(extraction_data.get("needs_review") or violations or record.spatial_consistency == "DISCREPANCY")
+        # Force pending_review if any field is ai_assisted or if there are review flags/violations
+        has_issues = bool(has_ai_field or extraction_data.get("needs_review") or violations or record.spatial_consistency == "DISCREPANCY")
         record.status = "pending_review" if has_issues else "validated"
+        if has_ai_field and not record.reviewer_notes:
+            record.reviewer_notes = "AI-assisted field extraction — pending human verification."
         record.risk_level = "HIGH" if record.spatial_consistency == "DISCREPANCY" or len(violations) > 1 else ("MEDIUM" if has_issues else "LOW")
         db.commit()
         _log(db, record.id, "extracted_and_validated", actor="System", details={"status": record.status, "spatial_consistency": record.spatial_consistency})
@@ -598,6 +616,7 @@ def _serialize(record: Record) -> dict:
         "raw_ocr_text": record.raw_ocr_text,
         "fields": {f.field_name: (f.corrected_value or f.field_value) for f in record.fields},
         "confidence_per_field": {f.field_name: f.confidence for f in record.fields},
+        "extraction_sources": {f.field_name: (getattr(f, "extraction_source", "rule_based") or "rule_based") for f in record.fields},
         "corrections": {f.field_name: f.corrected_value for f in record.fields if f.was_corrected},
         "violations": [
             {"field": v.field_name, "rule": v.rule, "message": v.message} for v in record.validations

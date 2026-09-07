@@ -263,14 +263,15 @@ export default function RecordDetail({ recordId, onBack }) {
                   }
                 }
 
-                const isLowConf = hasConf && confVal < 0.85;
+                const isAiAssisted = record.extraction_sources?.[key] === "ai_assisted";
+                const isLowConf = !isAiAssisted && hasConf && confVal < 0.85;
 
                 return (
                   <div
                     key={key}
                     style={{
-                      backgroundColor: isLowConf ? "#FEF2F2" : "#F9FAFB",
-                      border: isLowConf ? "1px solid #FCA5A5" : "1px solid #E5E7EB",
+                      backgroundColor: isAiAssisted ? "#FFFBF5" : (isLowConf ? "#FEF2F2" : "#F9FAFB"),
+                      border: isAiAssisted ? "1px solid #FDE68A" : (isLowConf ? "1px solid #FCA5A5" : "1px solid #E5E7EB"),
                       borderRadius: "8px",
                       padding: "10px 12px"
                     }}
@@ -280,17 +281,22 @@ export default function RecordDetail({ recordId, onBack }) {
                         {key.replace(/_/g, " ")}
                       </label>
                       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        {isAiAssisted && (
+                          <span style={{ fontSize: "10px", fontWeight: 700, backgroundColor: "#FFF8E6", color: "#B45309", border: "1px solid #FDE68A", padding: "2px 6px", borderRadius: "4px" }}>
+                            AI-extracted, pending review
+                          </span>
+                        )}
                         {isLowConf && (
                           <span style={{ fontSize: "10px", fontWeight: 700, backgroundColor: "#DC2626", color: "#FFFFFF", padding: "2px 6px", borderRadius: "4px" }}>
                             ⚠️ Low Confidence (&lt;85%)
                           </span>
                         )}
-                        {!hasConf && (
+                        {!isAiAssisted && !hasConf && (
                           <span style={{ fontSize: "10px", fontWeight: 600, backgroundColor: "#F3F4F6", color: "#6B7280", border: "1px solid #E5E7EB", padding: "2px 6px", borderRadius: "4px" }}>
                             Unverified
                           </span>
                         )}
-                        {hasConf && (
+                        {!isAiAssisted && hasConf && (
                           <span style={{ fontSize: "10px", fontWeight: 700, backgroundColor: badgeStyle.bg, color: badgeStyle.text, border: `1px solid ${badgeStyle.border}`, padding: "2px 6px", borderRadius: "4px" }}>
                             {confPct}%
                           </span>

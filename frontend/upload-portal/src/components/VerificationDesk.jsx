@@ -460,11 +460,16 @@ export default function VerificationDesk({
                   const val = editedFields[key] !== undefined ? editedFields[key] : "";
                   const rawConf = currentRecord.confidence_per_field?.[key];
 
+                  const isAiAssisted = currentRecord.extraction_sources?.[key] === "ai_assisted";
+
                   // PROMPT RULE: Use REAL confidence values per field (post fallback-cleanup fix - show "Unverified" not a fake %)
                   let confDisplay = "Unverified";
                   let confStyle = "bg-neutral-100 text-neutral-600 border-neutral-200";
 
-                  if (rawConf !== null && rawConf !== undefined && typeof rawConf === "number" && rawConf > 0) {
+                  if (isAiAssisted) {
+                    confDisplay = "AI-extracted, pending review";
+                    confStyle = "bg-[#FFF8E6] text-[#B45309] border-[#FDE68A]";
+                  } else if (rawConf !== null && rawConf !== undefined && typeof rawConf === "number" && rawConf > 0) {
                     const pct = Math.round(rawConf * 100);
                     confDisplay = `${pct}%`;
                     confStyle = pct >= 80

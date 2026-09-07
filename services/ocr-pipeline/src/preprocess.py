@@ -176,10 +176,10 @@ def is_tabular_layout(raw_text: str, bounding_boxes: list[dict] | None = None) -
     return False
 
 
-def classify_document(raw_text: str, bounding_boxes: list[dict] | None = None) -> tuple[str, str]:
+def classify_document_details(raw_text: str, bounding_boxes: list[dict] | None = None) -> tuple[str, str, float]:
     """
-    Identifies document type and language script from recognized text and bounding boxes.
-    Returns (document_type, language_code)
+    Identifies document type, language script, and classification confidence from recognized text and bounding boxes.
+    Returns (document_type, language_code, classification_confidence)
     """
     text_lower = raw_text.lower()
 
@@ -196,20 +196,34 @@ def classify_document(raw_text: str, bounding_boxes: list[dict] | None = None) -
 
     # Step 1: Detect legacy tabular register format
     if is_tabular_layout(raw_text, bounding_boxes):
-        return "legacy_tabular_register", lang
+        return "legacy_tabular_register", lang, 0.95
 
     # Document type detection for linear / label:value records
     if "mutation" in text_lower or "नामांतरण" in raw_text or "ನಮೂನೆ" in raw_text or "form 12" in text_lower:
         doc_type = "Mutation Extract (Form XII)"
+        conf = 0.90
     elif "khata" in text_lower or "खाता प्रमाण" in raw_text or "ಖಾತಾ" in raw_text:
         doc_type = "Khata Certificate"
+        conf = 0.90
     elif "sale deed" in text_lower or "title deed" in text_lower or "विक्रय पत्र" in raw_text or "ಕ್ರಯ ಪತ್ರ" in raw_text:
         doc_type = "Sale / Title Deed"
+        conf = 0.90
     elif "pahani" in text_lower or "rtc" in text_lower or "khasra" in text_lower or "खसरा" in raw_text or "ಪಹಣಿ" in raw_text or "land record" in text_lower:
         doc_type = "Record of Rights / RTC (Pahani)"
+        conf = 0.90
     else:
+        # Generic unclassified fallback: confidence below 0.5 triggers Tier-2 LLM extraction fallback
         doc_type = "Standard Land Record"
+        conf = 0.40
 
+    return doc_type, lang, conf
+
+
+def classify_document(raw_text: str, bounding_boxes: list[dict] | None = None) -> tuple[str, str]:
+    """
+    Backward-compatible document classifier helper returning (document_type, language_code).
+    """
+    doc_type, lang, _ = classify_document_details(raw_text, bounding_boxes)
     return doc_type, lang
 
 

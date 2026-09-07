@@ -50,6 +50,7 @@ class RecordField(Base):
     confidence = Column(Float)
     was_corrected = Column(Boolean, default=False)
     corrected_value = Column(String)
+    extraction_source = Column(String, default="rule_based")
 
     record = relationship("Record", back_populates="fields")
 

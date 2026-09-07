@@ -33,6 +33,20 @@ except Exception as e:
 
 try:
     Base.metadata.create_all(bind=engine)
+    # Check and add extraction_source column to record_fields if missing
+    with engine.connect() as conn:
+        try:
+            from sqlalchemy import text
+            if DATABASE_URL.startswith("sqlite"):
+                cols = [r[1] for r in conn.execute(text("PRAGMA table_info(record_fields)")).fetchall()]
+                if "extraction_source" not in cols:
+                    conn.execute(text("ALTER TABLE record_fields ADD COLUMN extraction_source VARCHAR DEFAULT 'rule_based'"))
+                    conn.commit()
+            else:
+                conn.execute(text("ALTER TABLE record_fields ADD COLUMN IF NOT EXISTS extraction_source VARCHAR DEFAULT 'rule_based'"))
+                conn.commit()
+        except Exception as mig_err:
+            logger.debug("Column migration check: %s", mig_err)
 except Exception as e:
     logger.warning("Auto table creation failed: %s", e)
 

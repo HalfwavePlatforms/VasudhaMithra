@@ -72,53 +72,218 @@ def parse_area_to_acres(area_str: str | None) -> tuple[float | None, str | None]
     return result["value"], result["unit"]
 
 
-def extract_fields(raw_text: str, bounding_boxes: list[dict], document_type: str | None = None) -> dict:
+def extract_fields(
+    raw_text: str,
+    bounding_boxes: list[dict],
+    document_type: str | None = None,
+    classification_confidence: float | None = None,
+    mock_llm_data: dict | None = None,
+) -> dict:
     rules = _load_rules()
+    field_configs = rules.get("fields", {})
+    all_field_names = list(field_configs.keys())
+    required_field_names = [fn for fn, cfg in field_configs.items() if cfg.get("required")]
+    total_required = len(required_field_names)
+    threshold = rules.get("confidence_review_threshold", 0.75)
+
+    from llm_extractor import extract_fields_llm, is_llm_enabled
+
+    # ── Legacy Tabular Register Handling ──
     if document_type == "legacy_tabular_register":
-        all_field_names = list(rules.get("fields", {}).keys())
+        # Check if Tier-2 LLM fallback can be triggered for tabular register
+        if is_llm_enabled() or mock_llm_data is not None:
+            llm_fields, status_note = extract_fields_llm(raw_text, mock_data=mock_llm_data)
+            if status_note == "ai_extraction_budget_reached":
+                return {
+                    "fields": {fn: None for fn in all_field_names},
+                    "structured_record": {},
+                    "area_acres": None,
+                    "confidence_per_field": {fn: None for fn in all_field_names},
+                    "extraction_sources": {fn: "rule_based" for fn in all_field_names},
+                    "has_ai_assisted": False,
+                    "needs_review": ["all_fields_legacy_tabular_format", "ai_extraction_budget_reached"],
+                    "triage_reason": "ai_extraction_budget_reached: Legacy tabular format detected and LLM budget exceeded, routed for manual transcription.",
+                    "ai_fallback_triggered": False,
+                    "ai_fallback_note": "ai_extraction_budget_reached",
+                }
+
+            if llm_fields and any(v is not None for v in llm_fields.values()):
+                # Tier-2 successfully extracted fields from tabular format
+                extraction_sources = {}
+                confidence_per_field = {}
+                structured_record = {}
+                needs_review = []
+                fields = {}
+
+                for fn in all_field_names:
+                    val = llm_fields.get(fn)
+                    fields[fn] = val
+                    if val is not None:
+                        extraction_sources[fn] = "ai_assisted"
+                        confidence_per_field[fn] = None  # Never fake numeric confidence for AI fields
+                        needs_review.append(fn)
+                    else:
+                        extraction_sources[fn] = "rule_based"
+                        confidence_per_field[fn] = None
+                        if fn in required_field_names:
+                            needs_review.append(fn)
+
+                    if fn == "plot_area" and val:
+                        area_struct = parse_area_to_struct(val)
+                        if area_struct:
+                            structured_record[fn] = {
+                                "value": area_struct["value"],
+                                "unit": area_struct["unit"],
+                                "raw": area_struct["raw"],
+                                "confidence": None,
+                                "extraction_source": "ai_assisted",
+                            }
+                        else:
+                            structured_record[fn] = {
+                                "value": None,
+                                "unit": None,
+                                "raw": val,
+                                "confidence": None,
+                                "extraction_source": "ai_assisted",
+                            }
+                    else:
+                        structured_record[fn] = {
+                            "value": val,
+                            "confidence": None,
+                            "extraction_source": extraction_sources[fn],
+                        }
+
+                area_acres = None
+                if fields.get("plot_area"):
+                    area_acres, _ = parse_area_to_acres(fields["plot_area"])
+
+                return {
+                    "fields": fields,
+                    "structured_record": structured_record,
+                    "area_acres": area_acres,
+                    "confidence_per_field": confidence_per_field,
+                    "extraction_sources": extraction_sources,
+                    "has_ai_assisted": True,
+                    "needs_review": needs_review or ["all_fields_legacy_tabular_ai_assisted"],
+                    "triage_reason": "Legacy tabular register parsed via Tier-2 LLM fallback. AI-assisted fields pending human verification.",
+                    "ai_fallback_triggered": True,
+                    "ai_fallback_note": "ai_extracted",
+                }
+
+        # Fallback when LLM is not enabled or returned no fields
         return {
             "fields": {fn: None for fn in all_field_names},
             "structured_record": {},
             "area_acres": None,
             "confidence_per_field": {fn: None for fn in all_field_names},
+            "extraction_sources": {fn: "rule_based" for fn in all_field_names},
+            "has_ai_assisted": False,
             "needs_review": ["all_fields_legacy_tabular_format"],
             "triage_reason": "Legacy tabular format detected — automated field extraction not yet supported, routed for manual transcription.",
+            "ai_fallback_triggered": False,
+            "ai_fallback_note": None,
         }
 
+    # ── Rule-Based Extraction Tier 1 ──
     fields = {}
     confidence_per_field = {}
     structured_record = {}
     needs_review = []
+    extraction_sources = {}
 
-    threshold = rules.get("confidence_review_threshold", 0.75)
-
-    for field_name, cfg in rules["fields"].items():
+    for field_name, cfg in field_configs.items():
         value, confidence = _extract_one_field(raw_text, bounding_boxes, cfg)
         fields[field_name] = value
         confidence_per_field[field_name] = round(confidence, 3)
+        extraction_sources[field_name] = "rule_based"
 
         if field_name == "plot_area" and value:
             area_struct = parse_area_to_struct(value)
             if area_struct:
-                # Structured shape: value = float, unit = str, raw = original string
                 field_obj = {
                     "value": area_struct["value"],
                     "unit": area_struct["unit"],
                     "raw": area_struct["raw"],
                     "confidence": round(confidence, 3),
+                    "extraction_source": "rule_based",
                 }
             else:
-                field_obj = {"value": None, "unit": None, "raw": value, "confidence": round(confidence, 3)}
+                field_obj = {
+                    "value": None,
+                    "unit": None,
+                    "raw": value,
+                    "confidence": round(confidence, 3),
+                    "extraction_source": "rule_based",
+                }
         else:
             field_obj = {
                 "value": value,
                 "confidence": round(confidence, 3),
+                "extraction_source": "rule_based",
             }
 
         structured_record[field_name] = field_obj
 
         if confidence < threshold or (cfg.get("required") and not value):
             needs_review.append(field_name)
+
+    # ── Evaluate Tier-2 LLM Trigger Conditions ──
+    empty_required = [fn for fn in required_field_names if not fields.get(fn)]
+    missing_required_ratio = (len(empty_required) / total_required) if total_required > 0 else 0.0
+
+    trigger_unclassified = (classification_confidence is not None and classification_confidence < 0.5)
+    trigger_missing_required = (missing_required_ratio > 0.40)
+
+    should_trigger_llm = trigger_unclassified or trigger_missing_required
+    has_ai_assisted = False
+    ai_fallback_triggered = False
+    ai_fallback_note = None
+
+    if should_trigger_llm and (is_llm_enabled() or mock_llm_data is not None):
+        llm_fields, status_note = extract_fields_llm(raw_text, mock_data=mock_llm_data)
+        ai_fallback_note = status_note
+
+        if status_note == "ai_extraction_budget_reached":
+            if "ai_extraction_budget_reached" not in needs_review:
+                needs_review.append("ai_extraction_budget_reached")
+        elif llm_fields:
+            ai_fallback_triggered = True
+            for fn in all_field_names:
+                llm_val = llm_fields.get(fn)
+                # If field was missing in rule-based, or document was completely unclassified (< 0.5)
+                # allow LLM value to populate missing field
+                if llm_val and (not fields.get(fn) or trigger_unclassified):
+                    fields[fn] = llm_val
+                    extraction_sources[fn] = "ai_assisted"
+                    confidence_per_field[fn] = None  # Never attach fake numeric confidence
+                    has_ai_assisted = True
+                    if fn not in needs_review:
+                        needs_review.append(fn)
+
+                    if fn == "plot_area":
+                        area_struct = parse_area_to_struct(llm_val)
+                        if area_struct:
+                            structured_record[fn] = {
+                                "value": area_struct["value"],
+                                "unit": area_struct["unit"],
+                                "raw": area_struct["raw"],
+                                "confidence": None,
+                                "extraction_source": "ai_assisted",
+                            }
+                        else:
+                            structured_record[fn] = {
+                                "value": None,
+                                "unit": None,
+                                "raw": llm_val,
+                                "confidence": None,
+                                "extraction_source": "ai_assisted",
+                            }
+                    else:
+                        structured_record[fn] = {
+                            "value": llm_val,
+                            "confidence": None,
+                            "extraction_source": "ai_assisted",
+                        }
 
     # Compute top-level area_acres for backward compat with API Gateway
     area_acres = None
@@ -130,7 +295,11 @@ def extract_fields(raw_text: str, bounding_boxes: list[dict], document_type: str
         "structured_record": structured_record,
         "area_acres": area_acres,
         "confidence_per_field": confidence_per_field,
+        "extraction_sources": extraction_sources,
+        "has_ai_assisted": has_ai_assisted,
         "needs_review": needs_review,
+        "ai_fallback_triggered": ai_fallback_triggered,
+        "ai_fallback_note": ai_fallback_note,
     }
 
 

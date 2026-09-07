@@ -2,7 +2,7 @@ import uuid
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-from preprocess import preprocess_all_pages, classify_document, detect_handwriting
+from preprocess import preprocess_all_pages, classify_document, classify_document_details, detect_handwriting
 from ocr_engine import run_ocr
 
 app = FastAPI(title="OCR Pipeline (Member 1)")
@@ -24,6 +24,7 @@ class OCRResponse(BaseModel):
     document_id: str
     language: str
     document_type: str
+    classification_confidence: float | None = None
     pages: int = 1
     raw_text: str
     confidence: float
@@ -85,7 +86,7 @@ def extract(req: OCRRequest):
         combined_text = "\n\n".join(raw_text_parts) if total_pages > 1 else (raw_text_parts[0] if raw_text_parts else "")
         avg_confidence = round(float(sum(confidences) / len(confidences)), 4) if confidences else 0.0
 
-        doc_type, detected_lang = classify_document(combined_text, all_boxes)
+        doc_type, detected_lang, class_conf = classify_document_details(combined_text, all_boxes)
         hw_analysis = detect_handwriting(combined_text, avg_confidence)
         doc_id = req.document_id or f"DOC-{uuid.uuid4().hex[:8].upper()}"
 
@@ -93,6 +94,7 @@ def extract(req: OCRRequest):
             "document_id": doc_id,
             "language": detected_lang or req.language_hint,
             "document_type": doc_type,
+            "classification_confidence": class_conf,
             "pages": total_pages,
             "raw_text": combined_text,
             "confidence": avg_confidence,

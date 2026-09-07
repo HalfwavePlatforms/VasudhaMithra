@@ -23,6 +23,8 @@ class ParseRequest(BaseModel):
     raw_text: str
     bounding_boxes: list[BoundingBox] = []
     document_type: Optional[str] = None
+    classification_confidence: Optional[float] = None
+    mock_llm_data: Optional[dict] = None
 
 
 class ValidateRequest(BaseModel):
@@ -41,43 +43,14 @@ def health():
 
 @app.post("/extraction/parse")
 def parse(req: ParseRequest):
-    if req.document_type == "legacy_tabular_register":
-        return {
-            "fields": {
-                "survey_number": None,
-                "khasra_number": None,
-                "khata_number": None,
-                "owner_name": None,
-                "plot_area": None,
-                "village": None,
-                "tehsil": None,
-                "district": None,
-                "land_classification": None,
-                "mutation_number": None,
-                "registration_info": None,
-                "ownership_type": None,
-            },
-            "structured_record": {},
-            "area_acres": None,
-            "confidence_per_field": {
-                "survey_number": None,
-                "khasra_number": None,
-                "khata_number": None,
-                "owner_name": None,
-                "plot_area": None,
-                "village": None,
-                "tehsil": None,
-                "district": None,
-                "land_classification": None,
-                "mutation_number": None,
-                "registration_info": None,
-                "ownership_type": None,
-            },
-            "needs_review": ["all_fields_legacy_tabular_format"],
-            "triage_reason": "Legacy tabular format detected — automated field extraction not yet supported, routed for manual transcription.",
-        }
     boxes = [b.model_dump() for b in req.bounding_boxes]
-    return extract_fields(req.raw_text, boxes)
+    return extract_fields(
+        raw_text=req.raw_text,
+        bounding_boxes=boxes,
+        document_type=req.document_type,
+        classification_confidence=req.classification_confidence,
+        mock_llm_data=req.mock_llm_data,
+    )
 
 
 @app.post("/extraction/validate")
