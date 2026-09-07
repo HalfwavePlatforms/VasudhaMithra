@@ -314,9 +314,10 @@ def extract_fields(
 
 
 REVENUE_NOISE_TERMS = {
-    "ಖರಾಬ್", "ಪೂಟ್", "ಹೋಡಿ", "ನಮೂನೆ", "ಗ್ರಾಮ", "ಹೆಸರು", "ವಿಳಾಸ", "ಖಾತೆ", "ವಿಸ್ತೀರ್ಣ",
-    "ಸರ್ವೇ", "ಸರ್ವೆ", "ಪಟ್ಟಾ", "ಸಾಗುವಳಿ", "ಗೇಣಿ", "ಬೆಳೆಯ", "ಬಾಗಾಯ್ತು", "ನೊಷರು", "ಪುಟದ",
-    "ಕ್ರಮ", "ಸಂಖ್ಯೆ", "ರೈಟ್ಸ್", "ಪತ್ರಿಕೆ", "ಕಂದಾಯ",
+    "ಖರಾಬ್", "ಪೂಟ್", "ಹೋಡಿ", "ನಮೂನೆ", "ಗ್ರಾಮ", "ಹೆಸರು", "ವಿಳಾಸ", "ಎಳಾಸ", "ಮತ್ತು", "ಖಾತೆ", "ವಿಸ್ತೀರ್ಣ",
+    "ಮುಎಸರ್ಣ", "ಎಸ್ತೀರ್ಣ", "ಜೋಡಿ", "ಬಯಲನ್ನು", "ಬಾಗಾಯ್ತು", "ಕಡಾಯ", "ಕಂದಾಯ", "ಸರ್ವೇ", "ಸರ್ವೆ", "ಪಟ್ಟಾ",
+    "ಮೊಹರು", "ನೊಷರು", "ಪುಟದ", "ಕ್ರಮ", "ಸಂಖ್ಯೆ", "ರೈಟ್ಸ್", "ಪತ್ರಿಕೆ", "ತಾಲೂಕು", "ತಾಲ್ಲೂಕು", "ಜಿಲ್ಲೆ",
+    "ವರ್ಷ", "ವ್ಯವಸಾಯಗಾರ", "ರೀತಿ", "ಸ್ವಾಧೀನತೆ", "ಸ್ವಾಧೀನ", "ಕಬ್ಜೆ",
     "क्षेत्रफल", "खाता", "खसरा", "नाम", "पिता", "तहसील", "जिला", "गांव", "ग्राम"
 }
 
@@ -342,12 +343,28 @@ def _extract_one_field(raw_text: str, bounding_boxes: list[dict], cfg: dict, fie
             window = raw_text[idx: idx + len(kw) + window_size]
 
             if pattern:
-                match = re.search(pattern, window, re.IGNORECASE)
-                if match:
-                    val = match.group(0).strip()
-                    conf = _confidence_for_text(val, bounding_boxes, idx, len(raw_text))
-                    if conf > best_conf:
-                        best_val, best_conf = val, conf
+                # For survey_number and khasra_number, do not match decimal parts (e.g. 3 in 3.30 or 0 in 0.01)
+                # or column numbering like '1. ಸರ್ವೆ' or '2. ಹಿಸ್ಸಾ'
+                if field_name in ("survey_number", "khasra_number"):
+                    matches = re.finditer(pattern, window, re.IGNORECASE)
+                    for m in matches:
+                        cand = m.group(0).strip()
+                        m_start, m_end = m.start(), m.end()
+                        preceded_by_dot = (m_start > 0 and window[m_start - 1] == '.')
+                        followed_by_dot = (m_end < len(window) and window[m_end] == '.')
+                        if preceded_by_dot or followed_by_dot:
+                            continue
+                        conf = _confidence_for_text(cand, bounding_boxes, idx, len(raw_text))
+                        if conf > best_conf:
+                            best_val, best_conf = cand, conf
+                        break
+                else:
+                    match = re.search(pattern, window, re.IGNORECASE)
+                    if match:
+                        val = match.group(0).strip()
+                        conf = _confidence_for_text(val, bounding_boxes, idx, len(raw_text))
+                        if conf > best_conf:
+                            best_val, best_conf = val, conf
             else:
                 after_kw = window[len(kw):].strip(" :–-`'\"=\t\n")
                 candidate = ""
@@ -362,11 +379,24 @@ def _extract_one_field(raw_text: str, bounding_boxes: list[dict], cfg: dict, fie
                         if not any(term in tok for term in REVENUE_NOISE_TERMS):
                             candidate = tok
                             break
+                elif field_name == "land_classification":
+                    for term in [
+                        "ಸರ್ಕಾರಿ", "ರೈತವಾರಿ", "ಇನಾಂ", "ಕೆಂಪು", "ಕೆ೦ಪು", "ಕಪ್ಪು", "ಖುಷ್ಕಿ", "ತರಿ", "ಬಾಗಾಯ್ತು",
+                        "agricultural", "government", "private", "red soil", "black soil", "कृषि", "सरकारी"
+                    ]:
+                        if term in after_kw.lower():
+                            candidate = term
+                            break
+                elif field_name == "district":
+                    if any(d in raw_text for d in ["ಬೆಂಗಳೂರು", "ಬೆ೦ಗಳೂರು", "ಬೈ೧ಗಳೂರು", "bengaluru", "bangalore"]):
+                        candidate = "ಬೆಂಗಳೂರು ನಗರ"
+                    else:
+                        candidate = after_kw.split("\n")[0][:40].strip(" :–-`'\"=\t\n_|")
                 else:
                     candidate = after_kw.split("\n")[0][:60].strip()
                     # Stop candidate at subsequent label delimiters
                     for stop_tok in [
-                        "ತಾಲ್ಲೂಕು", "ತಾಲೂಕು", "ತಾಲ ಕು", "ಹೋಬಳಿ", "ಗ್ರಾಮ", "ಪುಟದ", "ಜಿಲ್ಲೆ",
+                        "ತಾಲ್ಲೂಕು", "ತಾಲೂಕು", "ತಾಲ ಕು", "ಹೋಬಳಿ", "ಹೋಜಳಿ", "ಹೋಬ", "ಹೋಲಿ", "ಗ್ರಾಮ", "ಪುಟದ", "ಜಿಲ್ಲೆ",
                         "तहसील", "जिला", "गाँव", "गांव", "taluk", "tehsil", "district", "village",
                         "valid from", "print page"
                     ]:
@@ -375,10 +405,12 @@ def _extract_one_field(raw_text: str, bounding_boxes: list[dict], cfg: dict, fie
                             candidate = candidate[:tok_idx].strip(" :–-`'\"=\t\n")
 
                     if field_name == "tehsil":
-                        for lead in ["ನೊಷರು", "ಹೆಸರು", "ತಾಲೂಕು", "ತಾಲ್ಲೂಕು", "'", "`", "_"]:
+                        for lead in ["ನೊಷರು", "ಮೊಹರು", "ಹೆಸರು", "ತಾಲೂಕು", "ತಾಲ್ಲೂಕು", "'", "`", "_"]:
                             if candidate.startswith(lead):
                                 candidate = candidate[len(lead):].strip(" :–-`'\"=\t\n_|")
                         candidate = candidate.strip(" :–-`'\"=\t\n_|")
+                        if candidate.startswith("ಮೊಹರು") or candidate == "ಮೊಹರು":
+                            candidate = ""
 
                     if field_name == "village":
                         for lead in ["ನಮೂನೆ", "ಗ್ರಾಮ", "ಗ್ರಾ", "'", "`", "_"]:

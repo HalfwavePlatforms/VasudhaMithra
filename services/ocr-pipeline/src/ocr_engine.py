@@ -274,6 +274,39 @@ def _run_tesseract(image: np.ndarray, language_hint: str) -> dict:
                 }
             )
 
+    # 3. Supplemental cadastral crop pass for multi-column revenue documents:
+    # Captures narrow left table columns (Survey no, Hissa, Soil, Tenure) from native unscaled image
+    try:
+        orig_h, orig_w = image.shape[:2]
+        cadastral_crop = image[int(0.03 * orig_h):int(0.65 * orig_h), 0:int(0.38 * orig_w)]
+        y_offset = float(int(0.03 * orig_h))
+        for psm_mode in ["--psm 6", "--psm 11"]:
+            cadastral_data = pytesseract.image_to_data(
+                cadastral_crop, lang=lang, config=psm_mode, output_type=pytesseract.Output.DICT
+            )
+            for i, text in enumerate(cadastral_data["text"]):
+                if text.strip():
+                    conf = float(cadastral_data["conf"][i])
+                    if conf < 0:
+                        continue
+                    words.append(text)
+                    confidences.append(conf / 100.0)
+                    x, y, bw, bh = (
+                        float(cadastral_data["left"][i]),
+                        float(cadastral_data["top"][i]) + y_offset,
+                        float(cadastral_data["width"][i]),
+                        float(cadastral_data["height"][i]),
+                    )
+                    boxes.append(
+                        {
+                            "text": text,
+                            "confidence": conf / 100.0,
+                            "box": [float(x), float(y), float(x + bw), float(y + bh)],
+                        }
+                    )
+    except Exception as crop_err:
+        logger.debug(f"Cadastral crop pass skipped: {crop_err}")
+
     avg_conf = sum(confidences) / len(confidences) if confidences else 0.0
     return {
         "raw_text": " ".join(words),
