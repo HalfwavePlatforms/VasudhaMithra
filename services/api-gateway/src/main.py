@@ -41,10 +41,24 @@ from fastapi import HTTPException
 GIS_SERVICE_URL = os.getenv("GIS_SERVICE_URL", "http://127.0.0.1:8003")
 
 @app.get("/gis/parcel/{survey_number:path}")
-async def proxy_gis_parcel(survey_number: str):
+async def proxy_gis_parcel(
+    survey_number: str,
+    village: str = None,
+    tehsil: str = None,
+    district: str = None,
+    state: str = None,
+    area_acres: float = None,
+):
+    params = {k: v for k, v in {
+        "village": village,
+        "tehsil": tehsil,
+        "district": district,
+        "state": state,
+        "area_acres": area_acres,
+    }.items() if v is not None}
     async with httpx.AsyncClient(timeout=10.0) as client:
         try:
-            resp = await client.get(f"{GIS_SERVICE_URL}/gis/parcel/{survey_number}")
+            resp = await client.get(f"{GIS_SERVICE_URL}/gis/parcel/{survey_number}", params=params)
             if resp.status_code == 404:
                 raise HTTPException(status_code=404, detail="Parcel not found")
             return resp.json()

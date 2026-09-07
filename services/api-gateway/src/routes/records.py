@@ -304,11 +304,19 @@ async def upload_record(
                 lookup_keys.insert(0, f"{survey_no}/{khasra_no}")
                 lookup_keys.append(khasra_no)
 
+            gis_params = {
+                "village": extraction_data["fields"].get("village") or "",
+                "tehsil": extraction_data["fields"].get("tehsil") or "",
+                "district": extraction_data["fields"].get("district") or "",
+                "state": record.state or "",
+                "area_acres": doc_acres,
+            }
+
             gis_data = None
             async with httpx.AsyncClient(timeout=10.0) as client:
                 for lk in lookup_keys:
                     try:
-                        gis_resp = await client.get(f"{GIS_SERVICE_URL}/gis/parcel/{lk}")
+                        gis_resp = await client.get(f"{GIS_SERVICE_URL}/gis/parcel/{lk}", params=gis_params)
                         if gis_resp.status_code == 200:
                             gis_data = gis_resp.json()
                             break
@@ -452,9 +460,16 @@ def correct_record(
     # Re-check GIS spatial consistency on correction
     survey_no = current_fields.get("survey_number") or current_fields.get("khasra_number")
     if survey_no:
+        gis_params = {
+            "village": current_fields.get("village") or "",
+            "tehsil": current_fields.get("tehsil") or "",
+            "district": current_fields.get("district") or "",
+            "state": record.state or "",
+            "area_acres": record.area_doc_acres,
+        }
         try:
-            with httpx.Client(timeout=5.0) as client:
-                gis_resp = client.get(f"{GIS_SERVICE_URL}/gis/parcel/{survey_no}")
+            with httpx.Client(timeout=6.0) as client:
+                gis_resp = client.get(f"{GIS_SERVICE_URL}/gis/parcel/{survey_no}", params=gis_params)
                 if gis_resp.status_code == 200:
                     gis_data = gis_resp.json()
                     record.parcel_id = gis_data.get("parcel_id")

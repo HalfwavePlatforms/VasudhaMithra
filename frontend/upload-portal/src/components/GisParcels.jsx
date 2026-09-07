@@ -43,43 +43,77 @@ export default function GisParcels({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // 1. Fetch available real parcels from GIS service via api-gateway or direct
+  // 1. Fetch available real parcels from GIS service AND digitized database records
   useEffect(() => {
     setLoadingList(true);
-    // Try API Gateway proxy first, then fallback to port 8003
-    fetch(`${apiBase}/gis/parcels`)
-      .then((res) => {
-        if (!res.ok) throw new Error("API Gateway GIS proxy 404");
-        return res.json();
-      })
-      .catch(() => {
-        return fetch("http://127.0.0.1:8003/gis/parcels").then((res) => res.json());
-      })
-      .then((data) => {
-        const list = data.parcels || [];
-        setParcels(list);
-        if (list.length > 0 && !selectedParcel) {
-          setSelectedParcel(list[0]);
+    Promise.all([
+      fetch(`${apiBase}/gis/parcels`)
+        .then((res) => (res.ok ? res.json() : { parcels: [] }))
+        .catch(() =>
+          fetch("http://127.0.0.1:8003/gis/parcels")
+            .then((res) => res.json())
+            .catch(() => ({ parcels: [] }))
+        ),
+      fetch(`${apiBase}/records?limit=100`)
+        .then((res) => (res.ok ? res.json() : { records: [] }))
+        .catch(() => ({ records: [] })),
+    ])
+      .then(([gisData, recData]) => {
+        const gisList = (gisData && gisData.parcels) || [];
+        const recList = (recData && recData.records) || [];
+
+        // Deduplicate and combine seeded parcels with digitized land records
+        const combined = [...gisList];
+        const seenSns = new Set(gisList.map((p) => String(p.survey_number).toLowerCase().trim()));
+
+        for (const r of recList) {
+          const sn = r.fields?.survey_number || r.fields?.khasra_number;
+          if (sn && !seenSns.has(String(sn).toLowerCase().trim())) {
+            seenSns.add(String(sn).toLowerCase().trim());
+            combined.push({
+              parcel_id: r.gis?.parcel_id || r.parcel_id || `PARCEL-${sn}-REC`,
+              survey_number: sn,
+              village: r.fields?.village || "Karnataka / Regional Record",
+              district: r.fields?.district || "",
+              tehsil: r.fields?.tehsil || "",
+              state: r.fields?.state || "",
+              area_acres: r.gis?.area_gis_acres || r.gis?.area_doc_acres || 3.75,
+              source: r.gis ? "digitized_record_gis" : "digitized_record",
+            });
+          }
+        }
+
+        setParcels(combined);
+        if (combined.length > 0 && !selectedParcel) {
+          setSelectedParcel(combined[0]);
         }
       })
       .catch((err) => console.error("Could not fetch GIS parcels:", err))
       .finally(() => setLoadingList(false));
   }, [apiBase]);
 
-  // 2. Fetch full geometry and details for the selected parcel
+  // 2. Fetch full geometry and details for the selected parcel (supporting dynamic geocoding params)
   useEffect(() => {
     if (!selectedParcel) return;
 
     setLoadingDetail(true);
     const sn = encodeURIComponent(selectedParcel.survey_number);
 
-    fetch(`${apiBase}/gis/parcel/${sn}`)
+    const params = new URLSearchParams();
+    if (selectedParcel.village) params.set("village", selectedParcel.village);
+    if (selectedParcel.tehsil) params.set("tehsil", selectedParcel.tehsil);
+    if (selectedParcel.district) params.set("district", selectedParcel.district);
+    if (selectedParcel.state) params.set("state", selectedParcel.state);
+    if (selectedParcel.area_acres) params.set("area_acres", selectedParcel.area_acres);
+    const queryStr = params.toString() ? `?${params.toString()}` : "";
+
+    fetch(`${apiBase}/gis/parcel/${sn}${queryStr}`)
       .then((res) => {
         if (!res.ok) throw new Error("Proxy failed");
         return res.json();
       })
       .catch(() => {
-        return fetch(`http://127.0.0.1:8003/gis/parcel/${sn}`).then((res) => res.json());
+        return fetch(`http://127.0.0.1:8003/gis/parcel/${sn}${queryStr}`).then((res) => res.json());
       })
       .then((data) => {
         setParcelDetail(data);
@@ -107,7 +141,7 @@ export default function GisParcels({
     if (!comboboxSearch.trim()) return true;
     const q = comboboxSearch.trim().toLowerCase();
     return (
-      p.survey_number.toLowerCase().includes(q) ||
+      (p.survey_number && p.survey_number.toLowerCase().includes(q)) ||
       (p.village && p.village.toLowerCase().includes(q)) ||
       (p.district && p.district.toLowerCase().includes(q)) ||
       (p.parcel_id && p.parcel_id.toLowerCase().includes(q))
@@ -125,12 +159,23 @@ export default function GisParcels({
     if (!comboboxSearch.trim()) return;
     const clean = comboboxSearch.trim();
     const found = parcels.find(
-      (p) => p.survey_number.toLowerCase() === clean.toLowerCase()
+      (p) =>
+        p.survey_number.toLowerCase() === clean.toLowerCase() ||
+        (p.village && p.village.toLowerCase() === clean.toLowerCase())
     );
     if (found) {
       handleSelectParcel(found);
     } else {
-      setSelectedParcel({ survey_number: clean });
+      // Support searching formatted queries like "55, Hongasandra" or raw survey number
+      const parts = clean.split(",").map((s) => s.trim());
+      const sn = parts[0];
+      const village = parts.length > 1 ? parts[1] : "";
+      const district = parts.length > 2 ? parts[2] : "";
+      setSelectedParcel({
+        survey_number: sn,
+        village: village,
+        district: district,
+      });
       setComboboxOpen(false);
     }
   };
@@ -427,6 +472,14 @@ export default function GisParcels({
                 </span>
               </div>
             )}
+            <div className="flex justify-between py-1.5 border-b border-[#F2EFE8]">
+              <span className="text-[#737167]">Geodetic Source</span>
+              <span className="font-medium text-[11px] text-[#1D8374] text-right truncate max-w-[170px]" title={parcelDetail?.metadata?.geocoding_provider || "State Cadastral Master"}>
+                {parcelDetail?.source === "osm_nominatim_dynamic_cadastre"
+                  ? "OSM Nominatim (Live)"
+                  : (parcelDetail?.metadata?.geocoding_provider ? "Public Geodetic Service" : "Cadastral Master")}
+              </span>
+            </div>
           </div>
 
           {/* Variance Status Alert */}
