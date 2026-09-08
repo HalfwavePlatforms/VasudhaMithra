@@ -215,4 +215,65 @@ To evolve from smart triage to end-to-end automated tabular extraction in Phase 
 2. **Cell Coordinate Association**:
    - Intersecting OCR bounding-box polygons with detected cell boundary rectangles to reconstruct structured 2D dataframe matrices `(row_idx, col_idx)`.
 3. **Multimodal Layout Models**:
-   - Deployment of LayoutLMv3 or IndicLayoutLM fine-tuned on state revenue registers to classify column roles and multi-row ownership linkages.
+   - Deployment of LayoutLMv3 or IndicLayoutLM fine-tuned on state revenue registers to classify column roles and multi-row ownership linkages.
+
+---
+
+## 9. AI-Driven Learning Mechanism — Dynamic Confidence Recalibration
+
+### 9.1 Honest Scope & Mechanism Architecture
+> **Important Distinction**: Full neural model fine-tuning and weights retraining on-the-fly during operational usage is impractical and prone to catastrophic forgetting. VasudhaMithra implements a genuine, production-grade **Active Learning & Confidence Recalibration Feedback Loop** based on empirical human corrections.
+
+```
+[Incoming Land Document]
+         │
+         ▼
+[Extraction Engine]
+         │
+         ├──▶ Calculate Raw Rule/OCR Confidence
+         │
+         ├──▶ Query Correction Patterns: (field, doc_type, language)
+         │       │
+         │       ▼
+         │   [Correction Rate > 30% OR Corrections >= 5?]
+         │       ├── YES ──▶ Apply Confidence Penalty (-0.25)
+         │       └── NO  ──▶ Keep Base Confidence
+         │
+         ▼
+[Confidence < Review Threshold (0.75)?]
+         ├── YES ──▶ Route to Human Verification Desk (needs_review)
+         └── NO  ──▶ Automated Approval
+                         │
+                         ▼
+             [Officer Corrects Field]
+                         │
+                         ▼
+             [Insert CorrectionLog Row]
+             (field, doc_type, lang, before, after)
+                         │
+                         ▼
+             [Recalibration Signal Updates in Real-Time]
+```
+
+### 9.2 Key Components
+
+1. **`CorrectionLog` Repository**:
+   - Persisted in PostgreSQL/SQLite whenever an authorized officer (`tahsildar`, `officer`, `admin`) submits field edits via `PATCH /records/{record_id}/fields`.
+   - Records:
+     - `record_id`, `field_name`, `document_type`, `language`
+     - `original_value` vs `corrected_value`
+     - `original_confidence`
+     - `corrected_by` (reviewer identity) and timestamp.
+
+2. **Pattern Aggregation Service (`GET /records/analytics/correction-patterns`)**:
+   - Aggregates historical human corrections by `(field_name, document_type, language)`.
+   - Computes statistical correction frequency and rate relative to total ingested records:
+     $$\text{correction\_rate} = \frac{\text{corrections}(\text{field}, \text{type}, \text{lang})}{\text{total\_documents}(\text{type}, \text{lang})}$$
+   - Identifies high-error extraction combinations (e.g., *"survey_number in numbered_box_rtc/kn documents is corrected 40.0% of the time"*).
+
+3. **In-Flight Confidence Recalibration**:
+   - When extracting fields for subsequent documents, `get_correction_recalibration()` checks the historical correction profile for that specific `(field_name, document_type, language)` tuple.
+   - If historical correction rate exceeds 30% or 5+ corrections are recorded, a **confidence penalty** (0.25) is subtracted from the raw extraction score:
+     $$\text{confidence}_{\text{recalibrated}} = \max(0.05, \text{confidence}_{\text{raw}} - 0.25)$$
+   - This measurably drops marginal extractions (e.g. 0.85 $\rightarrow$ 0.60) below the review threshold (0.75), automatically pulling similar documents into the human-in-the-loop review queue until upstream OCR templates or rules are updated.
+   - Marked with `recalibrated: true` in the structured record payload for full operational transparency.

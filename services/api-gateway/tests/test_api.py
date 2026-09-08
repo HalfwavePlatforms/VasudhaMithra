@@ -180,3 +180,142 @@ def test_audit_hash_chain_tamper_detection():
         db.close()
 
 
+def test_correction_feedback_learning_loop():
+    from database import SessionLocal
+    from models.db_models import Record, RecordField, CorrectionLog, AuditLog
+    import uuid
+    import sys
+    from pathlib import Path
+
+    repo_root = Path(__file__).resolve().parent.parent.parent
+    extraction_src = repo_root / "extraction-engine" / "src"
+    if str(extraction_src) not in sys.path:
+        sys.path.insert(0, str(extraction_src))
+    from field_extractor import extract_fields, get_correction_recalibration, set_correction_patterns_cache
+
+    set_correction_patterns_cache(None)
+
+    db = SessionLocal()
+    created_rec_ids = []
+
+    try:
+        # 1. Clean up any pre-existing test data for this test tuple
+        db.query(CorrectionLog).filter(
+            CorrectionLog.field_name == "survey_number",
+            CorrectionLog.document_type == "numbered_box_rtc",
+            CorrectionLog.language == "kn",
+        ).delete()
+        db.commit()
+
+        # 2. Before any corrections: check that recalibration does not kick in
+        should_recal_before, penalty_before = get_correction_recalibration("survey_number", "numbered_box_rtc", "kn")
+        assert not should_recal_before
+        assert penalty_before == 0.0
+
+        # 3. Seed 5 documents of (numbered_box_rtc, kn) and submit human corrections for survey_number on all 5
+        for i in range(5):
+            rec_id = uuid.uuid4()
+            created_rec_ids.append(rec_id)
+            rec = Record(
+                id=rec_id,
+                original_filename=f"kannada_rtc_{i}.png",
+                file_path=f"/storage/kannada_rtc_{i}.png",
+                document_type="numbered_box_rtc",
+                language="kn",
+                status="pending_review",
+            )
+            db.add(rec)
+            db.commit()
+
+            rf = RecordField(
+                record_id=rec_id,
+                field_name="survey_number",
+                field_value=f"10{i}/A",
+                confidence=0.88,
+                was_corrected=False,
+            )
+            db.add(rf)
+            db.commit()
+
+            # Officer corrects survey_number (mocking GIS lookup timeout during offline test)
+            from unittest.mock import patch, MagicMock
+            mock_resp = MagicMock()
+            mock_resp.status_code = 404
+            with patch("httpx.Client.get", return_value=mock_resp):
+                corr_resp = client.patch(
+                    f"/records/{rec_id}/fields",
+                    headers={"X-Role": "tahsildar"},
+                    json={
+                        "actor": "Tahsildar Mysore",
+                        "fields": {"survey_number": f"10{i}/B-CORRECTED"},
+                        "reviewer_notes": f"Corrected OCR misread on sample {i}",
+                    },
+                )
+            assert corr_resp.status_code == 200
+
+        # 4. Confirm 5 CorrectionLog rows were created
+        corr_count = (
+            db.query(CorrectionLog)
+            .filter(
+                CorrectionLog.field_name == "survey_number",
+                CorrectionLog.document_type == "numbered_box_rtc",
+                CorrectionLog.language == "kn",
+            )
+            .count()
+        )
+        assert corr_count == 5
+
+        # 5. Call GET /records/analytics/correction-patterns -> verify aggregated pattern
+        patterns_resp = client.get("/records/analytics/correction-patterns")
+        assert patterns_resp.status_code == 200
+        patterns_data = patterns_resp.json()
+        assert patterns_data["total_corrections"] >= 5
+
+        kn_survey_pattern = next(
+            (p for p in patterns_data["patterns"]
+             if p["field_name"] == "survey_number"
+             and p["document_type"] == "numbered_box_rtc"
+             and p["language"] == "kn"),
+            None,
+        )
+        assert kn_survey_pattern is not None
+        assert kn_survey_pattern["correction_count"] == 5
+        assert kn_survey_pattern["recalibration_recommended"] is True
+        assert "survey_number in numbered_box_rtc/kn documents" in kn_survey_pattern["summary"]
+
+        # 6. Test that on a 6th similar document, recalibration kicks in and measurably lowers confidence
+        should_recal_after, penalty_after = get_correction_recalibration("survey_number", "numbered_box_rtc", "kn")
+        assert should_recal_after is True
+        assert penalty_after == 0.25
+
+        # Run extract_fields with raw text containing survey number
+        sample_text = "ಕರ್ನಾಟಕ ಸರ್ಕಾರ ಸರ್ವೆ ನಂಬರ್ 142/3 ಮಾಲೀಕರು ರಾಮಪ್ಪ"
+        sample_boxes = [
+            {"text": "ಸರ್ವೆ ನಂಬರ್ 142/3", "confidence": 0.85, "box": [10, 10, 100, 30]},
+            {"text": "ರಾಮಪ್ಪ", "confidence": 0.90, "box": [10, 40, 100, 60]},
+        ]
+        extraction = extract_fields(
+            raw_text=sample_text,
+            bounding_boxes=sample_boxes,
+            document_type="numbered_box_rtc",
+            language="kn",
+        )
+
+        survey_conf = extraction["confidence_per_field"].get("survey_number")
+        assert survey_conf is not None
+        # Confidence was lowered from base (~0.85) to ~0.60, dropping below review threshold 0.75
+        assert survey_conf < 0.75
+        assert "survey_number" in extraction["needs_review"]
+        assert extraction["structured_record"]["survey_number"]["recalibrated"] is True
+
+    finally:
+        # Cleanup test data
+        for rid in created_rec_ids:
+            db.query(CorrectionLog).filter(CorrectionLog.record_id == rid).delete()
+            db.query(AuditLog).filter(AuditLog.record_id == rid).delete()
+            db.query(RecordField).filter(RecordField.record_id == rid).delete()
+            db.query(Record).filter(Record.id == rid).delete()
+        db.commit()
+        db.close()
+
+

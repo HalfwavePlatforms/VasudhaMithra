@@ -83,3 +83,18 @@ class AuditLog(Base):
     prev_hash = Column(String, nullable=True)
     curr_hash = Column(String, nullable=False)
 
+
+class CorrectionLog(Base):
+    __tablename__ = "correction_logs"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    record_id = Column(UUID(as_uuid=True), ForeignKey("records.id", ondelete="CASCADE"), nullable=True)
+    field_name = Column(String, nullable=False)
+    document_type = Column(String, nullable=True)
+    language = Column(String, nullable=True)
+    original_value = Column(String, nullable=True)
+    original_confidence = Column(Float, nullable=True)
+    corrected_value = Column(String, nullable=True)
+    corrected_by = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+

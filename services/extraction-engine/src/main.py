@@ -27,6 +27,7 @@ class ParseRequest(BaseModel):
     raw_text: str
     bounding_boxes: list[BoundingBox] = []
     document_type: Optional[str] = None
+    language: Optional[str] = None
     classification_confidence: Optional[float] = None
     mock_llm_data: Optional[dict] = None
 
@@ -54,6 +55,7 @@ def parse(req: ParseRequest):
         document_type=req.document_type,
         classification_confidence=req.classification_confidence,
         mock_llm_data=req.mock_llm_data,
+        language=req.language,
     )
 
     # STEP 2 & 3: Fallback branch for overall low confidence documents

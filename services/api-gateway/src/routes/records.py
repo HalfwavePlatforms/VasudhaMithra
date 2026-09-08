@@ -13,7 +13,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models.db_models import Record, RecordField, ValidationResult, AuditLog
+from models.db_models import Record, RecordField, ValidationResult, AuditLog, CorrectionLog
 
 
 from dotenv import load_dotenv
@@ -226,6 +226,7 @@ async def upload_record(
                         "raw_text": ocr_data["raw_text"],
                         "bounding_boxes": ocr_data.get("bounding_boxes", []),
                         "document_type": record.document_type,
+                        "language": record.language,
                         "classification_confidence": classification_conf,
                     },
                 )
@@ -422,6 +423,57 @@ async def upload_record(
 
 
 
+@router.get("/analytics/correction-patterns")
+def get_correction_patterns(db: Session = Depends(get_db)):
+    results = (
+        db.query(
+            CorrectionLog.field_name,
+            CorrectionLog.document_type,
+            CorrectionLog.language,
+            func.count(CorrectionLog.id).label("correction_count"),
+        )
+        .group_by(CorrectionLog.field_name, CorrectionLog.document_type, CorrectionLog.language)
+        .order_by(func.count(CorrectionLog.id).desc())
+        .all()
+    )
+
+    patterns = []
+    for row in results:
+        field_name = row.field_name
+        doc_type = row.document_type or "unknown"
+        lang = row.language or "unknown"
+        count = int(row.correction_count)
+
+        total_query = db.query(Record)
+        if row.document_type:
+            total_query = total_query.filter(Record.document_type == row.document_type)
+        if row.language:
+            total_query = total_query.filter(Record.language == row.language)
+        total_docs = total_query.count()
+
+        if total_docs > 0:
+            rate = round(min(1.0, count / total_docs), 3)
+        else:
+            rate = 1.0 if count > 0 else 0.0
+
+        pct_str = f"{round(rate * 100, 1)}%"
+        patterns.append({
+            "field_name": field_name,
+            "document_type": row.document_type,
+            "language": row.language,
+            "correction_count": count,
+            "total_documents": total_docs,
+            "correction_rate": rate,
+            "summary": f"{field_name} in {doc_type}/{lang} documents is corrected {pct_str} of the time ({count} corrections)",
+            "recalibration_recommended": rate >= 0.30 or count >= 5,
+        })
+
+    return {
+        "total_corrections": sum(p["correction_count"] for p in patterns),
+        "patterns": patterns,
+    }
+
+
 @router.get("/{record_id}")
 def get_record(record_id: uuid.UUID, db: Session = Depends(get_db)):
     record = db.query(Record).filter(Record.id == record_id).first()
@@ -531,12 +583,38 @@ def correct_record(
 
     fields = corrections.get("fields", {})
     for field_name, new_value in fields.items():
+        new_val_str = str(new_value) if new_value is not None else None
         rf = db.query(RecordField).filter(RecordField.record_id == record_id, RecordField.field_name == field_name).first()
         if rf:
-            rf.was_corrected = True
-            rf.corrected_value = str(new_value)
+            orig_val = rf.corrected_value if rf.was_corrected else rf.field_value
+            orig_conf = rf.confidence
+            if orig_val != new_val_str or not rf.was_corrected:
+                rf.was_corrected = True
+                rf.corrected_value = new_val_str
+                corr_log = CorrectionLog(
+                    record_id=record_id,
+                    field_name=field_name,
+                    document_type=record.document_type,
+                    language=record.language,
+                    original_value=orig_val,
+                    original_confidence=orig_conf,
+                    corrected_value=new_val_str,
+                    corrected_by=actor,
+                )
+                db.add(corr_log)
         else:
-            db.add(RecordField(record_id=record_id, field_name=field_name, field_value=str(new_value), was_corrected=True, corrected_value=str(new_value), confidence=1.0))
+            db.add(RecordField(record_id=record_id, field_name=field_name, field_value=new_val_str, was_corrected=True, corrected_value=new_val_str, confidence=1.0))
+            corr_log = CorrectionLog(
+                record_id=record_id,
+                field_name=field_name,
+                document_type=record.document_type,
+                language=record.language,
+                original_value=None,
+                original_confidence=None,
+                corrected_value=new_val_str,
+                corrected_by=actor,
+            )
+            db.add(corr_log)
 
     if notes:
         record.reviewer_notes = notes

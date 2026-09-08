@@ -7,11 +7,112 @@ spaCy removed: all extraction is rule-based (keyword proximity + regex).
 Confidence scores derive from real signals: OCR bounding-box confidence where
 available, keyword match quality, and window position — never hardcoded.
 """
+import os
 import re
 from pathlib import Path
+import httpx
 import yaml
 
 RULES_PATH = Path(__file__).parent.parent / "rules" / "field_rules.yaml"
+
+
+_CORRECTION_PATTERNS_CACHE: list[dict] | None = None
+
+
+def set_correction_patterns_cache(patterns: list[dict] | None):
+    """Allows testing or direct injection of correction feedback patterns."""
+    global _CORRECTION_PATTERNS_CACHE
+    _CORRECTION_PATTERNS_CACHE = patterns
+
+
+_HTTP_FAIL_TIME: float = 0.0
+
+
+def get_correction_recalibration(
+    field_name: str,
+    document_type: str | None = None,
+    language: str | None = None,
+    threshold: float = 0.30,
+    min_corrections: int = 5,
+) -> tuple[bool, float]:
+    """
+    AI-driven learning feedback mechanism:
+    Checks if (field_name, document_type, language) has a significant history of human corrections
+    (>= min_corrections or >= threshold correction rate).
+    Returns (should_recalibrate: bool, penalty: float).
+    """
+    global _CORRECTION_PATTERNS_CACHE, _HTTP_FAIL_TIME
+
+    # 1. In-memory patterns cache (used in tests or cached runs)
+    patterns = None
+    if _CORRECTION_PATTERNS_CACHE is not None:
+        patterns = _CORRECTION_PATTERNS_CACHE
+
+    # 2. Fast direct DB query if database connection is accessible
+    if patterns is None:
+        try:
+            import sys
+            repo_root = Path(__file__).resolve().parent.parent.parent
+            gw_src = repo_root / "api-gateway" / "src"
+            if str(gw_src) not in sys.path:
+                sys.path.insert(0, str(gw_src))
+
+            from database import SessionLocal
+            from models.db_models import CorrectionLog, Record
+            with SessionLocal() as db:
+                query = db.query(CorrectionLog).filter(CorrectionLog.field_name == field_name)
+                if document_type:
+                    query = query.filter(CorrectionLog.document_type == document_type)
+                if language:
+                    query = query.filter(CorrectionLog.language == language)
+                count = query.count()
+
+                if count >= min_corrections:
+                    return True, 0.25
+
+                if count > 0:
+                    total_q = db.query(Record)
+                    if document_type:
+                        total_q = total_q.filter(Record.document_type == document_type)
+                    if language:
+                        total_q = total_q.filter(Record.language == language)
+                    total_docs = total_q.count()
+
+                    if total_docs > 0 and (count / total_docs) >= threshold:
+                        return True, 0.25
+                # DB checked successfully, no patterns to penalize
+                return False, 0.0
+        except Exception:
+            pass
+
+    # 3. HTTP request to API Gateway analytics endpoint (with 30s failure backoff)
+    if patterns is None:
+        import time
+        now = time.time()
+        if now - _HTTP_FAIL_TIME > 30.0:
+            api_url = os.getenv("API_GATEWAY_URL", "http://127.0.0.1:8000")
+            try:
+                with httpx.Client(timeout=0.3) as client:
+                    resp = client.get(f"{api_url}/records/analytics/correction-patterns")
+                    if resp.status_code == 200:
+                        patterns = resp.json().get("patterns", [])
+            except Exception:
+                _HTTP_FAIL_TIME = now
+
+    if patterns:
+        for p in patterns:
+            if p.get("field_name") == field_name:
+                p_doc = p.get("document_type")
+                p_lang = p.get("language")
+                doc_match = (not p_doc or not document_type or p_doc == document_type)
+                lang_match = (not p_lang or not language or p_lang == language)
+                if doc_match and lang_match:
+                    count = p.get("correction_count", 0)
+                    rate = p.get("correction_rate", 0.0)
+                    if count >= min_corrections or rate >= threshold:
+                        return True, 0.25
+
+    return False, 0.0
 
 
 def _load_rules() -> dict:
@@ -88,6 +189,7 @@ def extract_fields(
     document_type: str | None = None,
     classification_confidence: float | None = None,
     mock_llm_data: dict | None = None,
+    language: str | None = None,
 ) -> dict:
     rules = _load_rules()
     field_configs = rules.get("fields", {})
@@ -203,6 +305,16 @@ def extract_fields(
 
     for field_name, cfg in field_configs.items():
         value, confidence = _extract_one_field(raw_text, bounding_boxes, cfg, field_name=field_name)
+
+        # AI-driven learning mechanism: recalibrate confidence from human correction feedback
+        should_recalibrate, penalty = get_correction_recalibration(
+            field_name=field_name,
+            document_type=document_type,
+            language=language,
+        )
+        if should_recalibrate and penalty > 0:
+            confidence = max(0.05, confidence - penalty)
+
         fields[field_name] = value
         confidence_per_field[field_name] = round(confidence, 3)
         extraction_sources[field_name] = "rule_based"
@@ -216,6 +328,7 @@ def extract_fields(
                     "raw": area_struct["raw"],
                     "confidence": round(confidence, 3),
                     "extraction_source": "rule_based",
+                    "recalibrated": should_recalibrate,
                 }
             else:
                 field_obj = {
@@ -224,12 +337,14 @@ def extract_fields(
                     "raw": value,
                     "confidence": round(confidence, 3),
                     "extraction_source": "rule_based",
+                    "recalibrated": should_recalibrate,
                 }
         else:
             field_obj = {
                 "value": value,
                 "confidence": round(confidence, 3),
                 "extraction_source": "rule_based",
+                "recalibrated": should_recalibrate,
             }
 
         structured_record[field_name] = field_obj
