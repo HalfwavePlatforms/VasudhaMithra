@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models.db_models import Record, RecordField, ValidationResult, AuditLog, CorrectionLog
+from services.lrms_integration import lrms_adapter
 
 
 from dotenv import load_dotenv
@@ -731,6 +732,67 @@ def review_record(
     db.commit()
     _log(db, record.id, "human_reviewed", actor=actor, details={"notes": notes, "decision": decision})
     return _serialize(record)
+
+
+@router.post("/{record_id}/sync-lrms")
+def sync_lrms(
+    record_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    actor: str = Header(default="tahsildar", alias="X-Actor"),
+):
+    """
+    Syncs a verified/validated land record to upstream LRMS / DILRMP databases.
+    Enforces that only records with status 'verified' or 'validated' can be synchronized.
+    Emits a tamper-evident audit hash-chain log entry upon successful synchronization.
+    """
+    record = db.query(Record).filter(Record.id == record_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Record not found")
+
+    if record.status not in ("verified", "validated"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Only verified records can be synced to LRMS/DILRMP (current status: '{record.status}')",
+        )
+
+    record_fields = {f.field_name: (f.corrected_value if f.was_corrected else f.field_value) for f in record.fields}
+    record_data = {
+        "document_type": record.document_type,
+        "language": record.language,
+        "fields": record_fields,
+        "parcel_id": record.parcel_id,
+        "status": record.status,
+    }
+
+    sync_result = lrms_adapter.push_verified_record(record_id, record_data)
+
+    # Log to tamper-evident hash-chained audit trail (Task 1)
+    _log(
+        db=db,
+        record_id=record.id,
+        action="lrms_sync",
+        actor=actor,
+        details={
+            "external_ref": sync_result["external_ref"],
+            "synced_at": sync_result["synced_at"],
+            "system": sync_result.get("system", "DILRMP-NIC-NationalRegistry"),
+            "adapter": "LRMSAdapter (Mock/DILRMP Contract)",
+        },
+    )
+
+    return sync_result
+
+
+@router.get("/{record_id}/lrms-status")
+def get_lrms_status(record_id: uuid.UUID, db: Session = Depends(get_db)):
+    """
+    Queries sync status from upstream LRMS / DILRMP adapter.
+    """
+    record = db.query(Record).filter(Record.id == record_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Record not found")
+
+    return lrms_adapter.check_sync_status(record_id)
 
 
 @router.get("/{record_id}/document")

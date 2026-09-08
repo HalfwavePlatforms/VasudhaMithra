@@ -319,3 +319,86 @@ def test_correction_feedback_learning_loop():
         db.close()
 
 
+def test_lrms_sync_verified_record():
+    from database import SessionLocal
+    from models.db_models import Record, RecordField, AuditLog
+    import uuid
+
+    db = SessionLocal()
+    rec_id = uuid.uuid4()
+
+    try:
+        # 1. Create a record in pending_review status
+        rec = Record(
+            id=rec_id,
+            original_filename="survey_doc_ka.png",
+            file_path="/storage/survey_doc_ka.png",
+            document_type="Record of Rights / RTC (Pahani)",
+            language="kn",
+            status="pending_review",
+        )
+        db.add(rec)
+        db.commit()
+
+        rf1 = RecordField(record_id=rec_id, field_name="survey_number", field_value="142/3", confidence=0.92)
+        rf2 = RecordField(record_id=rec_id, field_name="owner_name", field_value="Ramegowda", confidence=0.88)
+        db.add_all([rf1, rf2])
+        db.commit()
+
+        # 2. Attempt sync while unverified -> MUST fail with 400
+        sync_fail_resp = client.post(f"/records/{rec_id}/sync-lrms", headers={"X-Actor": "Tahsildar Ramanagara"})
+        assert sync_fail_resp.status_code == 400
+        assert "Only verified records can be synced" in sync_fail_resp.json()["detail"]
+
+        # Check sync status -> should be unsynced
+        status_resp = client.get(f"/records/{rec_id}/lrms-status")
+        assert status_resp.status_code == 200
+        assert status_resp.json()["synced"] is False
+
+        # 3. Mark record as validated / verified
+        rec.status = "validated"
+        db.commit()
+
+        # 4. Synchronize verified record with LRMS
+        sync_resp = client.post(f"/records/{rec_id}/sync-lrms", headers={"X-Actor": "Tahsildar Ramanagara"})
+        assert sync_resp.status_code == 200
+        sync_data = sync_resp.json()
+        assert sync_data["status"] == "synced"
+        assert sync_data["external_ref"].startswith("DILRMP-")
+        assert "synced_at" in sync_data
+        assert sync_data["payload_summary"]["survey_number"] == "142/3"
+
+        # 5. Query LRMS status -> should now report synced with reference
+        status_resp = client.get(f"/records/{rec_id}/lrms-status")
+        assert status_resp.status_code == 200
+        status_data = status_resp.json()
+        assert status_data["synced"] is True
+        assert status_data["external_ref"] == sync_data["external_ref"]
+
+        # 6. Verify audit hash chain integrity -> must include lrms_sync and pass tamper verification
+        audit_verify_resp = client.get(f"/records/{rec_id}/audit/verify")
+        assert audit_verify_resp.status_code == 200
+        audit_verify_data = audit_verify_resp.json()
+        assert audit_verify_data["valid"] is True
+        assert audit_verify_data["verified_entries"] >= 1
+
+        latest_log = (
+            db.query(AuditLog)
+            .filter(AuditLog.record_id == rec_id, AuditLog.action == "lrms_sync")
+            .first()
+        )
+        assert latest_log is not None
+        assert latest_log.actor == "Tahsildar Ramanagara"
+        assert latest_log.details["external_ref"] == sync_data["external_ref"]
+        assert latest_log.prev_hash is not None
+        assert latest_log.curr_hash is not None
+
+    finally:
+        db.query(AuditLog).filter(AuditLog.record_id == rec_id).delete()
+        db.query(RecordField).filter(RecordField.record_id == rec_id).delete()
+        db.query(Record).filter(Record.id == rec_id).delete()
+        db.commit()
+        db.close()
+
+
+
