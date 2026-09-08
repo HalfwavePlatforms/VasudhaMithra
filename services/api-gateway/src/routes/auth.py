@@ -190,7 +190,7 @@ async def send_login_otp(req: SendOtpRequest):
     # 5. Mask phone for privacy in response: +91 ••••• ••3210
     masked_phone = f"{normalized_phone[:3]} ••••• ••{normalized_phone[-4:]}"
 
-    return {
+    response_data = {
         "success": True,
         "message": f"Verification code dispatched to {masked_phone}",
         "phone": normalized_phone,
@@ -200,10 +200,15 @@ async def send_login_otp(req: SendOtpRequest):
         "sms_status": sms_res,
         "sms_delivered": sms_res.get("sms_delivered", False),
         "device_pending": sms_res.get("device_pending", False),
-        # Provide demo_otp and backup_otp so testing & login never get blocked by carrier delays
-        "demo_otp": otp_code,
-        "backup_otp": otp_code,
     }
+
+    # TASK 3: Only include demo_otp and backup_otp in DEBUG_MODE (default false)
+    if os.getenv("DEBUG_MODE", "false").lower().strip() == "true":
+        response_data["demo_otp"] = otp_code
+        response_data["backup_otp"] = otp_code
+
+    return response_data
+
 
 
 @router.post("/verify-otp")

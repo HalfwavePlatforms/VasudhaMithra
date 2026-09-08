@@ -40,13 +40,16 @@ def test_auth_access_control_and_bearer_flow():
     invalid_bearer = client.get("/dashboard/audit-trail", headers={"Authorization": "Bearer invalid_token_12345"})
     assert invalid_bearer.status_code == 401
 
-    # 4. Full flow: send-otp -> verify-otp -> use returned token as Bearer auth
+    # 4. Full flow: send-otp (mock/demo_otp) -> verify-otp -> use returned token as Bearer auth
+    os.environ["DEBUG_MODE"] = "true"
     send_resp = client.post(
         "/auth/send-otp",
         json={"email": "officer@revenue.gov.in", "phone": "9876543210", "role": "revenue"},
     )
     assert send_resp.status_code == 200
     otp = send_resp.json().get("demo_otp") or send_resp.json().get("backup_otp")
+    assert otp is not None
+
 
     verify_resp = client.post(
         "/auth/verify-otp",
@@ -81,4 +84,43 @@ def test_auth_access_control_and_bearer_flow():
         },
     )
     assert precedence_resp.status_code == 200
+
+
+def test_debug_mode_gates_demo_otp():
+    # 1. With DEBUG_MODE unset or false, /auth/send-otp response contains no demo_otp or backup_otp
+    if "DEBUG_MODE" in os.environ:
+        del os.environ["DEBUG_MODE"]
+
+    resp_prod = client.post(
+        "/auth/send-otp",
+        json={"email": "officer@revenue.gov.in", "phone": "9876543210", "role": "revenue"},
+    )
+    assert resp_prod.status_code == 200
+    data_prod = resp_prod.json()
+    assert "demo_otp" not in data_prod
+    assert "backup_otp" not in data_prod
+
+    # Explicitly false
+    os.environ["DEBUG_MODE"] = "false"
+    resp_false = client.post(
+        "/auth/send-otp",
+        json={"email": "officer@revenue.gov.in", "phone": "9876543210", "role": "revenue"},
+    )
+    assert resp_false.status_code == 200
+    data_false = resp_false.json()
+    assert "demo_otp" not in data_false
+    assert "backup_otp" not in data_false
+
+    # 2. With DEBUG_MODE=true, response contains demo_otp and backup_otp
+    os.environ["DEBUG_MODE"] = "true"
+    resp_dev = client.post(
+        "/auth/send-otp",
+        json={"email": "officer@revenue.gov.in", "phone": "9876543210", "role": "revenue"},
+    )
+    assert resp_dev.status_code == 200
+    data_dev = resp_dev.json()
+    assert "demo_otp" in data_dev
+    assert "backup_otp" in data_dev
+    assert len(data_dev["demo_otp"]) == 6
+
 
