@@ -191,6 +191,7 @@ export default function App() {
               user={user}
               setActiveTab={setActiveTab}
               setSelectedRecordId={setSelectedRecordId}
+              selectedRecordId={selectedRecordId}
             />
           )}
         </main>

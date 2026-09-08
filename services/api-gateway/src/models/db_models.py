@@ -78,3 +78,8 @@ class AuditLog(Base):
     actor = Column(String)
     details = Column(JSON)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    # Tamper-evident hash-chain audit trail fields
+    # prev_hash can be null for legacy rows or the genesis entry ("GENESIS")
+    prev_hash = Column(String, nullable=True)
+    curr_hash = Column(String, nullable=False)
+

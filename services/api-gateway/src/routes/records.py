@@ -1,7 +1,9 @@
 import base64
+import hashlib
+import json
 import os
 import uuid
-
+from datetime import datetime, timezone
 from pathlib import Path
 import httpx
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, Header
@@ -12,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models.db_models import Record, RecordField, ValidationResult, AuditLog
+
 
 from dotenv import load_dotenv
 
@@ -427,6 +430,66 @@ def get_record(record_id: uuid.UUID, db: Session = Depends(get_db)):
     return _serialize(record)
 
 
+@router.get("/{record_id}/audit/verify")
+def verify_audit_trail(record_id: uuid.UUID, db: Session = Depends(get_db)):
+    record = db.query(Record).filter(Record.id == record_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Record not found")
+
+    entries = (
+        db.query(AuditLog)
+        .filter(AuditLog.record_id == record_id)
+        .order_by(AuditLog.created_at.asc(), AuditLog.id.asc())
+        .all()
+    )
+
+    verified_count = 0
+    legacy_count = 0
+    expected_prev = "GENESIS"
+
+    for entry in entries:
+        if not entry.curr_hash:
+            legacy_count += 1
+            continue
+
+        if entry.prev_hash != expected_prev:
+            return {
+                "valid": False,
+                "verified_entries": verified_count,
+                "broken_at": str(entry.id),
+                "reason": f"Chain break: expected prev_hash '{expected_prev}', got '{entry.prev_hash}'",
+            }
+
+        recomputed_hash = compute_audit_hash(
+            prev_hash=entry.prev_hash,
+            record_id=entry.record_id,
+            action=entry.action,
+            actor=entry.actor,
+            details=entry.details,
+            timestamp=entry.created_at,
+        )
+
+        if entry.curr_hash != recomputed_hash:
+            return {
+                "valid": False,
+                "verified_entries": verified_count,
+                "broken_at": str(entry.id),
+                "reason": "Tamper detected: stored hash does not match computed hash",
+            }
+
+        expected_prev = entry.curr_hash
+        verified_count += 1
+
+    result = {
+        "valid": True,
+        "verified_entries": verified_count,
+        "broken_at": None,
+    }
+    if legacy_count > 0:
+        result["note"] = f"legacy entries present ({legacy_count}), hash chain verified for {verified_count} entries"
+    return result
+
+
 @router.get("")
 def list_records(
     status: str | None = None,
@@ -707,7 +770,59 @@ def _serialize(record: Record) -> dict:
     }
 
 
+def compute_audit_hash(
+    prev_hash: str | None,
+    record_id: any,
+    action: str,
+    actor: str | None,
+    details: dict | None,
+    timestamp: any,
+) -> str:
+    if isinstance(timestamp, datetime):
+        if timestamp.tzinfo is not None:
+            ts_str = timestamp.astimezone(timezone.utc).isoformat()
+        else:
+            ts_str = timestamp.isoformat()
+    else:
+        ts_str = str(timestamp)
+    actor_str = actor or ""
+    details_str = json.dumps(details or {}, sort_keys=True)
+    payload = f"{prev_hash or ''}{str(record_id)}{action or ''}{actor_str}{details_str}{ts_str}"
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
 def _log(db: Session, record_id: uuid.UUID, action: str, actor: str = "system", details: dict = None):
-    db.add(AuditLog(record_id=record_id, action=action, actor=actor, details=details or {}))
+    latest = (
+        db.query(AuditLog)
+        .filter(AuditLog.record_id == record_id)
+        .order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
+        .first()
+    )
+    if latest and latest.curr_hash:
+        prev_hash = latest.curr_hash
+    else:
+        prev_hash = "GENESIS"
+
+    now = datetime.now(timezone.utc)
+    curr_hash = compute_audit_hash(
+        prev_hash=prev_hash,
+        record_id=record_id,
+        action=action,
+        actor=actor,
+        details=details,
+        timestamp=now,
+    )
+    entry = AuditLog(
+        record_id=record_id,
+        action=action,
+        actor=actor,
+        details=details or {},
+        created_at=now,
+        prev_hash=prev_hash,
+        curr_hash=curr_hash,
+    )
+    db.add(entry)
     db.commit()
+    db.refresh(entry)
+    return entry
 

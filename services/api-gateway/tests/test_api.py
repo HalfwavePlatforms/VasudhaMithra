@@ -124,3 +124,59 @@ def test_debug_mode_gates_demo_otp():
     assert len(data_dev["demo_otp"]) == 6
 
 
+def test_audit_hash_chain_tamper_detection():
+    from database import SessionLocal
+    from models.db_models import Record, AuditLog
+    from routes.records import _log
+    import uuid
+
+    db = SessionLocal()
+    rec_id = uuid.uuid4()
+    record = Record(
+        id=rec_id,
+        original_filename="audit_test_deed.pdf",
+        file_path="/storage/test.pdf",
+        status="pending_review",
+    )
+    db.add(record)
+    db.commit()
+
+    try:
+        # 1. Log 3 events using _log()
+        e1 = _log(db, rec_id, "uploaded", actor="citizen", details={"file": "audit_test_deed.pdf"})
+        e2 = _log(db, rec_id, "ocr_completed", actor="OCR Engine", details={"confidence": 0.96})
+        e3 = _log(db, rec_id, "human_reviewed", actor="Revenue Officer", details={"decision": "APPROVED"})
+
+        assert e1.prev_hash == "GENESIS"
+        assert e2.prev_hash == e1.curr_hash
+        assert e3.prev_hash == e2.curr_hash
+
+        # 2. Call /records/{record_id}/audit/verify -> assert valid == True
+        verify_resp = client.get(f"/records/{rec_id}/audit/verify")
+        assert verify_resp.status_code == 200
+        verify_data = verify_resp.json()
+        assert verify_data["valid"] is True
+        assert verify_data["verified_entries"] == 3
+        assert verify_data["broken_at"] is None
+
+        # 3. Tamper directly with the database: modify event #2's details without updating curr_hash
+        e2_row = db.query(AuditLog).filter(AuditLog.id == e2.id).first()
+        e2_row.details = {"confidence": 0.50, "tampered": True}
+        db.commit()
+
+        # 4. Call /records/{record_id}/audit/verify -> assert valid == False and broken_at == str(e2.id)
+        tampered_resp = client.get(f"/records/{rec_id}/audit/verify")
+        assert tampered_resp.status_code == 200
+        tampered_data = tampered_resp.json()
+        assert tampered_data["valid"] is False
+        assert tampered_data["broken_at"] == str(e2.id)
+        assert tampered_data["verified_entries"] == 1
+
+    finally:
+        # Cleanup test data
+        db.query(AuditLog).filter(AuditLog.record_id == rec_id).delete()
+        db.query(Record).filter(Record.id == rec_id).delete()
+        db.commit()
+        db.close()
+
+
