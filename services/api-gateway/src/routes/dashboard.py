@@ -94,7 +94,7 @@ def stats(db: Session = Depends(get_db)):
 @router.get("/audit-trail")
 def audit_trail(
     limit: int = 30,
-    auth: dict = Depends(require_role(["admin", "tahsildar", "officer", "surveyor"])),
+    auth: dict = Depends(require_role(["admin", "tahsildar", "officer", "surveyor", "citizen"])),
     db: Session = Depends(get_db),
 ):
     logs = db.query(AuditLog).order_by(AuditLog.created_at.desc()).limit(limit).all()

@@ -88,7 +88,7 @@ async def upload_record(
     file: UploadFile = File(...),
     actor: str = "Officer (demo)",
     language: str = Form("auto"),
-    auth: dict = Depends(require_role(["tahsildar", "surveyor", "officer", "admin"])),
+    auth: dict = Depends(require_role(["tahsildar", "surveyor", "officer", "admin", "citizen"])),
     db: Session = Depends(get_db),
 ):
     try:

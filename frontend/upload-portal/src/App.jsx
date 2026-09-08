@@ -83,7 +83,7 @@ export default function App() {
   }, [activeTab, user]);
 
   if (!user) {
-    return <LoginPage onLoginSuccess={handleLogin} />;
+    return <LoginPage onLoginSuccess={handleLogin} apiBase={API_BASE} />;
   }
 
   const pageTitles = {
