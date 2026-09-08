@@ -54,29 +54,59 @@ ALLOWED_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".webp"}
 
 def require_role(allowed_roles: list[str]):
     """
-    Lightweight header-based RBAC check.
+    Role-based access control check supporting Bearer tokens and fallback headers.
     Headers:
-      - X-Role: required role string (e.g. 'tahsildar', 'officer', 'admin', 'surveyor')
-      - X-Actor: optional display name for audit trails (e.g. 'Tahsildar Officer')
-    Raises 401 Unauthorized if X-Role header is missing.
+      - Authorization: Bearer <token> (primary authentication path via get_current_session)
+      - X-Role: raw role string (demo-scope compatibility shim, not intended as the primary auth path)
+      - X-Actor: optional display name for audit trails
+    Precedence:
+      If Authorization Bearer token is present, its resolved session xRole takes precedence
+      over any raw X-Role header (prevents spoofed headers from overriding a logged-in session).
+    Raises 401 Unauthorized if neither Bearer token nor X-Role header is present,
+    or if the Bearer token is invalid/expired.
     Raises 403 Forbidden if role is not authorized.
     """
-    def role_checker(x_role: str | None = Header(default=None), x_actor: str | None = Header(default=None)):
-        if not x_role or not x_role.strip():
+    def role_checker(
+        authorization: str | None = Header(default=None),
+        x_role: str | None = Header(default=None),
+        x_actor: str | None = Header(default=None),
+    ):
+        role: str | None = None
+        actor_name: str | None = None
+
+        if authorization and authorization.strip():
+            # Import dynamically or from routes.auth
+            from routes.auth import get_current_session
+            session = get_current_session(authorization=authorization)
+            role = session.get("xRole")
+            actor_name = session.get("actor")
+        elif x_role and x_role.strip():
+            # Demo-scope compatibility shim: keep existing test scripts and e2e runners functional
+            role = x_role.strip().lower()
+            actor_name = x_actor.strip() if (x_actor and x_actor.strip()) else role
+        else:
             raise HTTPException(
                 status_code=401,
-                detail="Unauthorized: Missing required X-Role header.",
+                detail="Unauthorized: Missing Authorization Bearer token or X-Role header.",
             )
-        role = x_role.strip().lower()
+
+        if not role:
+            raise HTTPException(
+                status_code=401,
+                detail="Unauthorized: Could not determine user role from authentication credentials.",
+            )
+
+        role_lower = role.strip().lower()
         allowed_lower = [r.lower() for r in allowed_roles]
-        if role not in allowed_lower:
+        if role_lower not in allowed_lower:
             raise HTTPException(
                 status_code=403,
-                detail=f"Forbidden: role '{role}' is not authorized for this endpoint. Required role(s): {', '.join(allowed_roles)}",
+                detail=f"Forbidden: role '{role_lower}' is not authorized for this endpoint. Required role(s): {', '.join(allowed_roles)}",
             )
-        actor_name = x_actor.strip() if (x_actor and x_actor.strip()) else role
-        return {"role": role, "actor": actor_name}
+
+        return {"role": role_lower, "actor": actor_name or role_lower}
     return role_checker
+
 
 
 import traceback

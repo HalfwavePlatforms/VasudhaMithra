@@ -48,8 +48,13 @@ export default function App() {
 
   const loadDashboardData = () => {
     if (!user) return;
+    const token = localStorage.getItem("vasudha_token");
+    const authHeaders = token
+      ? { Authorization: `Bearer ${token}`, "X-Role": user?.xRole || "officer" }
+      : { "X-Role": user?.xRole || "officer" };
+
     // 1. Fetch real stats
-    fetch(`${API_BASE}/dashboard/stats`)
+    fetch(`${API_BASE}/dashboard/stats`, { headers: authHeaders })
       .then((res) => {
         if (!res.ok) throw new Error(`Stats fetch failed: ${res.status}`);
         return res.json();
@@ -61,11 +66,12 @@ export default function App() {
       .finally(() => setLoading(false));
 
     // 2. Fetch real recent audit logs
-    fetch(`${API_BASE}/dashboard/audit-trail?limit=15`)
+    fetch(`${API_BASE}/dashboard/audit-trail?limit=15`, { headers: authHeaders })
       .then((res) => (res.ok ? res.json() : { audit_logs: [] }))
       .then((data) => setAuditLogs(data.audit_logs || []))
       .catch(() => {});
   };
+
 
   useEffect(() => {
     if (user) {

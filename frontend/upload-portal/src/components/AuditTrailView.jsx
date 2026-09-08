@@ -13,7 +13,12 @@ export default function AuditTrailView({
   const fetchAuditLogs = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${apiBase}/dashboard/audit-trail?limit=50`);
+      const token = localStorage.getItem("vasudha_token");
+      const headers = { "X-Role": "admin" };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      const res = await fetch(`${apiBase}/dashboard/audit-trail?limit=50`, { headers });
       if (res.ok) {
         const data = await res.json();
         setLogs(data.audit_logs || []);
@@ -24,6 +29,7 @@ export default function AuditTrailView({
       setLoading(false);
     }
   };
+
 
   useEffect(() => {
     fetchAuditLogs();

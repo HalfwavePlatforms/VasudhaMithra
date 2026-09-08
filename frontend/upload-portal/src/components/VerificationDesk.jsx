@@ -113,12 +113,18 @@ export default function VerificationDesk({
     setNotification(null);
 
     try {
+      const token = localStorage.getItem("vasudha_token");
+      const headers = {
+        "Content-Type": "application/json",
+        "X-Role": "tahsildar",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const res = await fetch(`${apiBase}/records/${currentRecord.record_id}/fields`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Role": "tahsildar",
-        },
+        headers,
         body: JSON.stringify({
           actor: "Deepak G.M. (District Admin)",
           reviewer_notes: reviewerNotes,
@@ -150,12 +156,18 @@ export default function VerificationDesk({
     setNotification(null);
 
     try {
+      const token = localStorage.getItem("vasudha_token");
+      const headers = {
+        "Content-Type": "application/json",
+        "X-Role": "tahsildar",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const res = await fetch(`${apiBase}/records/${currentRecord.record_id}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Role": "tahsildar",
-        },
+        headers,
         body: JSON.stringify({
           actor: "Deepak G.M. (Tahsildar / Admin)",
           reviewer_notes: reviewerNotes || (decision === "APPROVED" ? "Approved by revenue officer." : "Rejected due to validation discrepancies."),
@@ -163,6 +175,7 @@ export default function VerificationDesk({
           fields: editedFields,
         }),
       });
+
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));

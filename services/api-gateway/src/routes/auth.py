@@ -4,7 +4,7 @@ import re
 import secrets
 import time
 from typing import Dict, Any, Optional
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Header
 from pydantic import BaseModel, Field
 
 from services.sms_service import send_otp_sms, send_sms, get_gateway_status, normalize_phone_e164
@@ -15,6 +15,50 @@ router = APIRouter()
 # In-memory OTP storage with 10-minute expiry
 # Key: normalized_email or normalized_phone
 _ACTIVE_OTPS: Dict[str, Dict[str, Any]] = {}
+
+# In-memory Session store with 8-hour expiry
+# Key: token -> {email, phone, xRole, actor, issued_at, expires_at}
+_SESSION_STORE: Dict[str, Dict[str, Any]] = {}
+SESSION_EXPIRY_SECONDS = 8 * 3600  # 8 hours
+
+
+def get_current_session(authorization: str | None = Header(default=None)) -> Dict[str, Any]:
+    """
+    Extracts and validates session bearer token from Authorization header.
+    Format: Authorization: Bearer <token>
+    Raises 401 if missing, malformed, not found in store, or expired.
+    """
+    if not authorization or not authorization.strip():
+        raise HTTPException(
+            status_code=401,
+            detail="Unauthorized: Missing Authorization header.",
+        )
+
+    parts = authorization.strip().split()
+    if len(parts) != 2 or parts[0].lower() != "bearer":
+        raise HTTPException(
+            status_code=401,
+            detail="Unauthorized: Invalid Authorization header format. Expected 'Bearer <token>'.",
+        )
+
+    token = parts[1].strip()
+    session = _SESSION_STORE.get(token)
+    if not session:
+        raise HTTPException(
+            status_code=401,
+            detail="Unauthorized: Invalid or unknown session token.",
+        )
+
+    now = time.time()
+    if now > session.get("expires_at", 0):
+        _SESSION_STORE.pop(token, None)
+        raise HTTPException(
+            status_code=401,
+            detail="Unauthorized: Session token has expired. Please log in again.",
+        )
+
+    return session
+
 
 ALLOWED_DOMAIN_PATTERN = re.compile(r"@([a-z0-9-]+\.)*gov\.in$", re.IGNORECASE)
 INDIAN_PHONE_PATTERN = re.compile(r"^(?:\+91|91|0)?[6-9]\d{9}$")
@@ -212,6 +256,15 @@ async def verify_login_otp(req: VerifyOtpRequest):
     }
 
     token = f"vasudha_bearer_{secrets.token_hex(20)}"
+    now = time.time()
+    _SESSION_STORE[token] = {
+        "email": user_session["email"],
+        "phone": user_session["phone"],
+        "xRole": user_session["xRole"],
+        "actor": user_session["actor"],
+        "issued_at": now,
+        "expires_at": now + SESSION_EXPIRY_SECONDS,
+    }
 
     logger.info(f"User login verified successfully: {email_clean} ({phone_clean}) as {role_info['xRole']}")
 

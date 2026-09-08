@@ -70,13 +70,20 @@ export default function DocumentIntake({
 
     try {
       setUploadProgress(45);
+      const token = localStorage.getItem("vasudha_token");
+      const headers = {
+        "X-Role": "tahsildar",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const res = await fetch(`${apiBase}/records/upload`, {
         method: "POST",
-        headers: {
-          "X-Role": "tahsildar",
-        },
+        headers,
         body: formData,
       });
+
 
       setUploadProgress(85);
 
