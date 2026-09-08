@@ -7,10 +7,20 @@ import VerificationDesk from "./components/VerificationDesk";
 import LandRecords from "./components/LandRecords";
 import GisParcels from "./components/GisParcels";
 import AuditTrailView from "./components/AuditTrailView";
+import LoginPage from "./components/LoginPage";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 export default function App() {
+  const [user, setUser] = useState(() => {
+    try {
+      const stored = localStorage.getItem("vasudha_auth");
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const [activeTab, setActiveTab] = useState(() => {
     try {
       const params = new URLSearchParams(window.location.search);
@@ -27,7 +37,17 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
+  const handleLogin = (userSession) => {
+    setUser(userSession);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("vasudha_auth");
+    setUser(null);
+  };
+
   const loadDashboardData = () => {
+    if (!user) return;
     // 1. Fetch real stats
     fetch(`${API_BASE}/dashboard/stats`)
       .then((res) => {
@@ -48,15 +68,23 @@ export default function App() {
   };
 
   useEffect(() => {
-    loadDashboardData();
-    const interval = setInterval(loadDashboardData, 8000);
-    return () => clearInterval(interval);
-  }, []);
+    if (user) {
+      loadDashboardData();
+      const interval = setInterval(loadDashboardData, 8000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
-  // Step 5: Refetch stats and audit trail on every navigation return so views are never stale
+  // Refetch stats and audit trail on every navigation return so views are never stale
   useEffect(() => {
-    loadDashboardData();
-  }, [activeTab]);
+    if (user) {
+      loadDashboardData();
+    }
+  }, [activeTab, user]);
+
+  if (!user) {
+    return <LoginPage onLoginSuccess={handleLogin} />;
+  }
 
   const pageTitles = {
     command_centre: "Command centre",
@@ -86,6 +114,8 @@ export default function App() {
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
           pendingCount={stats?.pending_review_count || 0}
+          user={user}
+          onLogout={handleLogout}
         />
 
         {/* Dynamic Page View */}
@@ -105,6 +135,7 @@ export default function App() {
           {activeTab === "document_intake" && (
             <DocumentIntake
               apiBase={API_BASE}
+              user={user}
               onUploadSuccess={(uploadData) => {
                 loadDashboardData();
                 if (uploadData?.record_id) {
@@ -120,6 +151,7 @@ export default function App() {
           {activeTab === "verification_desk" && (
             <VerificationDesk
               apiBase={API_BASE}
+              user={user}
               selectedRecordId={selectedRecordId}
               setSelectedRecordId={setSelectedRecordId}
               onRecordUpdated={loadDashboardData}
@@ -130,6 +162,7 @@ export default function App() {
           {activeTab === "land_records" && (
             <LandRecords
               apiBase={API_BASE}
+              user={user}
               stats={stats}
               selectedRecordId={selectedRecordId}
               setActiveTab={setActiveTab}
@@ -140,6 +173,7 @@ export default function App() {
           {activeTab === "gis_parcels" && (
             <GisParcels
               apiBase={API_BASE}
+              user={user}
               setActiveTab={setActiveTab}
               setSelectedRecordId={setSelectedRecordId}
             />
@@ -148,6 +182,7 @@ export default function App() {
           {activeTab === "audit_trail" && (
             <AuditTrailView
               apiBase={API_BASE}
+              user={user}
               setActiveTab={setActiveTab}
               setSelectedRecordId={setSelectedRecordId}
             />

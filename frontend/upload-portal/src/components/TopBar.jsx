@@ -1,5 +1,5 @@
-import React from "react";
-import { Search, Bell, ChevronDown } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { Search, Bell, ChevronDown, LogOut, RefreshCw, UserCheck } from "lucide-react";
 
 export default function TopBar({
   title = "Command centre",
@@ -7,7 +7,41 @@ export default function TopBar({
   searchTerm = "",
   setSearchTerm,
   pendingCount = 0,
+  user = null,
+  onLogout = null,
 }) {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const getInitials = () => {
+    if (!user) return "VM";
+    if (user.email) {
+      const parts = user.email.split("@")[0].split(".");
+      if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+      return user.email.slice(0, 2).toUpperCase();
+    }
+    return "VM";
+  };
+
+  const getRoleDisplay = () => {
+    if (!user?.xRole) return "Authorized Officer";
+    if (user.xRole === "officer") return "Revenue Officer";
+    if (user.xRole === "surveyor") return "Cadastral Surveyor";
+    if (user.xRole === "tahsildar") return "Tahsildar / Verifier";
+    return user.xRole;
+  };
+
   return (
     <header className="h-16 bg-[#F7F5EF] border-b border-[#E6E3DB] flex items-center justify-between px-8 sticky top-0 z-20">
       {/* Breadcrumb & Title */}
@@ -56,19 +90,50 @@ export default function TopBar({
         <div className="h-6 w-px bg-[#E6E3DB]" />
 
         {/* User Profile */}
-        <div className="flex items-center gap-2.5 cursor-pointer">
-          <div className="w-8 h-8 rounded-full bg-[#16241F] text-white flex items-center justify-center text-xs font-bold font-serif shadow-xs">
-            DG
-          </div>
-          <div className="flex flex-col text-left">
-            <span className="text-xs font-semibold text-[#16241F] leading-none">
-              Deepak G.M.
-            </span>
-            <span className="text-[10px] text-[#8A887E] leading-none mt-1">
-              District Admin
-            </span>
-          </div>
-          <ChevronDown className="w-3 h-3 text-[#8A887E]" />
+        <div className="relative" ref={dropdownRef}>
+          <button
+            type="button"
+            onClick={() => setDropdownOpen((prev) => !prev)}
+            className="flex items-center gap-2.5 cursor-pointer focus:outline-none hover:opacity-90"
+          >
+            <div className="w-8 h-8 rounded-full bg-[#16332B] text-[#7FB89A] flex items-center justify-center text-xs font-bold font-serif shadow-xs ring-1 ring-[#D9714A]/30">
+              {getInitials()}
+            </div>
+            <div className="flex flex-col text-left">
+              <span className="text-xs font-semibold text-[#16241F] leading-none truncate max-w-[130px]">
+                {user?.actor || user?.email?.split("@")[0] || "Authorized Officer"}
+              </span>
+              <span className="text-[10px] text-[#D9714A] font-medium leading-none mt-1">
+                {getRoleDisplay()}
+              </span>
+            </div>
+            <ChevronDown className="w-3 h-3 text-[#8A887E]" />
+          </button>
+
+          {/* Dropdown Menu */}
+          {dropdownOpen && (
+            <div className="absolute right-0 mt-2 w-64 bg-white border border-[#E6E3DB] rounded-xl shadow-lg py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="px-4 py-3 border-b border-[#F2EFE8]">
+                <p className="text-xs font-semibold text-[#16241F] truncate">{user?.email || "officer@karnataka.gov.in"}</p>
+                <p className="text-[11px] text-[#8A887E] mt-0.5 flex items-center gap-1">
+                  <UserCheck className="w-3 h-3 text-[#7FB89A]" /> NIC Authenticated
+                </p>
+              </div>
+
+              <div className="py-1">
+                <button
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    if (onLogout) onLogout();
+                  }}
+                  className="w-full text-left px-4 py-2 text-xs text-[#D9714A] hover:bg-[#FAF6EF] flex items-center gap-2 font-medium transition-colors"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  Sign out / Switch role
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </header>
