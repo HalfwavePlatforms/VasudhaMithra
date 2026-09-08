@@ -296,6 +296,61 @@ def extract_fields(
             "ai_fallback_note": None,
         }
 
+    # ── Numbered Box RTC Format Handling ──
+    if document_type == "numbered_box_rtc":
+        fields = {}
+        confidence_per_field = {}
+        structured_record = {}
+        needs_review = []
+        extraction_sources = {}
+
+        for fn in all_field_names:
+            if fn in ("survey_number", "owner_name"):
+                cfg = field_configs.get(fn, {})
+                val, conf = _extract_one_field(raw_text, bounding_boxes, cfg, field_name=fn)
+                should_recalibrate, penalty = get_correction_recalibration(
+                    field_name=fn,
+                    document_type=document_type,
+                    language=language,
+                )
+                if should_recalibrate and penalty > 0:
+                    conf = max(0.05, conf - penalty)
+
+                fields[fn] = val
+                confidence_per_field[fn] = round(conf, 3) if conf is not None else None
+                extraction_sources[fn] = "rule_based"
+                structured_record[fn] = {
+                    "value": val,
+                    "confidence": round(conf, 3) if conf is not None else None,
+                    "extraction_source": "rule_based",
+                    "recalibrated": should_recalibrate,
+                }
+                if val is None or (conf is not None and conf < threshold):
+                    needs_review.append(fn)
+            else:
+                fields[fn] = None
+                confidence_per_field[fn] = None
+                extraction_sources[fn] = "rule_based"
+                structured_record[fn] = {
+                    "value": None,
+                    "confidence": None,
+                    "extraction_source": "rule_based",
+                    "recalibrated": False,
+                }
+
+        return {
+            "fields": fields,
+            "structured_record": structured_record,
+            "area_acres": None,
+            "confidence_per_field": confidence_per_field,
+            "extraction_sources": extraction_sources,
+            "has_ai_assisted": False,
+            "needs_review": needs_review,
+            "triage_reason": "Numbered box RTC format detected — partial rule extraction (survey_number, owner_name) applied.",
+            "ai_fallback_triggered": False,
+            "ai_fallback_note": None,
+        }
+
     # ── Rule-Based Extraction Tier 1 ──
     fields = {}
     confidence_per_field = {}

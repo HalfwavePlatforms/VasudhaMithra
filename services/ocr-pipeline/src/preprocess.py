@@ -132,27 +132,51 @@ def is_tabular_layout(raw_text: str, bounding_boxes: list[dict] | None = None) -
     Checks OCR bounding box layout and keywords for legacy tabular Khasra registers:
     1. Check OCR bounding box layout for high density of short text fragments arranged
        in a grid pattern (many boxes with similar y-coordinates repeating across multiple x-clusters).
-    2. Check for table-specific keywords (खसरा, स्तंभ, numbered column headers, column markers).
+    2. Check for table-specific keywords (खसरा, स्तंभ, ಕಾಲಂ, ಕಂದಾಯ, দাগ, খতিয়ান, numbered column headers, column markers).
     """
     text_lower = raw_text.lower()
 
     # Keyword check: Table specific indicators
-    # खसरा register tables, स्तंभ (column), numbered column markers like (1) (2) (3) or स्तंभ १, स्तंभ २
-    tabular_keywords = ["स्तंभ", "कॉलम", "column", "अनुक्रमांक", "क्रम संख्या"]
+    # खसरा register tables, स्तंभ/ಕಾಲಂ/কলাম (column), numbered column markers like (1) (2) (3) or स्तंभ १, स्तंभ २
+    tabular_keywords = [
+        "स्तंभ", "सूतंभ", "कॉलम", "column", "अनुक्रमांक", "क्रम संख्या",
+        # Kannada
+        "ಕಾಲಂ", "ಸ್ತಂಭ", "ಸ್‌ತಂಭ", "ಕೋಷ್ಟಕ", "ಅನುಕ್ರಮ", "ಕ್ರಮ ಸಂಖ್ಯೆ", "ಸಾರಣಿ", "ತಃಖ್ತೆ", "ನಮೂದು",
+        # Bengali
+        "কলাম", "স্তম্ভ", "তালিকা", "তালকা", "ক্রমিক", "সারণী",
+    ]
     has_col_keyword = any(k in raw_text for k in tabular_keywords)
 
-    has_khasra_keyword = "खसरा" in raw_text or "khasra" in text_lower
+    has_khasra_keyword = (
+        "खसरा" in raw_text
+        or "khasra" in text_lower
+        or "ಖಸ್ರಾ" in raw_text
+        or "ಪಹಣಿ ವಿವರಣಾ" in raw_text
+        or "ಕಂದಾಯ ವಿವರಣಾ" in raw_text
+        or "ಖಾತೆ ರಿಜಿಸ್ಟರ್" in raw_text
+        or "ಖಸ್ರಾ ಕಂದಾಯ" in raw_text
+        or "ಚಕ್‌ಬಂದಿ" in raw_text
+        or "ಚಕ್\u200cಬಂದಿ" in raw_text
+        or "ತಃಖ್ತೆ" in raw_text
+        or "খসড়া" in raw_text
+        or "খতিয়ান তালিকা" in raw_text
+        or "খতিয়ান রেজিস্টার" in raw_text
+        or "খসড়া খতিয়ান" in raw_text
+        or "মৌজা খতিয়ান" in raw_text
+    )
     has_numbered_cols = bool(
-        re.search(r"(\(?\s*[1-9]\s*\)?\s+){3,}", raw_text)  # e.g., (1) (2) (3) (4) or 1 2 3 4
-        or re.search(r"(स्तंभ\s*[१२३४५६७८९1-9]\s*){2,}", raw_text)
+        re.search(r"(\(?\s*[1-9१-९೧-೯১-৯]\s*\)?\s+){3,}", raw_text)  # e.g., (1) (2) (3) (4) or (೧) (೨) (೩) (೪)
+        or re.search(r"(?:स्तंभ|सूतंभ|कॉलम|ಕಾಲಂ|ಸ್ತಂಭ|ಸ್‌ತಂಭ|কলাম|স্তম্ভ)\s*[1-9१-९೧-೯১-৯]", raw_text)
     )
     has_table_headers = (
-        ("खाता" in raw_text or "khata" in text_lower)
-        and ("रकबा" in raw_text or "क्षेत्रफल" in raw_text or "area" in text_lower)
-        and ("भूमि स्वामी" in raw_text or "काश्तकार" in raw_text or "कृषक" in raw_text or "owner" in text_lower)
+        (
+            ("खाता" in raw_text or "khata" in text_lower or "ಖಾತಾ" in raw_text or "ಖಾತೆ" in raw_text or "খতিয়ান" in raw_text or "খতযান" in raw_text)
+            and ("रकबा" in raw_text or "क्षेत्रफल" in raw_text or "area" in text_lower or "ವಿಸ್ತೀರ್ಣ" in raw_text or "ವೌಸ್‌ತೇರ್‌ಣ" in raw_text or "পরিমাণ" in raw_text or "জমি" in raw_text)
+            and ("भूमि स्वामी" in raw_text or "काश्तकार" in raw_text or "कृषक" in raw_text or "owner" in text_lower or "ಮಾಲೀಕ" in raw_text or "ಖಾತೇದಾರ" in raw_text or "ಮালিক" in raw_text or "রায়ত" in raw_text or "প্রজা" in raw_text)
+        )
     )
 
-    if (has_khasra_keyword and (has_col_keyword or has_numbered_cols)) or (has_col_keyword and has_table_headers):
+    if (has_khasra_keyword and (has_col_keyword or has_numbered_cols)) or (has_col_keyword and (has_table_headers or has_numbered_cols)):
         return True
 
     # Spatial Bounding Box Grid check:
@@ -187,8 +211,53 @@ def is_tabular_layout(raw_text: str, bounding_boxes: list[dict] | None = None) -
                     if x_span > 100:  # Spans horizontal width
                         grid_rows += 1
 
-            if grid_rows >= 3 and (has_khasra_keyword or has_table_headers or has_col_keyword):
+            if grid_rows >= 3 and (has_col_keyword or has_numbered_cols):
                 return True
+
+    return False
+
+
+def is_numbered_box_layout(raw_text: str, bounding_boxes: list[dict] | None = None) -> bool:
+    """
+    Detects numbered-box RTC / Pahani format where fields are organized
+    in numbered bordered cells (e.g. '1. Survey No', '2. Owner Name', '1) ಸರ್ವೆ ನಂ', '१. भूमापन').
+    """
+    text_lower = raw_text.lower()
+
+    # Regex for numbered field markers: "1.", "1)", "1,", "१.", "೧.", "(1)" followed by non-digit label
+    numbered_pattern = r"(?:^|\n|\s)(?:\(?\s*([1-9]|1[0-2]|[१-९]|[೧-೯])\s*[\.\,\)]\s+)(?!\d)"
+    numbered_matches = re.findall(numbered_pattern, raw_text)
+    distinct_numbered = set(numbered_matches)
+
+    # Keywords associated with RTC / Pahani numbered box formats
+    rtc_keywords = [
+        "rtc", "pahani", "ಪಹಣಿ", "7/12", "७/१२", "गाव नमुना", "ror", "1b", "1-b",
+        "ಅಧಿಕಾರ ದಾಖಲೆ", "ಸರ್ವೆ ನಂಬರ್", "ಸರ್ವೆ ನಂ", "ಭೂ ಮಾಲೀಕ", "ಖಾತೇದಾರ", "ಮಾಲೀಕ",
+        "भूमापन क्रमांक", "खातेदाराचे नाव", "सर्व्हे क्रमांक", "सर्व्हे", "भूमापन",
+        "సర్వే నంబర్", "సర్వే నంబరు", "సర్‌వీ నంబరు", "సర్‌వీ నంబర్", "సర్‌వీ", "పట్టాదారు పేరు", "పట్టాదారు",
+        "నమూనా", "నమూన", "పహణీ", "పహాణీ", "పాస్ పుస్తకం", "పాస్‌పుస్తకం", "పాస్", "హక్కుల"
+    ]
+    has_rtc_keyword = any(k in text_lower or k in raw_text for k in rtc_keywords)
+
+    # Key fields typically present in numbered boxes
+    has_key_fields = (
+        ("survey" in text_lower or "ಸರ್ವೆ" in raw_text or "ಸರ್‌ವೆ" in raw_text or "भूमापन" in raw_text or "सर्व्हे" in raw_text or "సర్వే" in raw_text or "సర్‌వే" in raw_text or "సర్‌వీ" in raw_text or "ಖಸ್ರಾ" in raw_text)
+        and ("owner" in text_lower or "ಮಾಲೀಕ" in raw_text or "ಖಾತೇದಾರ" in raw_text or "खातेदार" in raw_text or "नाव" in raw_text or "పట్టాదారు" in raw_text or "పేరు" in raw_text or "ಹೆಸರು" in raw_text or "హక్కుదారులు" in raw_text)
+    )
+
+    # At least 2 distinct numbered item prefixes (e.g. 1 and 3) and RTC / Pahani keywords or key fields
+    if len(distinct_numbered) >= 2 and (has_rtc_keyword or has_key_fields):
+        return True
+
+    # Spatial Bounding Box check: boxes arranged in numbered cells
+    if bounding_boxes and len(bounding_boxes) >= 6:
+        distinct_box_nums = set()
+        for b in bounding_boxes:
+            m = re.match(r"^\(?\s*([1-9]|1[0-2]|[१-९]|[೧-೯])\s*[\.\,\)]\s*(\D|$)", b.get("text", "").strip())
+            if m:
+                distinct_box_nums.add(m.group(1))
+        if len(distinct_box_nums) >= 2 and (has_rtc_keyword or has_key_fields):
+            return True
 
     return False
 
@@ -214,7 +283,10 @@ def classify_document_details(raw_text: str, bounding_boxes: list[dict] | None =
     if max_count >= 10:
         lang = dominant_script
         # Distinguish Marathi if distinctive Marathi administrative keywords appear
-        if lang == "hi" and any(w in raw_text for w in ["गाव नमुना", "७/१२", "गट क्रमांक", "भोगವಟಾದಾರ", "जिल्हा", "तालुका"]):
+        if lang == "hi" and any(w in raw_text for w in [
+            "गाव नमुना", "७/१२", "गट क्रमांक", "भोगवटादार", "जिल्हा", "तालुका",
+            "खातेदाराचे", "भूमापन", "आकारणी", "पाहणी", "फेरफार", "गाव"
+        ]):
             lang = "mr"
     else:
         lang = "en"
@@ -222,6 +294,10 @@ def classify_document_details(raw_text: str, bounding_boxes: list[dict] | None =
     # Step 1: Detect legacy tabular register format
     if is_tabular_layout(raw_text, bounding_boxes):
         return "legacy_tabular_register", lang, 0.95
+
+    # Step 2: Detect numbered box RTC format
+    if is_numbered_box_layout(raw_text, bounding_boxes):
+        return "numbered_box_rtc", lang, 0.95
 
     # Document type detection (Pahani / RTC prioritized before mutation to prevent false positive on RTC mutation references)
     if (
