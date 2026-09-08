@@ -919,10 +919,11 @@ def compute_audit_hash(
     timestamp: any,
 ) -> str:
     if isinstance(timestamp, datetime):
-        if timestamp.tzinfo is not None:
-            ts_str = timestamp.astimezone(timezone.utc).isoformat()
+        if timestamp.tzinfo is None:
+            ts = timestamp.replace(tzinfo=timezone.utc)
         else:
-            ts_str = timestamp.isoformat()
+            ts = timestamp.astimezone(timezone.utc)
+        ts_str = ts.isoformat()
     else:
         ts_str = str(timestamp)
     actor_str = actor or ""
