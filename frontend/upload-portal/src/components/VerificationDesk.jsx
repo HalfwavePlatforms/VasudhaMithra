@@ -518,8 +518,13 @@ export default function VerificationDesk({
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[#D9714B]">
                     SPATIAL CONSISTENCY ENGINE
                   </span>
-                  <h4 className="text-xs font-bold text-[#16241F]">
-                    Cadastral GIS Verification
+                  <h4 className="text-xs font-bold text-[#16241F] flex items-center gap-2">
+                    <span>Cadastral GIS Verification</span>
+                    {currentRecord.gis?.parcel_id && (
+                      <span className="text-[10px] px-2 py-0.5 bg-[#FAF9F5] border border-[#EAE7DF] rounded text-[#5A584F] font-mono">
+                        {currentRecord.gis.parcel_id}
+                      </span>
+                    )}
                   </h4>
                 </div>
                 <span
@@ -567,13 +572,24 @@ export default function VerificationDesk({
               </div>
 
               {/* If geometry is available, render Leaflet map */}
-              {currentRecord.gis?.geometry && (
+              {currentRecord.gis?.geometry ? (
                 <div className="mt-2">
                   <CadastralLeafletMap
                     geometry={currentRecord.gis.geometry}
                     gis={currentRecord.gis}
                     height="200px"
                   />
+                </div>
+              ) : (
+                <div className="p-4 bg-[#FAF9F5] border border-dashed border-[#DDD9CE] rounded-lg text-center text-xs text-[#8A887E] space-y-2">
+                  <p>Cadastral parcel geometry not yet mapped for this survey number.</p>
+                  <button
+                    type="button"
+                    onClick={handleSaveCorrections}
+                    className="px-3 py-1.5 bg-[#D9714B] text-white rounded text-xs font-semibold hover:bg-[#C05D37] transition-colors"
+                  >
+                    Map Cadastral Boundary
+                  </button>
                 </div>
               )}
             </div>

@@ -28,6 +28,8 @@ data/sample-documents/*
 # Persistent storage
 storage/*
 !storage/.gitkeep
+services/api-gateway/src/storage/*
+!services/api-gateway/src/storage/.gitkeep
 
 # OS
 .DS_Store

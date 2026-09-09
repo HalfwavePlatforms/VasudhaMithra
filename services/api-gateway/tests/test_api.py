@@ -469,4 +469,67 @@ def test_lrms_sync_verified_record():
         db.close()
 
 
+def test_gis_spatial_auto_heal_and_consistency():
+    from database import SessionLocal
+    from models.db_models import Record, RecordField
+    from unittest.mock import patch, MagicMock
+    import uuid
+
+    db = SessionLocal()
+    rec_id = uuid.uuid4()
+    try:
+        rec = Record(
+            id=rec_id,
+            original_filename="rtc_kannada_sample.png",
+            language="kn",
+            document_type="Record of Rights / RTC (Pahani)",
+            status="pending_review",
+            spatial_consistency="NOT_EVALUATED",
+            gis_geojson=None,
+        )
+        db.add(rec)
+        db.commit()
+
+        rf1 = RecordField(record_id=rec_id, field_name="survey_number", field_value="452", confidence=0.95)
+        rf2 = RecordField(record_id=rec_id, field_name="village", field_value="ಅದಲಗೆರೆ", confidence=0.92)
+        rf3 = RecordField(record_id=rec_id, field_name="tehsil", field_value="ಗುಬ್ಬಿ", confidence=0.91)
+        rf4 = RecordField(record_id=rec_id, field_name="district", field_value="ತುಮಕೂರು", confidence=0.94)
+        rf5 = RecordField(record_id=rec_id, field_name="plot_area", field_value="1.15", confidence=0.96)
+        db.add_all([rf1, rf2, rf3, rf4, rf5])
+        db.commit()
+
+        mock_gis_resp = MagicMock()
+        mock_gis_resp.status_code = 200
+        mock_gis_resp.json.return_value = {
+            "status": "FOUND",
+            "parcel_id": "PARCEL-452-CAD",
+            "survey_number": "452",
+            "area_gis": 1.15,
+            "source": "cadastral_spatial_engine",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[[76.95, 13.32], [76.96, 13.32], [76.96, 13.33], [76.95, 13.33], [76.95, 13.32]]]
+            }
+        }
+
+        with patch("httpx.Client.get", return_value=mock_gis_resp):
+            # 1. GET /records/{id} should auto-heal and return populated GIS
+            resp = client.get(f"/records/{rec_id}")
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["gis"] is not None
+            assert data["gis"]["parcel_id"] == "PARCEL-452-CAD"
+            assert data["gis"]["area_gis_acres"] == 1.15
+            assert data["gis"]["spatial_consistency"] == "MATCH"
+            assert data["gis"]["geometry"] is not None
+            assert data["gis"]["geometry"]["type"] == "Polygon"
+
+    finally:
+        db.query(RecordField).filter(RecordField.record_id == rec_id).delete()
+        db.query(Record).filter(Record.id == rec_id).delete()
+        db.commit()
+        db.close()
+
+
+
 

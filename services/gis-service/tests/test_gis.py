@@ -26,4 +26,30 @@ def test_get_seeded_parcel():
 
 def test_get_nonexistent_parcel_returns_404():
     response = client.get("/gis/parcel/NONEXISTENT_99999")
-    assert response.status_code == 404
+    assert response.status_code == 404
+
+
+def test_get_cadastral_engine_parcel():
+    # Survey number not in seeded dataset with Kannada village/district metadata
+    response = client.get(
+        "/gis/parcel/452",
+        params={
+            "village": "ಅದಲಗೆರೆ",
+            "tehsil": "ಗುಬ್ಬಿ",
+            "district": "ತುಮಕೂರು",
+            "state": "Karnataka",
+            "area_acres": 1.15,
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body.get("status") == "FOUND"
+    assert body.get("survey_number") == "452"
+    assert body.get("area_gis") == 1.15
+    assert body.get("source") in ("cadastral_spatial_engine", "osm_nominatim_dynamic_cadastre")
+    assert body["geometry"]["type"] == "Polygon"
+    assert len(body["geometry"]["coordinates"][0]) >= 4
+    # Centroid should be in Karnataka vicinity (~12-14 deg N, ~75-78 deg E)
+    centroid = body.get("centroid")
+    assert 12.0 <= centroid[0] <= 16.0
+    assert 74.0 <= centroid[1] <= 78.0

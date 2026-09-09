@@ -5,6 +5,7 @@ import os
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional
 import httpx
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, Header
 from fastapi.responses import FileResponse
@@ -116,6 +117,141 @@ def require_role(allowed_roles: list[str]):
 import traceback
 import logging
 logger = logging.getLogger("api-gateway.records")
+
+
+def _detect_record_state(language: Optional[str] = None, raw_text: Optional[str] = "", fields: Optional[dict] = None) -> str:
+    """
+    Infers the Indian state of a land record using language code, raw OCR content,
+    and extracted administrative fields (village, taluk, district).
+    """
+    text = (raw_text or "").lower()
+    fields = fields or {}
+    field_text = " ".join(str(v).lower() for v in fields.values())
+    combined = f"{text} {field_text}".lower()
+
+    if language == "kn" or any(w in combined for w in ["karnataka", "bhoomi", "tumakuru", "tumkur", "gubbi", "bengaluru", "bangalore", "mysuru", "mysore", "ಮೈಸೂರು", "ತುಮಕೂರು", "ಗುಬ್ಬಿ", "ಬೆಂಗಳೂರು", "ಅದಲಗೆರೆ", "ಕಂದಾಯ", "ಪಹಣಿ", "ಗ್ರಾಮ"]):
+        return "Karnataka"
+    if language == "mr" or any(w in combined for w in ["maharashtra", "mahabhulekh", "pune", "haveli", "nagpur", "satara", "सातबारा", "महाराष्ट्र", "पुणे"]):
+        return "Maharashtra"
+    if language == "te" or any(w in combined for w in ["telangana", "dharani", "warangal", "medak", "hyderabad", "తెలంగాణ", "వరంగల్", "ధరణి"]):
+        return "Telangana"
+    if language == "ta" or any(w in combined for w in ["tamil nadu", "patta", "chitta", "chennai", "தமிழ்நாடு"]):
+        return "Tamil Nadu"
+    if language == "bn" or any(w in combined for w in ["west bengal", "banglarbhumi", "kolkata", "পশ্চিমবঙ্গ"]):
+        return "West Bengal"
+    if language == "hi" or any(w in combined for w in ["madhya pradesh", "bhopal", "harda", "इंदौर", "भोपाल", "खसरा"]):
+        return "Madhya Pradesh"
+    return "Karnataka" if language == "kn" else ("Maharashtra" if language == "mr" else "Madhya Pradesh")
+
+
+def _parse_area_to_acres(val: any) -> Optional[float]:
+    """
+    Parses various Indic and imperial deed area formats (acres, guntas, decimals) into standard acres.
+    """
+    if val is None:
+        return None
+    if isinstance(val, (int, float)):
+        return float(val) if val > 0 else None
+    s = str(val).strip().lower()
+    if not s or s in ("none", "null", "n/a"):
+        return None
+    import re
+    # Check for acre-gunta patterns e.g. "1-06", "1.15", "1 acre 6 guntas", "1-15"
+    m_gunta = re.search(r"(\d+)\s*(?:[-–]\s*|acres?\s*(?:and\s*)?)(\d+)\s*(?:guntas?|gts?|గుంటలు|ಗುಂಟೆ)?", s)
+    if m_gunta and "-" in s:
+        try:
+            ac = float(m_gunta.group(1))
+            gt = float(m_gunta.group(2))
+            return round(ac + (gt * 0.025), 3)
+        except Exception:
+            pass
+    m = re.search(r"(\d+(?:\.\d+)?)", s)
+    if m:
+        try:
+            return float(m.group(1))
+        except Exception:
+            pass
+    return None
+
+
+def _evaluate_and_attach_gis(db: Session, record: Record, fields: Optional[dict] = None) -> bool:
+    """
+    Evaluates cadastral GIS spatial consistency for a record by querying GIS service.
+    Attaches geometry GeoJSON, GIS area, and sets spatial_consistency to MATCH or DISCREPANCY.
+    """
+    if fields is None:
+        fields = {rf.field_name: (rf.corrected_value or rf.field_value) for rf in record.fields}
+
+    survey_no = fields.get("survey_number") or fields.get("khasra_number")
+    khasra_no = fields.get("khasra_number")
+    if not survey_no and not khasra_no:
+        return False
+
+    detected_state = _detect_record_state(record.language, record.raw_ocr_text, fields)
+    if not record.state or record.state in ("Madhya Pradesh", "India") and detected_state != "Madhya Pradesh":
+        record.state = detected_state
+
+    doc_acres = record.area_doc_acres
+    if not doc_acres or doc_acres <= 0:
+        doc_acres = _parse_area_to_acres(fields.get("plot_area"))
+        if doc_acres:
+            record.area_doc_acres = doc_acres
+
+    sn_str = str(survey_no).strip() if survey_no else ""
+    kh_str = str(khasra_no).strip() if khasra_no else ""
+
+    lookup_keys = [sn_str]
+    if kh_str and kh_str != sn_str:
+        lookup_keys.insert(0, f"{sn_str}/{kh_str}")
+        lookup_keys.append(kh_str)
+
+    gis_params = {
+        "village": fields.get("village") or "",
+        "tehsil": fields.get("tehsil") or "",
+        "district": fields.get("district") or "",
+        "state": record.state or "Karnataka",
+        "area_acres": doc_acres,
+    }
+
+    gis_data = None
+    try:
+        with httpx.Client(timeout=8.0) as client:
+            for lk in lookup_keys:
+                if not lk:
+                    continue
+                try:
+                    gis_resp = client.get(f"{GIS_SERVICE_URL}/gis/parcel/{lk}", params=gis_params)
+                    if gis_resp.status_code == 200:
+                        gis_data = gis_resp.json()
+                        break
+                except Exception as e:
+                    logger.debug(f"GIS query error on key '{lk}': {e}")
+    except Exception as outer_e:
+        logger.warning(f"GIS service call failed for record {record.id}: {outer_e}")
+
+    if gis_data:
+        record.parcel_id = gis_data.get("parcel_id")
+        record.area_gis_acres = gis_data.get("area_gis")
+        geom_val = gis_data.get("geometry")
+        record.gis_geojson = geom_val
+        record.geom = geom_val
+
+        if doc_acres and record.area_gis_acres:
+            delta_pct = abs(doc_acres - record.area_gis_acres) / record.area_gis_acres * 100.0
+            record.spatial_delta_pct = round(delta_pct, 2)
+            record.spatial_consistency = "MATCH" if delta_pct <= 5.0 else "DISCREPANCY"
+        else:
+            record.spatial_delta_pct = 0.0
+            record.spatial_consistency = "MATCH"
+
+        db.commit()
+        return True
+    else:
+        if not record.spatial_consistency or record.spatial_consistency == "NOT_EVALUATED":
+            record.spatial_consistency = "NOT_EVALUATED"
+            db.commit()
+        return False
+
 
 @router.post("/upload")
 async def upload_record(
@@ -335,66 +471,23 @@ async def upload_record(
         violations = _validate_and_check_duplicates(db, record.id, extraction_data["fields"])
 
         # 4. WINNING FEATURE: Document <-> Data <-> GIS Spatial Consistency Engine
-        survey_no = extraction_data["fields"].get("survey_number") or extraction_data["fields"].get("khasra_number")
-        khasra_no = extraction_data["fields"].get("khasra_number")
-        doc_acres = extraction_data.get("area_acres")
+        record.state = _detect_record_state(record.language, record.raw_ocr_text, extraction_data["fields"])
+        doc_acres = extraction_data.get("area_acres") or _parse_area_to_acres(extraction_data["fields"].get("plot_area"))
         record.area_doc_acres = doc_acres
 
-        if survey_no:
-            lookup_keys = [survey_no]
-            if khasra_no and khasra_no != survey_no:
-                lookup_keys.insert(0, f"{survey_no}/{khasra_no}")
-                lookup_keys.append(khasra_no)
-
-            gis_params = {
-                "village": extraction_data["fields"].get("village") or "",
-                "tehsil": extraction_data["fields"].get("tehsil") or "",
-                "district": extraction_data["fields"].get("district") or "",
-                "state": record.state or "",
-                "area_acres": doc_acres,
-            }
-
-            gis_data = None
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                for lk in lookup_keys:
-                    try:
-                        gis_resp = await client.get(f"{GIS_SERVICE_URL}/gis/parcel/{lk}", params=gis_params)
-                        if gis_resp.status_code == 200:
-                            gis_data = gis_resp.json()
-                            break
-                    except Exception:
-                        pass
-
-            if gis_data:
-                record.parcel_id = gis_data.get("parcel_id")
-                record.area_gis_acres = gis_data.get("area_gis")
-                geom_val = gis_data.get("geometry")
-                record.gis_geojson = geom_val
-                record.geom = geom_val
-
-                if doc_acres and record.area_gis_acres:
-                    delta_pct = abs(doc_acres - record.area_gis_acres) / record.area_gis_acres * 100.0
-                    record.spatial_delta_pct = round(delta_pct, 2)
-
-                    if delta_pct <= 5.0:
-                        record.spatial_consistency = "MATCH"
-                    else:
-                        record.spatial_consistency = "DISCREPANCY"
-                        violations.append({
-                            "field": "plot_area",
-                            "rule": "spatial_consistency",
-                            "severity": "HIGH",
-                            "message": f"Spatial Discrepancy: Deed extent ({doc_acres} ac) differs by {round(delta_pct, 1)}% from Cadastral GIS parcel ({record.area_gis_acres} ac).",
-                        })
-                else:
-                    record.spatial_consistency = "MATCH"
-
-                db.commit()
-                _log(db, record.id, "gis_lookup_succeeded", actor="GIS Service", details={"parcel_id": record.parcel_id, "area_gis_acres": record.area_gis_acres, "spatial_consistency": record.spatial_consistency})
-            else:
-                record.spatial_consistency = "NOT_EVALUATED"
-                db.commit()
-                _log(db, record.id, "gis_lookup_failed", actor="GIS Service", details={"survey_number": survey_no})
+        survey_no = extraction_data["fields"].get("survey_number") or extraction_data["fields"].get("khasra_number")
+        gis_ok = _evaluate_and_attach_gis(db, record, extraction_data["fields"])
+        if gis_ok:
+            if record.spatial_consistency == "DISCREPANCY":
+                violations.append({
+                    "field": "plot_area",
+                    "rule": "spatial_consistency",
+                    "severity": "HIGH",
+                    "message": f"Spatial Discrepancy: Deed extent ({record.area_doc_acres} ac) differs by {round(record.spatial_delta_pct or 0, 1)}% from Cadastral GIS parcel ({record.area_gis_acres} ac).",
+                })
+            _log(db, record.id, "gis_lookup_succeeded", actor="GIS Service", details={"parcel_id": record.parcel_id, "area_gis_acres": record.area_gis_acres, "spatial_consistency": record.spatial_consistency})
+        elif survey_no:
+            _log(db, record.id, "gis_lookup_failed", actor="GIS Service", details={"survey_number": survey_no})
 
         for v in violations:
             db.add(
@@ -487,6 +580,12 @@ def get_record(record_id: uuid.UUID, db: Session = Depends(get_db)):
     record = db.query(Record).filter(Record.id == record_id).first()
     if not record:
         raise HTTPException(status_code=404, detail="Record not found")
+
+    # Auto-heal GIS: If GIS geometry is missing or not evaluated, evaluate now
+    if not record.gis_geojson or record.spatial_consistency in (None, "NOT_EVALUATED"):
+        _evaluate_and_attach_gis(db, record)
+        db.refresh(record)
+
     return _serialize(record)
 
 
@@ -639,52 +738,14 @@ def correct_record(
     violations = _validate_and_check_duplicates(db, record.id, current_fields)
 
     # Re-check GIS spatial consistency on correction
-    survey_no = current_fields.get("survey_number") or current_fields.get("khasra_number")
-    if survey_no:
-        gis_params = {
-            "village": current_fields.get("village") or "",
-            "tehsil": current_fields.get("tehsil") or "",
-            "district": current_fields.get("district") or "",
-            "state": record.state or "",
-            "area_acres": record.area_doc_acres,
-        }
-        try:
-            with httpx.Client(timeout=6.0) as client:
-                gis_resp = client.get(f"{GIS_SERVICE_URL}/gis/parcel/{survey_no}", params=gis_params)
-                if gis_resp.status_code == 200:
-                    gis_data = gis_resp.json()
-                    record.parcel_id = gis_data.get("parcel_id")
-                    record.area_gis_acres = gis_data.get("area_gis")
-                    geom_val = gis_data.get("geometry")
-                    record.gis_geojson = geom_val
-                    record.geom = geom_val
-
-                    raw_area = current_fields.get("plot_area")
-                    doc_acres = record.area_doc_acres
-                    if raw_area:
-                        import re
-                        m = re.search(r"(\d+(\.\d+)?)", str(raw_area))
-                        if m:
-                            doc_acres = float(m.group(1))
-                            record.area_doc_acres = doc_acres
-
-                    if doc_acres and record.area_gis_acres:
-                        delta_pct = abs(doc_acres - record.area_gis_acres) / record.area_gis_acres * 100.0
-                        record.spatial_delta_pct = round(delta_pct, 2)
-                        if delta_pct <= 5.0:
-                            record.spatial_consistency = "MATCH"
-                        else:
-                            record.spatial_consistency = "DISCREPANCY"
-                            violations.append({
-                                "field": "plot_area",
-                                "rule": "spatial_consistency",
-                                "severity": "HIGH",
-                                "message": f"Spatial Discrepancy: Deed extent ({doc_acres} ac) differs by {round(delta_pct, 1)}% from Cadastral GIS parcel ({record.area_gis_acres} ac).",
-                            })
-                    else:
-                        record.spatial_consistency = "MATCH"
-        except Exception:
-            pass
+    _evaluate_and_attach_gis(db, record, current_fields)
+    if record.spatial_consistency == "DISCREPANCY" and record.area_doc_acres and record.area_gis_acres:
+        violations.append({
+            "field": "plot_area",
+            "rule": "spatial_consistency",
+            "severity": "HIGH",
+            "message": f"Spatial Discrepancy: Deed extent ({record.area_doc_acres} ac) differs by {round(record.spatial_delta_pct or 0, 1)}% from Cadastral GIS parcel ({record.area_gis_acres} ac).",
+        })
 
     db.query(ValidationResult).filter(ValidationResult.record_id == record_id).delete()
     for v in violations:
