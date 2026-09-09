@@ -106,9 +106,14 @@ export default function CadastralLeafletMap({
     surveyMeshGroup.addTo(map);
     surveyMeshGroupRef.current = surveyMeshGroup;
 
+    // Server-side resilient proxy for government WMS layers (bypasses browser CORS & mixed-content blocks)
+    const proxyBase = import.meta.env?.VITE_API_BASE || "http://127.0.0.1:8000";
+    const bhuvanTarget = encodeURIComponent("https://bhuvan-panchayat3.nrsc.gov.in/bhuvan/wms");
+    const kgisTarget = encodeURIComponent("https://kgis.ksrsac.in/karnataka/services/Cadastral/MapServer/WMSServer");
+
     // ISRO Bhuvan Panchayat Cadastral WMS Layer (1:10,000 Cadastral Boundary Layer)
     const bhuvanCadastralWMS = L.tileLayer.wms(
-      "https://bhuvan-panchayat3.nrsc.gov.in/bhuvan/wms",
+      `${proxyBase}/gis/wms-proxy?base_wms=${bhuvanTarget}`,
       {
         layers: "panchayat:cadastral_boundary",
         format: "image/png",
@@ -120,7 +125,7 @@ export default function CadastralLeafletMap({
 
     // Karnataka KGIS / Bhoomi Cadastral WMS Layer (KSRSAC Official Revenue Cadastre)
     const kgisCadastralWMS = L.tileLayer.wms(
-      "https://kgis.ksrsac.in/karnataka/services/Cadastral/MapServer/WMSServer",
+      `${proxyBase}/gis/wms-proxy?base_wms=${kgisTarget}`,
       {
         layers: "Cadastral_Boundaries",
         format: "image/png",

@@ -38,7 +38,7 @@ app.include_router(auth.router, prefix="/auth", tags=["auth"])
 
 import os
 import httpx
-from fastapi import HTTPException
+from fastapi import HTTPException, Request, Response
 GIS_SERVICE_URL = os.getenv("GIS_SERVICE_URL", "http://127.0.0.1:8003")
 
 @app.get("/gis/parcel/{survey_number:path}")
@@ -74,6 +74,16 @@ async def proxy_gis_parcels():
         try:
             resp = await client.get(f"{GIS_SERVICE_URL}/gis/parcels")
             return resp.json()
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=f"GIS service unreachable: {e}")
+
+
+@app.get("/gis/wms-proxy")
+async def proxy_gis_wms(request: Request):
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        try:
+            resp = await client.get(f"{GIS_SERVICE_URL}/gis/wms-proxy", params=dict(request.query_params))
+            return Response(content=resp.content, media_type=resp.headers.get("content-type", "image/png"))
         except Exception as e:
             raise HTTPException(status_code=502, detail=f"GIS service unreachable: {e}")
 

@@ -24,8 +24,10 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
+from urllib.parse import urlparse, urlencode
 
-from fastapi import FastAPI, HTTPException
+import httpx
+from fastapi import FastAPI, HTTPException, Request, Response
 
 try:
     from dotenv import load_dotenv
@@ -765,3 +767,78 @@ def list_parcels():
             "source": p["source"],
         })
     return {"count": len(parcels), "parcels": parcels}
+
+
+# ── Server-Side Government WMS Proxy & Tile Caching ─────────────────────────────
+
+# 1x1 transparent PNG fallback tile (empty transparent pixel)
+_TRANSPARENT_1X1_PNG = (
+    b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4"
+    b"\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82"
+)
+
+_WMS_TILE_CACHE: dict[str, tuple[bytes, str]] = {}
+
+_ALLOWED_WMS_HOSTS = {
+    "bhuvan-panchayat3.nrsc.gov.in",
+    "bhuvan.nrsc.gov.in",
+    "bhuvan-app1.nrsc.gov.in",
+    "kgis.ksrsac.in",
+    "mahabhulekh.maharashtra.gov.in",
+    "tile.openstreetmap.org",
+    "server.arcgisonline.com",
+    "basemaps.cartocdn.com",
+}
+
+
+@app.get("/gis/wms-proxy")
+async def wms_proxy(request: Request):
+    """
+    Reverse proxy for government WMS layers (ISRO Bhuvan, Karnataka KGIS, Mahabhulekh).
+    Bypasses browser CORS restrictions, handles upstream timeouts gracefully, and caches tiles.
+    """
+    params = dict(request.query_params)
+    base_wms = params.pop("base_wms", None) or params.pop("url", None)
+    if not base_wms:
+        return Response(content=_TRANSPARENT_1X1_PNG, media_type="image/png")
+
+    parsed = urlparse(base_wms)
+    hostname = (parsed.hostname or "").lower()
+    if not any(hostname == allowed or hostname.endswith("." + allowed) for allowed in _ALLOWED_WMS_HOSTS):
+        raise HTTPException(
+            status_code=403,
+            detail=f"Host '{hostname}' is not in the allowed WMS proxy whitelist.",
+        )
+
+    upstream_url = f"{base_wms}?{urlencode(params)}" if params else base_wms
+
+    # In-memory tile cache
+    if upstream_url in _WMS_TILE_CACHE:
+        cached_content, cached_type = _WMS_TILE_CACHE[upstream_url]
+        return Response(
+            content=cached_content,
+            media_type=cached_type,
+            headers={"Cache-Control": "public, max-age=86400", "X-Proxy-Cache": "HIT"},
+        )
+
+    try:
+        async with httpx.AsyncClient(timeout=8.0, verify=False) as client:
+            resp = await client.get(upstream_url)
+            if resp.status_code == 200 and resp.content:
+                content_type = resp.headers.get("content-type", "image/png")
+                if len(_WMS_TILE_CACHE) < 1000:
+                    _WMS_TILE_CACHE[upstream_url] = (resp.content, content_type)
+                return Response(
+                    content=resp.content,
+                    media_type=content_type,
+                    headers={"Cache-Control": "public, max-age=86400", "X-Proxy-Cache": "MISS"},
+                )
+    except Exception as exc:
+        logger.debug("Upstream WMS fetch failed for %s: %s", hostname, exc)
+
+    # Return transparent 1x1 fallback tile on error/timeout so the map never crashes
+    return Response(
+        content=_TRANSPARENT_1X1_PNG,
+        media_type="image/png",
+        headers={"Cache-Control": "public, max-age=60", "X-Proxy-Status": "fallback-tile"},
+    )

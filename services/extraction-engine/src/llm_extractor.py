@@ -200,6 +200,55 @@ def _call_anthropic(raw_text: str) -> Optional[str]:
     return None
 
 
+def _call_ollama(raw_text: str) -> Optional[str]:
+    """
+    100% Free, offline local LLM extraction using Ollama or OpenAI-compatible local endpoints.
+    Supported models: qwen2.5:3b, llama3.2:3b, mistral, gemma2:2b.
+    """
+    base_url = (os.getenv("OLLAMA_BASE_URL") or os.getenv("LOCAL_LLM_URL") or "http://localhost:11434").rstrip("/")
+    model = os.getenv("OLLAMA_MODEL") or os.getenv("LOCAL_LLM_MODEL", "qwen2.5:3b")
+
+    prompt = f"{EXTRACTION_SYSTEM_PROMPT}\n\nRAW OCR TEXT:\n\"\"\"\n{raw_text}\n\"\"\""
+
+    # 1. Native Ollama API with format="json"
+    try:
+        url = f"{base_url}/api/generate"
+        payload = {
+            "model": model,
+            "prompt": prompt,
+            "stream": False,
+            "format": "json",
+            "options": {"temperature": 0.1},
+        }
+        resp = httpx.post(url, json=payload, timeout=25.0)
+        if resp.status_code == 200:
+            return resp.json().get("response", "")
+    except Exception as e:
+        logger.debug("Ollama native endpoint failed (%s). Trying local OpenAI endpoint...", e)
+
+    # 2. Local OpenAI-compatible endpoint (vLLM, LMStudio, LocalAI)
+    try:
+        v1_url = f"{base_url}/v1/chat/completions"
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": EXTRACTION_SYSTEM_PROMPT},
+                {"role": "user", "content": f"RAW OCR TEXT:\n\"\"\"\n{raw_text}\n\"\"\""},
+            ],
+            "response_format": {"type": "json_object"},
+            "temperature": 0.1,
+        }
+        resp = httpx.post(v1_url, json=payload, timeout=25.0)
+        if resp.status_code == 200:
+            choices = resp.json().get("choices", [])
+            if choices:
+                return choices[0].get("message", {}).get("content", "")
+    except Exception as e:
+        logger.debug("Local OpenAI-compatible LLM call failed: %s", e)
+
+    return None
+
+
 def extract_fields_llm(raw_text: str, mock_data: Optional[dict] = None) -> tuple[Optional[dict], Optional[str]]:
     """
     Executes Tier-2 LLM extraction against raw OCR text.
@@ -244,10 +293,19 @@ def extract_fields_llm(raw_text: str, mock_data: Optional[dict] = None) -> tuple
         return mock_res, "ai_extracted"
 
     raw_response_text = None
-    if provider == "gemini":
+    if provider in ("ollama", "local", "local_ai"):
+        raw_response_text = _call_ollama(raw_text)
+    elif provider == "gemini":
         raw_response_text = _call_gemini(raw_text)
+        # Automatic fallback to local Ollama if cloud key is missing or quota exhausted
+        if not raw_response_text:
+            logger.info("Cloud Gemini extraction unavailable, falling back to local Ollama engine...")
+            raw_response_text = _call_ollama(raw_text)
     elif provider == "anthropic":
         raw_response_text = _call_anthropic(raw_text)
+        if not raw_response_text:
+            logger.info("Anthropic extraction unavailable, falling back to local Ollama engine...")
+            raw_response_text = _call_ollama(raw_text)
     else:
         logger.warning("Unknown LLM provider: '%s'", provider)
         return None, "llm_extraction_failed"

@@ -64,3 +64,13 @@ def test_low_confidence_document_triggers_llm_mock():
     assert body["extraction_source"]["survey_number"] == "llm"
     assert body["extraction_source"].get("owner_name") in ("rules", "llm")
 
+
+def test_ollama_fallback_graceful_handling():
+    """Confirms Ollama provider handles unavailable local server gracefully without crashing."""
+    os.environ["LLM_PROVIDER"] = "ollama"
+    import llm_extractor
+    llm_extractor.reset_llm_call_count()
+    res, status = llm_extractor.extract_fields_llm("Survey 101/2 Area 5 acre")
+    assert status == "llm_extraction_failed"
+    assert res is None
+

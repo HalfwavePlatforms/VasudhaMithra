@@ -70,4 +70,20 @@ def test_get_spatial_portals():
     assert "karnataka" in data["portals"]
     assert "national" in data["portals"]
     assert "kgis.ksrsac.in" in data["portals"]["karnataka"]["portal_url"]
-    assert "bhuvan" in data["portals"]["national"]["portal_url"]
+    assert "bhuvan" in data["portals"]["national"]["portal_url"]
+
+
+def test_wms_proxy_whitelist_and_fallback():
+    # 1. Missing base_wms returns fallback transparent tile
+    r0 = client.get("/gis/wms-proxy")
+    assert r0.status_code == 200
+    assert r0.headers["content-type"] == "image/png"
+
+    # 2. Host not in whitelist returns 403 Forbidden
+    r_bad = client.get("/gis/wms-proxy", params={"base_wms": "https://malicious-site.com/tile"})
+    assert r_bad.status_code == 403
+
+    # 3. Allowed host returns image response (or fallback tile on timeout)
+    r_ok = client.get("/gis/wms-proxy", params={"base_wms": "https://bhuvan-panchayat3.nrsc.gov.in/bhuvan/wms"})
+    assert r_ok.status_code == 200
+    assert "image" in r_ok.headers["content-type"]

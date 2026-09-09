@@ -71,12 +71,20 @@ def run_ocr(image: np.ndarray, language_hint: str = "en") -> dict:
         res = _run_google_vision(image)
         res.setdefault("fallback_triggered", False)
         return res
+    if provider == "easyocr":
+        res = _run_easyocr(image, language_hint)
+        res.setdefault("fallback_triggered", False)
+        return res
+    if provider == "paddleocr":
+        res = _run_paddleocr(image, language_hint)
+        res.setdefault("fallback_triggered", False)
+        return res
     if provider == "mock":
         res = _run_mock_ocr(image)
         res.setdefault("fallback_triggered", False)
         return res
 
-    # Hybrid Mode: Tesseract first, fallback to Google Vision if confidence < HYBRID_THRESHOLD
+    # Hybrid Mode: Tesseract first, fallback to Google Vision or local deep learning if confidence < HYBRID_THRESHOLD
     if provider == "hybrid":
         try:
             tesseract_result = _run_tesseract(image, language_hint)
@@ -87,40 +95,39 @@ def run_ocr(image: np.ndarray, language_hint: str = "en") -> dict:
         t_conf = tesseract_result.get("confidence", 0.0)
 
         # Check threshold
-        if t_conf < HYBRID_THRESHOLD and time.time() >= _vision_billing_disabled_until:
-            # Step 2: Rate-limit and cost safeguards
-            if _hybrid_vision_calls >= HYBRID_MAX_CALLS:
-                logger.warning(
-                    f"Hybrid Vision fallback limit reached ({_hybrid_vision_calls}/{HYBRID_MAX_CALLS}). "
-                    "Skipping Vision fallback."
-                )
-                tesseract_result["fallback_triggered"] = False
-                tesseract_result["fallback_attempted"] = False
-                tesseract_result["fallback_note"] = "hybrid_fallback_disabled: monthly call budget reached"
-                return tesseract_result
+        if t_conf < HYBRID_THRESHOLD:
+            # 1. First attempt: If Google Vision is active and billing is enabled
+            if time.time() >= _vision_billing_disabled_until and _hybrid_vision_calls < HYBRID_MAX_CALLS:
+                try:
+                    vision_result = _run_google_vision(image)
+                    _increment_hybrid_vision_calls()
+                    vision_result["fallback_triggered"] = True
+                    vision_result["tesseract_confidence"] = t_conf
+                    logger.info(
+                        f"Hybrid fallback succeeded: Tesseract conf {t_conf:.3f} < {HYBRID_THRESHOLD:.2f}, "
+                        f"Vision conf {vision_result.get('confidence', 0.0):.3f} (Call #{_hybrid_vision_calls}/{HYBRID_MAX_CALLS})"
+                    )
+                    return vision_result
+                except Exception as e:
+                    logger.warning(f"Google Vision fallback attempt failed: {e}. Checking local deep learning engines.")
+                    err_str = str(e).lower()
+                    if "billing to be enabled" in err_str or "api key not valid" in err_str or "permissiondenied" in err_str:
+                        _vision_billing_disabled_until = time.time() + 3600.0
+                        logger.warning("Google Vision retry suspended for 1 hour due to billing/key configuration. Defaulting to fast local Tesseract engine.")
+                    tesseract_result["fallback_attempted"] = True
+                    tesseract_result["fallback_error"] = str(e)
 
-            try:
-                vision_result = _run_google_vision(image)
-                _increment_hybrid_vision_calls()
-                vision_result["fallback_triggered"] = True
-                vision_result["tesseract_confidence"] = t_conf
-                logger.info(
-                    f"Hybrid fallback succeeded: Tesseract conf {t_conf:.3f} < {HYBRID_THRESHOLD:.2f}, "
-                    f"Vision conf {vision_result.get('confidence', 0.0):.3f} (Call #{_hybrid_vision_calls}/{HYBRID_MAX_CALLS})"
-                )
-                return vision_result
-            except Exception as e:
-                # Vision failed (no key, billing disabled, quota exceeded, network) —
-                # do NOT crash the request, fall back to Tesseract result we already have, flagged clearly
-                logger.warning(f"Google Vision fallback attempt failed: {e}. Preserving Tesseract result.")
-                err_str = str(e).lower()
-                if "billing to be enabled" in err_str or "api key not valid" in err_str or "permissiondenied" in err_str:
-                    _vision_billing_disabled_until = time.time() + 3600.0
-                    logger.warning("Google Vision retry suspended for 1 hour due to billing/key configuration. Defaulting to fast local Tesseract engine.")
-                tesseract_result["fallback_attempted"] = True
-                tesseract_result["fallback_error"] = str(e)
-                tesseract_result["fallback_triggered"] = False
-                return tesseract_result
+            # 2. Second attempt: 100% Free local deep-learning OCR fallback (EasyOCR / PaddleOCR)
+            for local_ocr_fn, local_engine_name in [(_run_easyocr, "easyocr"), (_run_paddleocr, "paddleocr")]:
+                try:
+                    local_res = local_ocr_fn(image, language_hint)
+                    local_res["fallback_triggered"] = True
+                    local_res["tesseract_confidence"] = t_conf
+                    local_res["fallback_engine"] = local_engine_name
+                    logger.info(f"Local deep-learning OCR fallback ({local_engine_name}) succeeded with conf {local_res.get('confidence', 0.0):.3f}")
+                    return local_res
+                except Exception as dl_err:
+                    logger.debug(f"Local deep-learning OCR ({local_engine_name}) unavailable: {dl_err}")
 
         tesseract_result["fallback_triggered"] = False
         return tesseract_result
@@ -439,3 +446,106 @@ def _run_google_vision(image: np.ndarray) -> dict:
         return {"raw_text": full_text, "confidence": avg_conf, "bounding_boxes": boxes}
     except ImportError:
         raise RuntimeError("Google Vision API is not configured: GOOGLE_VISION_API_KEY is not set and google-cloud-vision SDK is not installed.")
+
+
+# ── Free & Open-Source Local Deep-Learning OCR Fallbacks ──────────────────────────
+
+_EASYOCR_READERS = {}
+
+def _run_easyocr(image: np.ndarray, language_hint: str = "en") -> dict:
+    """100% Free, local PyTorch-based Deep Learning OCR with CRAFT text detection."""
+    global _EASYOCR_READERS
+    try:
+        import easyocr
+    except ImportError:
+        raise RuntimeError("easyocr is not installed. Run: pip install easyocr")
+
+    lang_map = {
+        "en": ["en"],
+        "hi": ["hi", "en"],
+        "mr": ["mr", "en"],
+        "kn": ["kn", "en"],
+        "ta": ["ta", "en"],
+        "te": ["te", "en"],
+        "bn": ["bn", "en"],
+        "auto": ["hi", "en"],
+    }
+    langs = lang_map.get(language_hint, ["en"])
+    lang_key = "+".join(sorted(langs))
+    if lang_key not in _EASYOCR_READERS:
+        _EASYOCR_READERS[lang_key] = easyocr.Reader(langs, gpu=False)
+    reader = _EASYOCR_READERS[lang_key]
+
+    results = reader.readtext(image)
+    words, confidences, boxes = [], [], []
+    for bbox, text, conf in results:
+        if text.strip():
+            words.append(text)
+            c = float(conf)
+            confidences.append(c)
+            xs = [p[0] for p in bbox]
+            ys = [p[1] for p in bbox]
+            boxes.append({
+                "text": text,
+                "confidence": c,
+                "box": [float(min(xs)), float(min(ys)), float(max(xs)), float(max(ys))],
+            })
+
+    avg_conf = sum(confidences) / len(confidences) if confidences else 0.0
+    return {
+        "raw_text": " ".join(words),
+        "confidence": avg_conf,
+        "bounding_boxes": boxes,
+        "ocr_engine": "easyocr_local",
+    }
+
+
+_PADDLEOCR_INSTANCES = {}
+
+def _run_paddleocr(image: np.ndarray, language_hint: str = "en") -> dict:
+    """100% Free, local PaddleOCR engine for multilingual document layout & tabular recognition."""
+    global _PADDLEOCR_INSTANCES
+    try:
+        from paddleocr import PaddleOCR
+    except ImportError:
+        raise RuntimeError("paddleocr is not installed. Run: pip install paddlepaddle paddleocr")
+
+    lang_map = {
+        "en": "en",
+        "hi": "devanagari",
+        "mr": "devanagari",
+        "ta": "ta",
+        "te": "te",
+        "kn": "kannada",
+        "auto": "devanagari",
+    }
+    lang = lang_map.get(language_hint, "en")
+    if lang not in _PADDLEOCR_INSTANCES:
+        _PADDLEOCR_INSTANCES[lang] = PaddleOCR(use_angle_cls=True, lang=lang, show_log=False)
+    ocr = _PADDLEOCR_INSTANCES[lang]
+
+    results = ocr.ocr(image, cls=True)
+    words, confidences, boxes = [], [], []
+    if results and results[0]:
+        for line in results[0]:
+            box_pts = line[0]
+            text, conf = line[1]
+            if text.strip():
+                words.append(text)
+                c = float(conf)
+                confidences.append(c)
+                xs = [p[0] for p in box_pts]
+                ys = [p[1] for p in box_pts]
+                boxes.append({
+                    "text": text,
+                    "confidence": c,
+                    "box": [float(min(xs)), float(min(ys)), float(max(xs)), float(max(ys))],
+                })
+
+    avg_conf = sum(confidences) / len(confidences) if confidences else 0.0
+    return {
+        "raw_text": " ".join(words),
+        "confidence": avg_conf,
+        "bounding_boxes": boxes,
+        "ocr_engine": "paddleocr_local",
+    }
