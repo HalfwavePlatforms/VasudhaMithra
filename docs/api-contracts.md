@@ -64,15 +64,24 @@ Response:
     "mutation_number": "MR-12/2024"
   },
   "structured_record": {
-    "owner_name": { "value": "Ramesh Gowda", "confidence": 0.94 },
-    "survey_number": { "value": "145/2", "confidence": 0.98 },
-    "plot_area": { "value": "2.45 acre", "area_acres": 2.45, "unit": "acre", "confidence": 0.91 }
+    "owner_name": { "value": "Ramesh Gowda", "confidence": 0.94, "extraction_source": "rule_based" },
+    "survey_number": { "value": "145/2", "confidence": 0.98, "extraction_source": "rule_based" },
+    "plot_area": { "value": "2.45 acre", "area_acres": 2.45, "unit": "acre", "confidence": 0.91, "extraction_source": "rule_based" },
+    "khasra_number": { "value": "4891", "confidence": null, "extraction_source": "ai_assisted" }
   },
   "area_acres": 2.45,
-  "confidence_per_field": { "owner_name": 0.94, "survey_number": 0.98 },
-  "needs_review": []
+  "confidence_per_field": { "owner_name": 0.94, "survey_number": 0.98, "khasra_number": null },
+  "extraction_sources": {
+    "owner_name": "rule_based",
+    "survey_number": "rule_based",
+    "khasra_number": "ai_assisted"
+  },
+  "has_ai_assisted": true,
+  "needs_review": ["khasra_number"]
 }
 ```
+
+> **Tier-2 LLM Fallback Policy**: When fields are extracted via LLM (`ai_assisted`), confidence is strictly reported as `null` (never a fabricated numeric confidence). Any field with `extraction_source: "ai_assisted"` is automatically added to `needs_review` and flags the record for human verification (`pending_review`).
 
 ### POST /extraction/validate
 Request:
@@ -126,6 +135,66 @@ Response: `{ "status": "ok" }`
 ---
 
 ## 4. API Gateway (`api-gateway`, port 8000) — Orchestration & DB
+
+### Authentication & Session Management
+
+Authentication uses an OTP-based login workflow supporting Email and SMS (TextBee gateway), issuing a stateful Bearer token.
+
+#### POST /auth/request-otp
+Initiates login by dispatching a 6-digit verification code.
+Request:
+```json
+{
+  "role": "revenue | survey | citizen",
+  "email": "officer@nic.gov.in (required for revenue/survey, optional if phone provided)",
+  "phone": "+919876543210 (optional for revenue/survey, required if email omitted)"
+}
+```
+Response:
+```json
+{
+  "status": "success",
+  "message": "Verification code dispatched",
+  "delivery": "sms | email | dev_bypass",
+  "expires_in_seconds": 600
+}
+```
+
+#### POST /auth/verify-otp
+Verifies code and generates an authenticated session bearer token valid for 8 hours.
+Request:
+```json
+{
+  "identifier": "officer@nic.gov.in or +919876543210",
+  "otp": "123456"
+}
+```
+Response:
+```json
+{
+  "status": "success",
+  "token": "vasudha_bearer_4f9a...",
+  "token_type": "bearer",
+  "expires_in_seconds": 28800,
+  "user": {
+    "role": "officer",
+    "actor": "Revenue Officer",
+    "email": "officer@nic.gov.in"
+  }
+}
+```
+
+#### Authorization & RBAC Matrix
+Protected endpoints authenticate via `Authorization: Bearer <token>` (or legacy development `X-Role: <role>` and `X-Actor: <actor>` headers):
+
+| Role | Upload Records | View Records / GIS | Correct Fields | Approve / Reject | View Audit Trail |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **admin** | Yes | Yes | Yes | Yes | Yes |
+| **tahsildar** / **officer** | Yes | Yes | Yes | Yes | Yes |
+| **surveyor** | Yes | Yes | No (403) | No (403) | Yes |
+| **citizen** | Yes | Yes | No (403) | No (403) | Yes |
+
+---
 
 ### POST /records/upload
 Request: multipart form (`file`, optional `actor`)

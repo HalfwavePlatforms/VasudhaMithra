@@ -85,10 +85,25 @@ fields:
       - "సర్‌వే"
       - "1. ಸರ್‌ವೇ"
       - "ಸರ್‌ವೇ"
+    document_types:
+      - "Standard Land Record"
+      - "Record of Rights / RTC (Pahani)"
+      - "Sale Deed / Title Deed"
+      - "Mutation Register Extract"
+      - "Land Revenue / Tax Receipt"
+      - "clean_label_value"
+      - "numbered_box_rtc"
     required: true
 
   khasra_number:
     pattern: '\b[1-9]\d{0,3}([/-]\d+[A-Za-z]*)?\b'
+    document_types:
+      - "Standard Land Record"
+      - "Record of Rights / RTC (Pahani)"
+      - "Sale Deed / Title Deed"
+      - "Mutation Register Extract"
+      - "Land Revenue / Tax Receipt"
+      - "clean_label_value"
     keywords:
       # English
       - "khasra"
@@ -122,6 +137,13 @@ fields:
 
   khata_number:
     pattern: '\b[1-9]\d{0,3}\b'
+    document_types:
+      - "Standard Land Record"
+      - "Record of Rights / RTC (Pahani)"
+      - "Sale Deed / Title Deed"
+      - "Mutation Register Extract"
+      - "Land Revenue / Tax Receipt"
+      - "clean_label_value"
     keywords:
       # English
       - "khata"
@@ -158,6 +180,14 @@ fields:
 
   owner_name:
     pattern: null   # free text — extracted by keyword proximity, not regex
+    document_types:
+      - "Standard Land Record"
+      - "Record of Rights / RTC (Pahani)"
+      - "Sale Deed / Title Deed"
+      - "Mutation Register Extract"
+      - "Land Revenue / Tax Receipt"
+      - "clean_label_value"
+      - "numbered_box_rtc"
     window_chars: 250
     keywords:
       # English
@@ -239,6 +269,13 @@ fields:
 
   plot_area:
     pattern: '\d+(\.\d+)+|\d+(\.\d+)?\s*(acre|acres|hectare|hectares|guntha|gunthas|sq\.?\s?ft|sq\.?\s?m|gunta|guntas|एकड़|हेक्टेयर|गुंठा|ಎಕರೆ|ಗುಂಟೆ|ಗುಂಟಿ|ಹೆಕ್ಟೇರ್|ஏக்கர்|ఎకరం|একর)'
+    document_types:
+      - "Standard Land Record"
+      - "Record of Rights / RTC (Pahani)"
+      - "Sale Deed / Title Deed"
+      - "Mutation Register Extract"
+      - "Land Revenue / Tax Receipt"
+      - "clean_label_value"
     keywords:
       # English
       - "plot extent / area"
@@ -286,6 +323,13 @@ fields:
 
   village:
     pattern: null
+    document_types:
+      - "Standard Land Record"
+      - "Record of Rights / RTC (Pahani)"
+      - "Sale Deed / Title Deed"
+      - "Mutation Register Extract"
+      - "Land Revenue / Tax Receipt"
+      - "clean_label_value"
     keywords:
       # English
       - "village (gram)"
@@ -328,6 +372,13 @@ fields:
 
   tehsil:
     pattern: null
+    document_types:
+      - "Standard Land Record"
+      - "Record of Rights / RTC (Pahani)"
+      - "Sale Deed / Title Deed"
+      - "Mutation Register Extract"
+      - "Land Revenue / Tax Receipt"
+      - "clean_label_value"
     keywords:
       # English
       - "taluk:"
@@ -374,6 +425,13 @@ fields:
 
   district:
     pattern: null
+    document_types:
+      - "Standard Land Record"
+      - "Record of Rights / RTC (Pahani)"
+      - "Sale Deed / Title Deed"
+      - "Mutation Register Extract"
+      - "Land Revenue / Tax Receipt"
+      - "clean_label_value"
     keywords:
       # English
       - "district (zilla)"
@@ -410,6 +468,13 @@ fields:
 
   land_classification:
     pattern: null
+    document_types:
+      - "Standard Land Record"
+      - "Record of Rights / RTC (Pahani)"
+      - "Sale Deed / Title Deed"
+      - "Mutation Register Extract"
+      - "Land Revenue / Tax Receipt"
+      - "clean_label_value"
     window_chars: 120
     keywords:
       # English
@@ -446,7 +511,14 @@ fields:
     required: false
 
   mutation_number:
-    pattern: '(RR\s*\d+\s*)?MR\s*[-/]?\d+[/–-]\d+([/–-]\d+)?|\d{1,6}/\d{4}|MR[-/]?\d+[/]\d+'
+    pattern: '(RR\s*\d+\s*)?(?:MR|00|OO|O0|0O)\s*[-/]?[\d@S]+[/–-][\d]+([/–-]\d+)?|(RR\s*\d+\s*)?MR\s*[-/]?\d+[/–-]\d+([/–-]\d+)?|\d{1,6}/\d{4}|(?:MR|00|OO)[-/]?[\d@S]+[/]\d+'
+    document_types:
+      - "Standard Land Record"
+      - "Record of Rights / RTC (Pahani)"
+      - "Sale Deed / Title Deed"
+      - "Mutation Register Extract"
+      - "Land Revenue / Tax Receipt"
+      - "clean_label_value"
     keywords:
       # English
       - "mutation ref no"
@@ -479,11 +551,23 @@ fields:
       - "உரிமை மாற்றம்"
       # Telugu
       - "మ్యుటేషన్"
+      # Bengali
+      - "মিউটেশন কেস নং"
+      - "মিউটেশন কসে নং"
+      - "মডিটশেন কসে নং"
+      - "মিউটেশন"
     required: false
 
   registration_info:
     # Matches deed/registration numbers like 1234/2024, REG/456/2024
     pattern: '(REG[-/]?\d+[/]\d{4}|\d{3,6}/\d{4})'
+    document_types:
+      - "Standard Land Record"
+      - "Record of Rights / RTC (Pahani)"
+      - "Sale Deed / Title Deed"
+      - "Mutation Register Extract"
+      - "Land Revenue / Tax Receipt"
+      - "clean_label_value"
     window_chars: 120
     keywords:
       # English
@@ -511,6 +595,13 @@ fields:
 
   ownership_type:
     pattern: null
+    document_types:
+      - "Standard Land Record"
+      - "Record of Rights / RTC (Pahani)"
+      - "Sale Deed / Title Deed"
+      - "Mutation Register Extract"
+      - "Land Revenue / Tax Receipt"
+      - "clean_label_value"
     window_chars: 120
     keywords:
       # English

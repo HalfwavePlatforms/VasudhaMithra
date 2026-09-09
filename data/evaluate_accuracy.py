@@ -1,4 +1,5 @@
 import os
+os.environ["OCR_PROVIDER"] = os.getenv("OCR_PROVIDER", "tesseract")
 import glob
 import json
 import base64
@@ -8,7 +9,7 @@ from collections import defaultdict
 sys.path.insert(0, "services/ocr-pipeline/src")
 sys.path.insert(0, "services/extraction-engine/src")
 
-from preprocess import preprocess_image, classify_document
+from preprocess import preprocess_image, classify_document_details
 from ocr_engine import run_ocr, get_hybrid_vision_calls, HYBRID_THRESHOLD, HYBRID_MAX_CALLS
 from field_extractor import extract_fields
 
@@ -32,6 +33,12 @@ per_field_stats = defaultdict(lambda: {
     "real_conf_count": 0,
     "fallback_conf_count": 0,
     "conf_scores": []
+})
+
+matrix_stats = defaultdict(lambda: {
+    "total": 0,
+    "matched": 0,
+    "docs": 0
 })
 
 for img_path in files:
@@ -58,8 +65,18 @@ for img_path in files:
         if res.get("fallback_error"):
             fallback_errors.add(res["fallback_error"][:90] + "...")
 
+    doc_type, detected_lang, class_conf = classify_document_details(
+        res["raw_text"], res.get("bounding_boxes", [])
+    )
+    matrix_stats[(doc_type, lang_hint)]["docs"] += 1
 
-    extracted = extract_fields(res["raw_text"], res.get("bounding_boxes", []))
+    extracted = extract_fields(
+        res["raw_text"],
+        res.get("bounding_boxes", []),
+        document_type=doc_type,
+        language=lang_hint,
+        classification_confidence=class_conf,
+    )
     extracted_fields = extracted.get("fields", {})
     field_confs = extracted.get("confidence_per_field", {})
     raw_lower = res["raw_text"].lower()
@@ -72,6 +89,9 @@ for img_path in files:
         stats = per_field_stats[field_name]
         stats["total"] += 1
         total_fields_count += 1
+
+        m_cell = matrix_stats[(doc_type, lang_hint)]
+        m_cell["total"] += 1
 
         exp_str = str(expected_val).lower().strip()
         act_val = extracted_fields.get(field_name)
@@ -87,6 +107,7 @@ for img_path in files:
         if is_match:
             stats["matched"] += 1
             total_matched_count += 1
+            m_cell["matched"] += 1
 
         # Check confidence calculation vs fallback
         conf_raw = field_confs.get(field_name)
@@ -128,6 +149,21 @@ for field_name, stats in sorted(per_field_stats.items()):
     print(row)
 
 print(divider)
+
+# Print Accuracy Matrix by (Document Type × Language)
+m_header = f"| {'Document Type':<34} | {'Lang':<6} | {'Docs':<6} | {'Fields':<12} | {'Match Rate':<12} |"
+m_divider = f"|{'-'*36}|{'-'*8}|{'-'*8}|{'-'*14}|{'-'*14}|"
+
+print("\n### ACCURACY MATRIX BY (DOCUMENT TYPE x LANGUAGE)\n")
+print(m_header)
+print(m_divider)
+
+for (dtype, lang), mstats in sorted(matrix_stats.items()):
+    m_acc = (mstats["matched"] / mstats["total"] * 100) if mstats["total"] else 0.0
+    field_ratio = f"{mstats['matched']}/{mstats['total']}"
+    print(f"| {dtype:<34} | {lang:<6} | {mstats['docs']:<6} | {field_ratio:<12} | {m_acc:>8.1f}%   |")
+
+print(m_divider)
 
 overall_acc = (total_matched_count / total_fields_count * 100) if total_fields_count else 0.0
 overall_conf = (sum(ocr_confidences) / len(ocr_confidences) * 100) if ocr_confidences else 0.0

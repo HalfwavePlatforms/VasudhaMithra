@@ -120,6 +120,15 @@ def _load_rules() -> dict:
         return yaml.safe_load(f)
 
 
+def _get_all_field_keywords() -> dict[str, list[str]]:
+    rules = _load_rules()
+    field_kws = {}
+    for fn, fcfg in rules.get("fields", {}).items():
+        kws = [k.lower().strip() for k in fcfg.get("keywords", []) if len(k.strip()) >= 3]
+        field_kws[fn] = kws
+    return field_kws
+
+
 def parse_area_to_struct(area_str: str | None) -> dict | None:
     """
     Normalizes a raw area string into {"value": <float>, "unit": <str>, "raw": <str>}.
@@ -198,6 +207,7 @@ def extract_fields(
     total_required = len(required_field_names)
     threshold = rules.get("confidence_review_threshold", 0.75)
 
+    all_field_kws = _get_all_field_keywords()
     from llm_extractor import extract_fields_llm, is_llm_enabled
 
     # ── Legacy Tabular Register Handling ──
@@ -307,7 +317,7 @@ def extract_fields(
         for fn in all_field_names:
             if fn in ("survey_number", "owner_name"):
                 cfg = field_configs.get(fn, {})
-                val, conf = _extract_one_field(raw_text, bounding_boxes, cfg, field_name=fn)
+                val, conf = _extract_one_field(raw_text, bounding_boxes, cfg, field_name=fn, all_field_kws=all_field_kws)
                 should_recalibrate, penalty = get_correction_recalibration(
                     field_name=fn,
                     document_type=document_type,
@@ -359,7 +369,26 @@ def extract_fields(
     extraction_sources = {}
 
     for field_name, cfg in field_configs.items():
-        value, confidence = _extract_one_field(raw_text, bounding_boxes, cfg, field_name=field_name)
+        # P0 Item 1: Document-type scoping check
+        doc_types = cfg.get("document_types")
+        if doc_types and document_type:
+            norm_dt = document_type.lower().strip()
+            allowed = [dt.lower().strip() for dt in doc_types]
+            if not any(norm_dt == a or a in norm_dt or norm_dt in a for a in allowed):
+                fields[field_name] = None
+                confidence_per_field[field_name] = None
+                extraction_sources[field_name] = "rule_based"
+                structured_record[field_name] = {
+                    "value": None,
+                    "confidence": None,
+                    "extraction_source": "rule_based",
+                    "recalibrated": False,
+                }
+                continue
+
+        value, confidence = _extract_one_field(
+            raw_text, bounding_boxes, cfg, field_name=field_name, all_field_kws=all_field_kws
+        )
 
         # AI-driven learning mechanism: recalibrate confidence from human correction feedback
         should_recalibrate, penalty = get_correction_recalibration(
@@ -492,7 +521,13 @@ REVENUE_NOISE_TERMS = {
 }
 
 
-def _extract_one_field(raw_text: str, bounding_boxes: list[dict], cfg: dict, field_name: str = ""):
+def _extract_one_field(
+    raw_text: str,
+    bounding_boxes: list[dict],
+    cfg: dict,
+    field_name: str = "",
+    all_field_kws: dict[str, list[str]] | None = None,
+):
     keywords = cfg.get("keywords", [])
     pattern = cfg.get("pattern")
     window_size = cfg.get("window_chars", 100)
@@ -532,11 +567,36 @@ def _extract_one_field(raw_text: str, bounding_boxes: list[dict], cfg: dict, fie
                     match = re.search(pattern, window, re.IGNORECASE)
                     if match:
                         val = match.group(0).strip()
+                        if field_name == "mutation_number":
+                            # P0 Item 3: Normalize mutation numbers
+                            val = re.sub(r"^(?:00|OO|O0|0O)\s*[-/]?", "MR-", val, flags=re.IGNORECASE)
+                            val = re.sub(r"^MR\s*[-/]?", "MR-", val, flags=re.IGNORECASE)
+                            val = val.replace("@", "9")
+                            val = re.sub(r"^MR-S(\d)", r"MR-5\1", val, flags=re.IGNORECASE)
+                            if not val.upper().startswith("MR-") and "/" in val:
+                                val = f"MR-{val}"
                         conf = _confidence_for_text(val, bounding_boxes, idx, len(raw_text))
                         if conf > best_conf:
                             best_val, best_conf = val, conf
             else:
                 after_kw = window[len(kw):].strip(" :–-`'\"=\t\n")
+
+                # P0 Item 2: Truncate candidate free-text capture window at the earliest occurrence of ANY other field's keyword before character truncation
+                if all_field_kws:
+                    earliest_stop = len(after_kw)
+                    after_kw_lower = after_kw.lower()
+                    for other_fn, other_kws in all_field_kws.items():
+                        if other_fn == field_name:
+                            continue
+                        for okw in other_kws:
+                            if not okw or len(okw) < 3:
+                                continue
+                            stop_idx = after_kw_lower.find(okw)
+                            if stop_idx != -1 and stop_idx < earliest_stop:
+                                earliest_stop = stop_idx
+                    if earliest_stop < len(after_kw):
+                        after_kw = after_kw[:earliest_stop].strip(" :–-`'\"=\t\n")
+
                 candidate = ""
 
                 if field_name == "owner_name":
@@ -562,6 +622,8 @@ def _extract_one_field(raw_text: str, bounding_boxes: list[dict], cfg: dict, fie
                         candidate = "ಬೆಂಗಳೂರು ನಗರ"
                     else:
                         candidate = after_kw.split("\n")[0][:40].strip(" :–-`'\"=\t\n_|")
+                        # Strip (zilla) / (zila) / district / dist prefixes
+                        candidate = re.sub(r"^\(?(?:zilla|zila|district|dist)\)?[:\s\-–]*", "", candidate, flags=re.IGNORECASE).strip(" :–-`'\"=\t\n_|")
                 else:
                     candidate = after_kw.split("\n")[0][:60].strip()
                     # Stop candidate at subsequent label delimiters
@@ -618,7 +680,7 @@ def _confidence_for_text(text: str, bounding_boxes: list[dict], match_idx: int =
         matches = [
             b["confidence"]
             for b in bounding_boxes
-            if b.get("text") and b["text"] in text
+            if b.get("text") and b["text"].lower() in text.lower()
         ]
         if matches:
             bbox_conf = float(sum(matches) / len(matches))

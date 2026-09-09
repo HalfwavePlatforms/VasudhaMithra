@@ -189,7 +189,7 @@ async def upload_record(
         _log(db, record.id, "uploaded", actor=actor, details={"filename": file.filename, "language": lang_hint, "file_path": record.file_path})
 
         # 1. OCR Step
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        async with httpx.AsyncClient(timeout=180.0) as client:
             try:
                 ocr_resp = await client.post(
                     f"{OCR_SERVICE_URL}/ocr/extract",
@@ -200,14 +200,21 @@ async def upload_record(
             except httpx.HTTPError as e:
                 record.status = "rejected"
                 db.commit()
-                err_detail = str(e)
+                err_detail = str(e).strip()
                 if hasattr(e, "response") and e.response is not None:
                     try:
                         err_json = e.response.json()
                         err_detail = err_json.get("detail", err_detail)
                     except Exception:
                         err_detail = e.response.text or err_detail
-                logger.error(f"OCR service failed for record {record.id}: {err_detail}")
+                if not err_detail:
+                    if isinstance(e, httpx.TimeoutException):
+                        err_detail = "OCR service request timed out (image may be high-resolution or multi-page)"
+                    elif isinstance(e, httpx.NetworkError):
+                        err_detail = f"OCR service network connection failed: {type(e).__name__}"
+                    else:
+                        err_detail = f"OCR service failed with {type(e).__name__}"
+                logger.error(f"OCR service failed for record {record.id}: {err_detail}", exc_info=True)
                 raise HTTPException(status_code=502, detail=f"OCR service failed: {err_detail}")
 
         record.raw_ocr_text = ocr_data["raw_text"]
