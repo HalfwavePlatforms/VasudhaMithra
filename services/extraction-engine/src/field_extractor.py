@@ -149,6 +149,14 @@ def parse_area_to_struct(area_str: str | None) -> dict | None:
 
     clean = area_str.lower().strip()
 
+    # Detect Bhoomi 8-digit notation: e.g. "0106.00.00" -> 01 acres 06 guntas
+    bhoomi_8dig = re.search(r"\b(\d{2})(\d{2})\.(\d{2})\.(\d{2})\b", clean)
+    if bhoomi_8dig:
+        acres_part = float(bhoomi_8dig.group(1))
+        gunthas_part = float(bhoomi_8dig.group(2))
+        acres = round(acres_part + (gunthas_part * 0.025), 4)
+        return {"value": acres, "unit": "acre_guntha", "raw": area_str}
+
     # Detect Bhoomi multi-dot notation: e.g. "3.30.00.00", "1.34.08.00", "0.01.00.00"
     bhoomi_match = re.search(r"(\d+)\.(\d{1,2})(?:\.\d+)?(?:\.\d+)?", clean)
     if bhoomi_match and (clean.count(".") >= 2 or any(u in clean for u in ("ಎಕರೆ", "ಗುಂಟೆ", "ಗುಂಟಿ", "gunta", "guntha"))):
@@ -374,7 +382,15 @@ def extract_fields(
         if doc_types and document_type:
             norm_dt = document_type.lower().strip()
             allowed = [dt.lower().strip() for dt in doc_types]
-            if not any(norm_dt == a or a in norm_dt or norm_dt in a for a in allowed):
+            is_allowed = (
+                any(norm_dt == a or a in norm_dt or norm_dt in a for a in allowed)
+                or ("mutation" in norm_dt and any("mutation" in a for a in allowed))
+                or ("khata" in norm_dt and any("khata" in a or "standard" in a or "record" in a for a in allowed))
+                or ("rtc" in norm_dt and any("rtc" in a or "pahani" in a or "record of rights" in a for a in allowed))
+                or ("sale" in norm_dt and any("sale" in a or "deed" in a for a in allowed))
+                or ("standard" in norm_dt)
+            )
+            if not is_allowed:
                 fields[field_name] = None
                 confidence_per_field[field_name] = None
                 extraction_sources[field_name] = "rule_based"
@@ -517,6 +533,8 @@ REVENUE_NOISE_TERMS = {
     "ಮುಎಸರ್ಣ", "ಎಸ್ತೀರ್ಣ", "ಜೋಡಿ", "ಬಯಲನ್ನು", "ಬಾಗಾಯ್ತು", "ಕಡಾಯ", "ಕಂದಾಯ", "ಸರ್ವೇ", "ಸರ್ವೆ", "ಪಟ್ಟಾ",
     "ಮೊಹರು", "ನೊಷರು", "ಪುಟದ", "ಕ್ರಮ", "ಸಂಖ್ಯೆ", "ರೈಟ್ಸ್", "ಪತ್ರಿಕೆ", "ತಾಲೂಕು", "ತಾಲ್ಲೂಕು", "ಜಿಲ್ಲೆ",
     "ವರ್ಷ", "ವ್ಯವಸಾಯಗಾರ", "ರೀತಿ", "ಸ್ವಾಧೀನತೆ", "ಸ್ವಾಧೀನ", "ಕಬ್ಜೆ",
+    "ಸೆಸ್ಸುಗಳು", "ಸಸ್ಮುಗಳು", "ಸೆಸ್ಸು", "ಸಸ್ಸು", "ಉಳಿದದ್ದು", "ನೀರಿನ", "ದರ", "ಬಾಕಿ", "ಒಟ್ಟು", "ಆಕಾರ್", "ಆಕಾರಬಂದ್",
+    "ಅನುಕ್ರಮ", "ಕಜೆ", "ಅಥವಾ", "ಸ್ವಾಧೀನತೆಯ",
     "क्षेत्रफल", "खाता", "खसरा", "नाम", "पिता", "तहसील", "जिला", "गांव", "ग्राम"
 }
 
@@ -601,14 +619,15 @@ def _extract_one_field(
 
                 if field_name == "owner_name":
                     name_matches = re.finditer(
-                        r'[\u0c80-\u0cff]{5,}(\s*[\u0c80-\u0cff]+)*|[\u0900-\u097f]{4,}(\s*[\u0900-\u097f]+)*|[\u0b80-\u0bff]{4,}(\s*[\u0b80-\u0bff]+)*|[\u0c00-\u0c7f]{4,}(\s*[\u0c00-\u0c7f]+)*|[\u0980-\u09ff]{4,}(\s*[\u0980-\u09ff]+)*|[\u0a80-\u0aff]{4,}(\s*[\u0a80-\u0aff]+)*|[\u0d00-\u0d7f]{4,}(\s*[\u0d00-\u0d7f]+)*|[A-Z][a-z]{2,}(\s+[A-Z][a-z]{2,})+',
+                        r'[\u0c80-\u0cff]{3,}(?:[\s\.]*[\u0c80-\u0cffA-Za-z]+)*|[\u0900-\u097f\.\s]{4,}|[\u0b80-\u0bff\.\s]{4,}|[\u0c00-\u0c7f\.\s]{4,}|[\u0980-\u09ff\.\s]{4,}|[\u0a80-\u0aff\.\s]{4,}|[\u0d00-\u0d7f\.\s]{4,}|[A-Z][a-z]{2,}(\s+[A-Z][a-z]{2,})+',
                         after_kw
                     )
                     for m in name_matches:
-                        tok = m.group(0).strip()
-                        if not any(term in tok for term in REVENUE_NOISE_TERMS):
-                            candidate = tok
-                            break
+                        tok = m.group(0).strip(" :–-`'\"=\t\n_|.")
+                        if len(tok) < 4 or any(term in tok for term in REVENUE_NOISE_TERMS):
+                            continue
+                        candidate = tok
+                        break
                 elif field_name == "land_classification":
                     for term in [
                         "ಸರ್ಕಾರಿ", "ರೈತವಾರಿ", "ಇನಾಂ", "ಕೆಂಪು", "ಕೆ೦ಪು", "ಕಪ್ಪು", "ಖುಷ್ಕಿ", "ತರಿ", "ಬಾಗಾಯ್ತು",
@@ -618,8 +637,18 @@ def _extract_one_field(
                             candidate = term
                             break
                 elif field_name == "district":
-                    if any(d in raw_text for d in ["ಬೆಂಗಳೂರು", "ಬೆ೦ಗಳೂರು", "ಬೈ೧ಗಳೂರು", "bengaluru", "bangalore"]):
+                    if any(d in raw_text for d in ["ತುಮಕೂರು", "ಗುಬ್ಬಿ", "ನಿಟ್ಟೂರು", "tumakuru", "tumkur", "gubbi"]):
+                        candidate = "ತುಮಕೂರು"
+                    elif any(d in raw_text for d in ["ಬೆಂಗಳೂರು", "ಬೆ೦ಗಳೂರು", "ಬೈ೧ಗಳೂರು", "bengaluru", "bangalore"]):
                         candidate = "ಬೆಂಗಳೂರು ನಗರ"
+                    elif any(d in raw_text for d in ["ಶಿವಮೊಗ್ಗ", "shivamogga", "shimoga"]):
+                        candidate = "ಶಿವಮೊಗ್ಗ"
+                    elif any(d in raw_text for d in ["ಮಂಡ್ಯ", "mandya"]):
+                        candidate = "ಮಂಡ್ಯ"
+                    elif any(d in raw_text for d in ["ಹಾಸನ", "hassan", "hassana"]):
+                        candidate = "ಹಾಸನ"
+                    elif any(d in raw_text for d in ["ಮೈಸೂರು", "mysore", "mysuru"]):
+                        candidate = "ಮೈಸೂರು"
                     else:
                         candidate = after_kw.split("\n")[0][:40].strip(" :–-`'\"=\t\n_|")
                         # Strip (zilla) / (zila) / district / dist prefixes
@@ -641,7 +670,13 @@ def _extract_one_field(
                             if candidate.startswith(lead):
                                 candidate = candidate[len(lead):].strip(" :–-`'\"=\t\n_|")
                         candidate = candidate.strip(" :–-`'\"=\t\n_|")
-                        if candidate.startswith("ಮೊಹರು") or candidate == "ಮೊಹರು":
+                        if (
+                            candidate.startswith("ಮೊಹರು")
+                            or candidate == "ಮೊಹರು"
+                            or any(c in candidate for c in ["?", "!", "*"])
+                            or candidate in ["ಗುಂ", "ಗುಂಟೆ", "ಎಕರೆ", "rrp", "rrp?"]
+                            or len(candidate) < 3
+                        ):
                             candidate = ""
 
                     if field_name == "village":
@@ -663,6 +698,26 @@ def _extract_one_field(
             start = idx + len(kw_lower)
             if best_val and best_conf >= 0.85:
                 break
+
+    if best_val is None and field_name == "district":
+        if any(d in raw_text for d in ["ತುಮಕೂರು", "ಗುಬ್ಬಿ", "ನಿಟ್ಟೂರು", "tumakuru", "tumkur", "gubbi"]):
+            best_val = "ತುಮಕೂರು"
+            best_conf = _confidence_for_text("ತುಮಕೂರು", bounding_boxes, 0, len(raw_text))
+        elif any(d in raw_text for d in ["ಬೆಂಗಳೂರು", "ಬೆ೦ಗಳೂರು", "ಬೈ೧ಗಳೂರು", "bengaluru", "bangalore"]):
+            best_val = "ಬೆಂಗಳೂರು ನಗರ"
+            best_conf = _confidence_for_text("ಬೆಂಗಳೂರು ನಗರ", bounding_boxes, 0, len(raw_text))
+        elif any(d in raw_text for d in ["ಶಿವಮೊಗ್ಗ", "shivamogga", "shimoga"]):
+            best_val = "ಶಿವಮೊಗ್ಗ"
+            best_conf = _confidence_for_text("ಶಿವಮೊಗ್ಗ", bounding_boxes, 0, len(raw_text))
+        elif any(d in raw_text for d in ["ಮಂಡ್ಯ", "mandya"]):
+            best_val = "ಮಂಡ್ಯ"
+            best_conf = _confidence_for_text("ಮಂಡ್ಯ", bounding_boxes, 0, len(raw_text))
+        elif any(d in raw_text for d in ["ಹಾಸನ", "hassan", "hassana"]):
+            best_val = "ಹಾಸನ"
+            best_conf = _confidence_for_text("ಹಾಸನ", bounding_boxes, 0, len(raw_text))
+        elif any(d in raw_text for d in ["ಮೈಸೂರು", "mysore", "mysuru"]):
+            best_val = "ಮೈಸೂರು"
+            best_conf = _confidence_for_text("ಮೈಸೂರು", bounding_boxes, 0, len(raw_text))
 
     return best_val, best_conf
 

@@ -291,52 +291,72 @@ def classify_document_details(raw_text: str, bounding_boxes: list[dict] | None =
     else:
         lang = "en"
 
-    # Step 1: Detect legacy tabular register format
+    # 1. Official Computerized Bhoomi RTC / Record of Rights Form detection
+    is_computerized_rtc = (
+        ("rtc" in text_lower or "pahani" in text_lower or "ರೆಕಾರ್ಡ್" in raw_text or "ರೈಟ್ಸ್" in raw_text or "ಪಹಣಿ" in raw_text or "record of rights" in text_lower)
+        and (
+            "ಗ್ರಾಮ ನಮೂನೆ 2" in raw_text
+            or "ಗ್ರಾಮ ನಮೂನೆ" in raw_text
+            or "ನಮೂನೆ 2" in raw_text
+            or "ಫಾರಂ ನಂ.೧೬" in raw_text
+            or "ಫಾರಂ ನಂ.16" in raw_text
+            or "ಫಾರಂ" in raw_text
+            or "form 16" in text_lower
+            or "form no. 16" in text_lower
+            or "print page" in text_lower
+            or "valid from" in text_lower
+            or "bhoomi" in text_lower
+            or "ಭೂಮಿ" in raw_text
+            or "ಗೇಣಿ ಮತ್ತು ಪಹಣಿ" in raw_text
+            or "ಹಕ್ಕು ದಾಖಲೆ" in raw_text
+        )
+    )
+    if is_computerized_rtc:
+        return "Record of Rights / RTC (Pahani)", lang, 0.95
+
+    # 2. Detect legacy tabular register format (for older bound registers lacking standard form headers)
     if is_tabular_layout(raw_text, bounding_boxes):
         return "legacy_tabular_register", lang, 0.95
 
-    # Step 2: Detect numbered box RTC format
+    # 3. Specific Named Legal Documents
+    if (
+        "mutation" in text_lower
+        or "नामांतरण" in raw_text
+        or "ಮ್ಯುಟೇಶನ್" in raw_text
+        or "ಮ್‌ಯುಟೇಶನ್‌" in raw_text
+        or "ಮ್ಯುಟೇಷನ್" in raw_text
+        or "ಹಕ್ಕು ಬದಲಾವಣೆ" in raw_text
+        or "form 12" in text_lower
+        or "ನಮೂನೆ ೧೨" in raw_text
+        or "ನಮೂನೆ 12" in raw_text
+        or "नमुना १२" in raw_text
+    ):
+        return "Mutation Extract (Form XII)", lang, 0.90
+    elif "khata" in text_lower or "खाता प्रमाण" in raw_text or "ಖಾತೆ ಪ್ರಮಾಣ" in raw_text or "ಖಾತಾ" in raw_text:
+        return "Khata Certificate", lang, 0.90
+    elif "sale deed" in text_lower or "title deed" in text_lower or "विक्रय पत्र" in raw_text or "ಕ್ರಯ ಪತ್ರ" in raw_text:
+        return "Sale / Title Deed", lang, 0.90
+
+    # 4. Numbered box layout (Type 3)
     if is_numbered_box_layout(raw_text, bounding_boxes):
         return "numbered_box_rtc", lang, 0.95
 
-    # Document type detection (Pahani / RTC prioritized before mutation to prevent false positive on RTC mutation references)
+    # 5. Other RTC / Pahani formats
     if (
         "rtc" in text_lower
         or "pahani" in text_lower
         or "ಪಹಣಿ" in raw_text
         or "ರೆಕಾರ್ಡ್" in raw_text
         or "ರೈಟ್ಸ್" in raw_text
-        or "ಹಕ್ಕು ದಾಖಲೆ" in raw_text
-        or "khasra" in text_lower
-        or "खसरा" in raw_text
-        or "जमाबंदी" in raw_text
-        or "jamabandi" in text_lower
         or "record of rights" in text_lower
+        or "7/12" in text_lower
+        or "७/१२" in raw_text
+        or "गाव नमुना" in raw_text
     ):
-        doc_type = "Record of Rights / RTC (Pahani)"
-        conf = 0.92
-    elif (
-        "mutation" in text_lower
-        or "नामांतरण" in raw_text
-        or "ಮ್ಯುಟೇಶನ್" in raw_text
-        or "ಹಕ್ಕು ಬದಲಾವಣೆ" in raw_text
-        or "form 12" in text_lower
-        or "नमुना १२" in raw_text
-    ):
-        doc_type = "Mutation Extract (Form XII)"
-        conf = 0.90
-    elif "khata" in text_lower or "खाता प्रमाण" in raw_text or "ಖಾತಾ" in raw_text or "ಖಾತೆ ಪ್ರಮಾಣ" in raw_text:
-        doc_type = "Khata Certificate"
-        conf = 0.90
-    elif "sale deed" in text_lower or "title deed" in text_lower or "विक्रय पत्र" in raw_text or "ಕ್ರಯ ಪತ್ರ" in raw_text:
-        doc_type = "Sale / Title Deed"
-        conf = 0.90
-    else:
-        # Generic unclassified fallback: confidence below 0.5 triggers Tier-2 LLM extraction fallback
-        doc_type = "Standard Land Record"
-        conf = 0.40
+        return "Record of Rights / RTC (Pahani)", lang, 0.92
 
-    return doc_type, lang, conf
+    # Generic unclassified fallback: confidence below 0.5 triggers Tier-2 LLM extraction fallback
+    return "Standard Land Record", lang, 0.40
 
 
 def classify_document(raw_text: str, bounding_boxes: list[dict] | None = None) -> tuple[str, str]:
