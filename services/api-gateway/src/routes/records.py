@@ -508,7 +508,7 @@ def verify_audit_trail(record_id: uuid.UUID, db: Session = Depends(get_db)):
     expected_prev = "GENESIS"
 
     for entry in entries:
-        if not entry.curr_hash:
+        if not entry.curr_hash or not entry.hash_input_ts:
             legacy_count += 1
             continue
 
@@ -526,7 +526,7 @@ def verify_audit_trail(record_id: uuid.UUID, db: Session = Depends(get_db)):
             action=entry.action,
             actor=entry.actor,
             details=entry.details,
-            timestamp=entry.created_at,
+            ts_str=entry.hash_input_ts,
         )
 
         if entry.curr_hash != recomputed_hash:
@@ -923,19 +923,11 @@ def compute_audit_hash(
     action: str,
     actor: str | None,
     details: dict | None,
-    timestamp: any,
+    ts_str: str,
 ) -> str:
-    if isinstance(timestamp, datetime):
-        if timestamp.tzinfo is None:
-            ts = timestamp.replace(tzinfo=timezone.utc)
-        else:
-            ts = timestamp.astimezone(timezone.utc)
-        ts_str = ts.isoformat()
-    else:
-        ts_str = str(timestamp)
     actor_str = actor or ""
     details_str = json.dumps(details or {}, sort_keys=True)
-    payload = f"{prev_hash or ''}{str(record_id)}{action or ''}{actor_str}{details_str}{ts_str}"
+    payload = f"{prev_hash or ''}{str(record_id)}{action or ''}{actor_str}{details_str}{str(ts_str)}"
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
@@ -952,13 +944,14 @@ def _log(db: Session, record_id: uuid.UUID, action: str, actor: str = "system", 
         prev_hash = "GENESIS"
 
     now = datetime.now(timezone.utc)
+    ts_str = now.isoformat()
     curr_hash = compute_audit_hash(
         prev_hash=prev_hash,
         record_id=record_id,
         action=action,
         actor=actor,
         details=details,
-        timestamp=now,
+        ts_str=ts_str,
     )
     entry = AuditLog(
         record_id=record_id,
@@ -968,6 +961,7 @@ def _log(db: Session, record_id: uuid.UUID, action: str, actor: str = "system", 
         created_at=now,
         prev_hash=prev_hash,
         curr_hash=curr_hash,
+        hash_input_ts=ts_str,
     )
     db.add(entry)
     db.commit()

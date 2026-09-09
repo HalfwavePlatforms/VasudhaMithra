@@ -82,6 +82,7 @@ class AuditLog(Base):
     # prev_hash can be null for legacy rows or the genesis entry ("GENESIS")
     prev_hash = Column(String, nullable=True)
     curr_hash = Column(String, nullable=False)
+    hash_input_ts = Column(String, nullable=True)
 
 
 class CorrectionLog(Base):

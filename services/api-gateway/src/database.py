@@ -42,8 +42,15 @@ try:
                 if "extraction_source" not in cols:
                     conn.execute(text("ALTER TABLE record_fields ADD COLUMN extraction_source VARCHAR DEFAULT 'rule_based'"))
                     conn.commit()
+                audit_cols = [r[1] for r in conn.execute(text("PRAGMA table_info(audit_log)")).fetchall()]
+                if "hash_input_ts" not in audit_cols:
+                    conn.execute(text("ALTER TABLE audit_log ADD COLUMN hash_input_ts VARCHAR"))
+                    conn.commit()
             else:
                 conn.execute(text("ALTER TABLE record_fields ADD COLUMN IF NOT EXISTS extraction_source VARCHAR DEFAULT 'rule_based'"))
+                conn.execute(text("ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS prev_hash VARCHAR"))
+                conn.execute(text("ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS curr_hash VARCHAR"))
+                conn.execute(text("ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS hash_input_ts VARCHAR"))
                 conn.commit()
         except Exception as mig_err:
             logger.debug("Column migration check: %s", mig_err)
