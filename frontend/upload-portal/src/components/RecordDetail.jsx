@@ -119,8 +119,8 @@ export default function RecordDetail({ recordId, onBack }) {
 
   if (loading) {
     return (
-      <div style={{ padding: "48px 16px", textAlign: "center", color: "#6B7280", fontSize: "14px", fontFamily: "Inter, sans-serif" }}>
-        ⏳ Fetching record details for <code style={{ fontFamily: "monospace", color: "#0B3B60" }}>{recordId}</code>...
+      <div style={{ padding: "48px 16px", textAlign: "center", color: "var(--color-text-muted)", fontSize: "14px", fontFamily: "Inter, sans-serif" }}>
+        ⏳ Fetching record details for <code style={{ fontFamily: "monospace", color: "var(--color-accent)" }}>{recordId}</code>...
       </div>
     );
   }
@@ -130,11 +130,11 @@ export default function RecordDetail({ recordId, onBack }) {
       <div style={{ maxWidth: "1280px", margin: "24px auto", padding: "0 16px", fontFamily: "Inter, sans-serif" }}>
         <button
           onClick={onBack}
-          style={{ backgroundColor: "#F3F4F6", border: "1px solid #D1D5DB", padding: "6px 14px", borderRadius: "6px", fontSize: "12px", cursor: "pointer", fontWeight: 600, marginBottom: "16px" }}
+          style={{ backgroundColor: "var(--color-bg-tertiary)", border: "1px solid var(--color-border-strong)", padding: "6px 14px", borderRadius: "8px", fontSize: "12px", cursor: "pointer", fontWeight: 600, marginBottom: "16px", color: "var(--color-text-primary)" }}
         >
           ← Back to Review Queue
         </button>
-        <div style={{ padding: "20px", backgroundColor: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "8px", color: "#991B1B", fontSize: "13px" }}>
+        <div style={{ padding: "20px", backgroundColor: "var(--color-error-bg)", border: "1px solid var(--color-error-border)", borderRadius: "12px", color: "var(--color-error)", fontSize: "13px" }}>
           <div style={{ fontWeight: 700, marginBottom: "4px" }}>⚠️ Error Loading Record Details</div>
           <div>{error || "Record not found."}</div>
         </div>
@@ -143,19 +143,19 @@ export default function RecordDetail({ recordId, onBack }) {
   }
 
   const riskUpper = (record.risk_level || "LOW").toUpperCase();
-  let riskBadge = { bg: "#ECFDF5", text: "#059669", border: "#A7F3D0", label: "✓ LOW" };
+  let riskBadge = { bg: "var(--color-success-bg)", text: "var(--color-success)", border: "var(--color-success-border)", label: "✓ LOW" };
   if (riskUpper === "MEDIUM") {
-    riskBadge = { bg: "#FFFBEB", text: "#D97706", border: "#FDE68A", label: "⚠️ MEDIUM" };
+    riskBadge = { bg: "var(--color-warning-bg)", text: "var(--color-warning)", border: "var(--color-warning-border)", label: "⚠️ MEDIUM" };
   } else if (riskUpper === "HIGH") {
-    riskBadge = { bg: "#FEF2F2", text: "#DC2626", border: "#FECACA", label: "⚠️ HIGH" };
+    riskBadge = { bg: "var(--color-error-bg)", text: "var(--color-error)", border: "var(--color-error-border)", label: "⚠️ HIGH" };
   }
 
   const statusNorm = (record.status || "pending_review").toLowerCase();
-  let statusBadge = { bg: "#FFFBEB", text: "#D97706", border: "#FDE68A", label: "⏳ PENDING REVIEW" };
+  let statusBadge = { bg: "var(--color-warning-bg)", text: "var(--color-warning)", border: "var(--color-warning-border)", label: "⏳ PENDING REVIEW" };
   if (statusNorm === "validated") {
-    statusBadge = { bg: "#ECFDF5", text: "#059669", border: "#A7F3D0", label: "✓ VALIDATED" };
+    statusBadge = { bg: "var(--color-success-bg)", text: "var(--color-success)", border: "var(--color-success-border)", label: "✓ VALIDATED" };
   } else if (statusNorm === "rejected") {
-    statusBadge = { bg: "#FEF2F2", text: "#DC2626", border: "#FECACA", label: "✕ REJECTED" };
+    statusBadge = { bg: "var(--color-error-bg)", text: "var(--color-error)", border: "var(--color-error-border)", label: "✕ REJECTED" };
   }
 
   const hasOcrConf = typeof record.ocr_confidence === "number" && !isNaN(record.ocr_confidence) && record.ocr_confidence > 0;
@@ -164,50 +164,50 @@ export default function RecordDetail({ recordId, onBack }) {
     : "Unverified";
 
   return (
-    <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "24px 24px", fontFamily: "Inter, system-ui, -apple-system, sans-serif", color: "#1F2937" }}>
+    <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "24px 24px", fontFamily: "Inter, system-ui, -apple-system, sans-serif", color: "var(--color-text-primary)" }}>
       {/* Top Action Bar */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
         <button
           onClick={onBack}
-          style={{ backgroundColor: "#0B3B60", color: "#FFFFFF", border: "none", padding: "8px 16px", borderRadius: "6px", fontSize: "12px", fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px" }}
+          style={{ backgroundColor: "var(--color-sidebar-bg)", color: "var(--color-text-light)", border: "none", padding: "8px 16px", borderRadius: "8px", fontSize: "12px", fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px" }}
         >
           ← Back to Review Queue
         </button>
-        <span style={{ fontSize: "12px", color: "#6B7280" }}>
-          Ingested ISO Timestamp: <strong style={{ color: "#374151" }}>{record.uploaded_at ? new Date(record.uploaded_at).toLocaleString() : "—"}</strong>
+        <span style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>
+          Ingested ISO Timestamp: <strong style={{ color: "var(--color-text-primary)" }}>{record.uploaded_at ? new Date(record.uploaded_at).toLocaleString() : "—"}</strong>
         </span>
       </div>
 
       {/* Header Info Banner */}
-      <div style={{ backgroundColor: "#FFFFFF", borderRadius: "8px", border: "1px solid #E5E7EB", padding: "20px", marginBottom: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+      <div style={{ backgroundColor: "var(--color-bg-secondary)", borderRadius: "12px", border: "1px solid var(--color-border)", padding: "24px", marginBottom: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
           <div>
-            <div style={{ fontSize: "11px", fontFamily: "monospace", color: "#0B3B60", fontWeight: 700, marginBottom: "4px" }}>
+            <div style={{ fontSize: "11px", fontFamily: "monospace", color: "var(--color-accent)", fontWeight: 700, marginBottom: "4px" }}>
               RECORD ID: {record.record_id} | FILE: {record.original_filename || "—"}
             </div>
-            <h2 style={{ fontSize: "20px", fontWeight: 700, color: "#0B3B60", margin: "4px 0" }}>
+            <h2 style={{ fontSize: "22px", fontWeight: 700, color: "var(--color-text-primary)", margin: "4px 0", fontFamily: "serif" }}>
               {record.document_type || "Land Record"} ({record.language ? record.language.toUpperCase() : "EN"})
             </h2>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
             <div style={{ textAlign: "right" }}>
-              <span style={{ fontSize: "11px", color: "#6B7280", display: "block", fontWeight: 600, textTransform: "uppercase" }}>Risk Level</span>
-              <span style={{ fontSize: "11px", fontWeight: 700, padding: "3px 8px", borderRadius: "6px", backgroundColor: riskBadge.bg, color: riskBadge.text, border: `1px solid ${riskBadge.border}`, display: "inline-flex", alignItems: "center", gap: "4px" }}>
+              <span style={{ fontSize: "11px", color: "var(--color-text-muted)", display: "block", fontWeight: 600, textTransform: "uppercase" }}>Risk Level</span>
+              <span style={{ fontSize: "11px", fontWeight: 700, padding: "3px 8px", borderRadius: "9999px", backgroundColor: riskBadge.bg, color: riskBadge.text, border: `1px solid ${riskBadge.border}`, display: "inline-flex", alignItems: "center", gap: "4px" }}>
                 {riskBadge.label}
               </span>
             </div>
 
             <div style={{ textAlign: "right" }}>
-              <span style={{ fontSize: "11px", color: "#6B7280", display: "block", fontWeight: 600, textTransform: "uppercase" }}>Status</span>
-              <span style={{ fontSize: "11px", fontWeight: 700, padding: "3px 8px", borderRadius: "6px", backgroundColor: statusBadge.bg, color: statusBadge.text, border: `1px solid ${statusBadge.border}`, display: "inline-flex", alignItems: "center", gap: "4px" }}>
+              <span style={{ fontSize: "11px", color: "var(--color-text-muted)", display: "block", fontWeight: 600, textTransform: "uppercase" }}>Status</span>
+              <span style={{ fontSize: "11px", fontWeight: 700, padding: "3px 8px", borderRadius: "9999px", backgroundColor: statusBadge.bg, color: statusBadge.text, border: `1px solid ${statusBadge.border}`, display: "inline-flex", alignItems: "center", gap: "4px" }}>
                 {statusBadge.label}
               </span>
             </div>
 
-            <div style={{ textAlign: "right", paddingLeft: "16px", borderLeft: "1px solid #E5E7EB" }}>
-              <span style={{ fontSize: "11px", color: "#6B7280", display: "block", fontWeight: 600, textTransform: "uppercase" }}>OCR Confidence</span>
-              <span style={{ fontSize: "20px", fontWeight: 800, color: hasOcrConf ? "#059669" : "#6B7280" }}>
+            <div style={{ textAlign: "right", paddingLeft: "16px", borderLeft: "1px solid var(--color-border-subtle)" }}>
+              <span style={{ fontSize: "11px", color: "var(--color-text-muted)", display: "block", fontWeight: 600, textTransform: "uppercase" }}>OCR Confidence</span>
+              <span style={{ fontSize: "20px", fontWeight: 800, color: hasOcrConf ? "var(--color-success)" : "var(--color-text-muted)" }}>
                 {ocrConfPct}
               </span>
             </div>
@@ -219,18 +219,18 @@ export default function RecordDetail({ recordId, onBack }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
         
         {/* Left Column: Original Document Viewer */}
-        <div style={{ backgroundColor: "#FFFFFF", borderRadius: "8px", border: "1px solid #E5E7EB", padding: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-          <h3 style={{ fontSize: "14px", fontWeight: 700, color: "#0B3B60", margin: "0 0 16px 0" }}>
+        <div style={{ backgroundColor: "var(--color-bg-secondary)", borderRadius: "12px", border: "1px solid var(--color-border)", padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+          <h3 style={{ fontSize: "15px", fontWeight: 700, color: "var(--color-text-primary)", margin: "0 0 16px 0", fontFamily: "serif" }}>
             📄 Original Document File Source
           </h3>
           {record.image_url || record.file_path || record.image_base64 ? (
             <img
               src={record.image_url || record.file_path || (record.image_base64 ? `data:image/png;base64,${record.image_base64}` : '')}
               alt="Land Record Original Document"
-              style={{ width: "100%", height: "auto", borderRadius: "8px", border: "1px solid #D1D5DB" }}
+              style={{ width: "100%", height: "auto", borderRadius: "8px", border: "1px solid var(--color-border-strong)" }}
             />
           ) : (
-            <div style={{ padding: "80px 20px", textAlign: "center", backgroundColor: "#F9FAFB", border: "2px dashed #D1D5DB", borderRadius: "8px", color: "#6B7280", fontSize: "13px" }}>
+            <div style={{ padding: "80px 20px", textAlign: "center", backgroundColor: "var(--color-bg-primary)", border: "2px dashed var(--color-border-strong)", borderRadius: "8px", color: "var(--color-text-muted)", fontSize: "13px" }}>
               Document view not available
             </div>
           )}
@@ -240,8 +240,8 @@ export default function RecordDetail({ recordId, onBack }) {
         <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
           
           {/* Extracted Fields Form Grid */}
-          <div style={{ backgroundColor: "#FFFFFF", borderRadius: "8px", border: "1px solid #E5E7EB", padding: "20px" }}>
-            <h3 style={{ fontSize: "14px", fontWeight: 700, color: "#0B3B60", margin: "0 0 16px 0" }}>
+          <div style={{ backgroundColor: "var(--color-bg-secondary)", borderRadius: "12px", border: "1px solid var(--color-border)", padding: "24px" }}>
+            <h3 style={{ fontSize: "15px", fontWeight: 700, color: "var(--color-text-primary)", margin: "0 0 16px 0", fontFamily: "serif" }}>
               📋 Extracted Land Record Fields
             </h3>
 
@@ -252,14 +252,14 @@ export default function RecordDetail({ recordId, onBack }) {
                 const confVal = hasConf ? confRaw : null;
                 const confPct = hasConf ? Math.round(confVal * 100) : null;
 
-                let badgeStyle = { bg: "#F3F4F6", text: "#6B7280", border: "#E5E7EB" };
+                let badgeStyle = { bg: "var(--color-bg-tertiary)", text: "var(--color-text-muted)", border: "var(--color-border)" };
                 if (hasConf) {
                   if (confVal < 0.70) {
-                    badgeStyle = { bg: "#FEF2F2", text: "#DC2626", border: "#FECACA" };
+                    badgeStyle = { bg: "var(--color-error-bg)", text: "var(--color-error)", border: "var(--color-error-border)" };
                   } else if (confVal < 0.85) {
-                    badgeStyle = { bg: "#FFFBEB", text: "#D97706", border: "#FDE68A" };
+                    badgeStyle = { bg: "var(--color-warning-bg)", text: "var(--color-warning)", border: "var(--color-warning-border)" };
                   } else {
-                    badgeStyle = { bg: "#ECFDF5", text: "#059669", border: "#A7F3D0" };
+                    badgeStyle = { bg: "var(--color-success-bg)", text: "var(--color-success)", border: "var(--color-success-border)" };
                   }
                 }
 
@@ -270,34 +270,34 @@ export default function RecordDetail({ recordId, onBack }) {
                   <div
                     key={key}
                     style={{
-                      backgroundColor: isAiAssisted ? "#FFFBF5" : (isLowConf ? "#FEF2F2" : "#F9FAFB"),
-                      border: isAiAssisted ? "1px solid #FDE68A" : (isLowConf ? "1px solid #FCA5A5" : "1px solid #E5E7EB"),
+                      backgroundColor: isAiAssisted ? "var(--color-accent-subtle)" : (isLowConf ? "var(--color-error-bg)" : "var(--color-bg-primary)"),
+                      border: isAiAssisted ? "1px solid var(--color-warning-border)" : (isLowConf ? "1px solid var(--color-error-border)" : "1px solid var(--color-border-subtle)"),
                       borderRadius: "8px",
                       padding: "10px 12px"
                     }}
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-                      <label style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", color: "#374151" }}>
+                      <label style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", color: "var(--color-text-primary)" }}>
                         {key.replace(/_/g, " ")}
                       </label>
                       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                         {isAiAssisted && (
-                          <span style={{ fontSize: "10px", fontWeight: 700, backgroundColor: "#FFF8E6", color: "#B45309", border: "1px solid #FDE68A", padding: "2px 6px", borderRadius: "4px" }}>
+                          <span style={{ fontSize: "10px", fontWeight: 700, backgroundColor: "var(--color-warning-bg)", color: "var(--color-warning)", border: "1px solid var(--color-warning-border)", padding: "2px 6px", borderRadius: "9999px" }}>
                             AI-extracted, pending review
                           </span>
                         )}
                         {isLowConf && (
-                          <span style={{ fontSize: "10px", fontWeight: 700, backgroundColor: "#DC2626", color: "#FFFFFF", padding: "2px 6px", borderRadius: "4px" }}>
+                          <span style={{ fontSize: "10px", fontWeight: 700, backgroundColor: "var(--color-error)", color: "var(--color-text-light)", padding: "2px 6px", borderRadius: "9999px" }}>
                             ⚠️ Low Confidence (&lt;85%)
                           </span>
                         )}
                         {!isAiAssisted && !hasConf && (
-                          <span style={{ fontSize: "10px", fontWeight: 600, backgroundColor: "#F3F4F6", color: "#6B7280", border: "1px solid #E5E7EB", padding: "2px 6px", borderRadius: "4px" }}>
+                          <span style={{ fontSize: "10px", fontWeight: 600, backgroundColor: "var(--color-bg-tertiary)", color: "var(--color-text-muted)", border: "1px solid var(--color-border)", padding: "2px 6px", borderRadius: "9999px" }}>
                             Unverified
                           </span>
                         )}
                         {!isAiAssisted && hasConf && (
-                          <span style={{ fontSize: "10px", fontWeight: 700, backgroundColor: badgeStyle.bg, color: badgeStyle.text, border: `1px solid ${badgeStyle.border}`, padding: "2px 6px", borderRadius: "4px" }}>
+                          <span style={{ fontSize: "10px", fontWeight: 700, backgroundColor: badgeStyle.bg, color: badgeStyle.text, border: `1px solid ${badgeStyle.border}`, padding: "2px 6px", borderRadius: "9999px" }}>
                             {confPct}%
                           </span>
                         )}
@@ -313,8 +313,9 @@ export default function RecordDetail({ recordId, onBack }) {
                         padding: "6px 10px",
                         fontSize: "13px",
                         borderRadius: "6px",
-                        border: "1px solid #D1D5DB",
-                        backgroundColor: "#FFFFFF",
+                        border: "1px solid var(--color-border-strong)",
+                        backgroundColor: "var(--color-bg-secondary)",
+                        color: "var(--color-text-primary)",
                         outline: "none"
                       }}
                     />
@@ -326,20 +327,20 @@ export default function RecordDetail({ recordId, onBack }) {
 
           {/* Rule Violations Section */}
           {record.violations && record.violations.length > 0 && (
-            <div style={{ backgroundColor: "#FFFFFF", borderRadius: "8px", border: "1px solid #FECACA", padding: "16px" }}>
-              <h4 style={{ fontSize: "13px", fontWeight: 700, color: "#991B1B", margin: "0 0 12px 0" }}>
+            <div style={{ backgroundColor: "var(--color-bg-secondary)", borderRadius: "12px", border: "1px solid var(--color-error-border)", padding: "20px" }}>
+              <h4 style={{ fontSize: "14px", fontWeight: 700, color: "var(--color-error)", margin: "0 0 12px 0", fontFamily: "serif" }}>
                 ⚠️ Rule Violations ({record.violations.length})
               </h4>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 {record.violations.map((v, idx) => (
-                  <div key={idx} style={{ padding: "10px 12px", backgroundColor: "#FEF2F2", border: "1px solid #FCA5A5", borderRadius: "6px", fontSize: "12px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, color: "#7F1D1D", marginBottom: "2px" }}>
+                  <div key={idx} style={{ padding: "10px 12px", backgroundColor: "var(--color-error-bg)", border: "1px solid var(--color-error-border)", borderRadius: "8px", fontSize: "12px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, color: "var(--color-error)", marginBottom: "2px" }}>
                       <span>Field: <code style={{ fontFamily: "monospace" }}>{v.field || "General"}</code> | Rule: {v.rule || "Validation"}</span>
-                      <span style={{ fontSize: "10px", padding: "2px 6px", borderRadius: "4px", backgroundColor: v.severity === "HIGH" ? "#DC2626" : "#D97706", color: "#FFFFFF" }}>
+                      <span style={{ fontSize: "10px", padding: "2px 6px", borderRadius: "9999px", backgroundColor: v.severity === "HIGH" ? "var(--color-error)" : "var(--color-warning)", color: "var(--color-text-light)" }}>
                         {v.severity || "WARNING"}
                       </span>
                     </div>
-                    <div style={{ color: "#4B5563" }}>{v.message}</div>
+                    <div style={{ color: "var(--color-text-secondary)" }}>{v.message}</div>
                   </div>
                 ))}
               </div>
@@ -351,11 +352,11 @@ export default function RecordDetail({ recordId, onBack }) {
 
           {/* Review Metadata (Read-Only) */}
           {record.review && (
-            <div style={{ backgroundColor: "#FFFFFF", borderRadius: "8px", border: "1px solid #E5E7EB", padding: "16px" }}>
-              <h4 style={{ fontSize: "13px", fontWeight: 700, color: "#0B3B60", margin: "0 0 8px 0" }}>
+            <div style={{ backgroundColor: "var(--color-bg-secondary)", borderRadius: "12px", border: "1px solid var(--color-border)", padding: "20px" }}>
+              <h4 style={{ fontSize: "14px", fontWeight: 700, color: "var(--color-text-primary)", margin: "0 0 8px 0", fontFamily: "serif" }}>
                 📑 Existing Review Log (Read-Only)
               </h4>
-              <div style={{ fontSize: "12px", color: "#374151", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+              <div style={{ fontSize: "12px", color: "var(--color-text-secondary)", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
                 <div><strong>Reviewed By:</strong> {record.review.reviewed_by || "Unassigned"}</div>
                 <div><strong>Reviewed At:</strong> {record.review.reviewed_at ? new Date(record.review.reviewed_at).toLocaleString() : "Pending"}</div>
                 <div style={{ gridColumn: "1 / -1", marginTop: "4px" }}>
@@ -366,26 +367,26 @@ export default function RecordDetail({ recordId, onBack }) {
           )}
 
           {/* Phase 3: Validation & Decision Controls */}
-          <div style={{ backgroundColor: "#FFFFFF", borderRadius: "8px", border: "1px solid #0B3B60", padding: "20px", boxShadow: "0 2px 4px rgba(0,0,0,0.05)" }}>
-            <h3 style={{ fontSize: "15px", fontWeight: 700, color: "#0B3B60", margin: "0 0 12px 0" }}>
+          <div style={{ backgroundColor: "var(--color-bg-secondary)", borderRadius: "12px", border: "1px solid var(--color-sidebar-bg)", padding: "24px", boxShadow: "0 2px 4px rgba(0,0,0,0.05)" }}>
+            <h3 style={{ fontSize: "15px", fontWeight: 700, color: "var(--color-text-primary)", margin: "0 0 12px 0", fontFamily: "serif" }}>
               🛡️ Official Revenue Validation & Decision Controls
             </h3>
 
             {submitError && (
-              <div style={{ padding: "12px 14px", backgroundColor: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "6px", color: "#991B1B", fontSize: "12px", marginBottom: "12px", fontWeight: 600 }}>
+              <div style={{ padding: "12px 14px", backgroundColor: "var(--color-error-bg)", border: "1px solid var(--color-error-border)", borderRadius: "8px", color: "var(--color-error)", fontSize: "12px", marginBottom: "12px", fontWeight: 600 }}>
                 ⚠️ {submitError}
               </div>
             )}
 
             {submitSuccess && (
-              <div style={{ padding: "12px 14px", backgroundColor: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: "6px", color: "#065F46", fontSize: "12px", marginBottom: "12px", fontWeight: 600 }}>
+              <div style={{ padding: "12px 14px", backgroundColor: "var(--color-success-bg)", border: "1px solid var(--color-success-border)", borderRadius: "8px", color: "var(--color-success)", fontSize: "12px", marginBottom: "12px", fontWeight: 600 }}>
                 ✓ {submitSuccess}
               </div>
             )}
 
             <div style={{ marginBottom: "16px" }}>
-              <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#374151", marginBottom: "6px" }}>
-                Reviewer Notes / Mutation Order Justification <span style={{ color: "#DC2626" }}>* (Required)</span>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "var(--color-text-primary)", marginBottom: "6px" }}>
+                Reviewer Notes / Mutation Order Justification <span style={{ color: "var(--color-error)" }}>* (Required)</span>
               </label>
               <textarea
                 rows={3}
@@ -397,9 +398,10 @@ export default function RecordDetail({ recordId, onBack }) {
                   width: "100%",
                   padding: "8px 12px",
                   fontSize: "13px",
-                  borderRadius: "6px",
-                  border: "1px solid #D1D5DB",
-                  backgroundColor: "#FFFFFF",
+                  borderRadius: "8px",
+                  border: "1px solid var(--color-border-strong)",
+                  backgroundColor: "var(--color-bg-secondary)",
+                  color: "var(--color-text-primary)",
                   outline: "none",
                   fontFamily: "inherit"
                 }}
@@ -411,11 +413,11 @@ export default function RecordDetail({ recordId, onBack }) {
                 onClick={() => handleSubmitDecision("APPROVED")}
                 disabled={!reviewerNotes.trim() || isSubmitting}
                 style={{
-                  backgroundColor: !reviewerNotes.trim() || isSubmitting ? "#9CA3AF" : "#059669",
-                  color: "#FFFFFF",
+                  backgroundColor: !reviewerNotes.trim() || isSubmitting ? "var(--color-sidebar-muted)" : "var(--color-success)",
+                  color: "var(--color-text-light)",
                   border: "none",
                   padding: "10px 14px",
-                  borderRadius: "6px",
+                  borderRadius: "8px",
                   fontSize: "12px",
                   fontWeight: 700,
                   cursor: !reviewerNotes.trim() || isSubmitting ? "not-allowed" : "pointer",
@@ -430,11 +432,11 @@ export default function RecordDetail({ recordId, onBack }) {
                 onClick={() => handleSubmitDecision("NEEDS_SURVEY")}
                 disabled={!reviewerNotes.trim() || isSubmitting}
                 style={{
-                  backgroundColor: !reviewerNotes.trim() || isSubmitting ? "#9CA3AF" : "#D97706",
-                  color: "#FFFFFF",
+                  backgroundColor: !reviewerNotes.trim() || isSubmitting ? "var(--color-sidebar-muted)" : "var(--color-warning)",
+                  color: "var(--color-text-light)",
                   border: "none",
                   padding: "10px 14px",
-                  borderRadius: "6px",
+                  borderRadius: "8px",
                   fontSize: "12px",
                   fontWeight: 700,
                   cursor: !reviewerNotes.trim() || isSubmitting ? "not-allowed" : "pointer",
@@ -449,11 +451,11 @@ export default function RecordDetail({ recordId, onBack }) {
                 onClick={() => handleSubmitDecision("REJECTED")}
                 disabled={!reviewerNotes.trim() || isSubmitting}
                 style={{
-                  backgroundColor: !reviewerNotes.trim() || isSubmitting ? "#9CA3AF" : "#DC2626",
-                  color: "#FFFFFF",
+                  backgroundColor: !reviewerNotes.trim() || isSubmitting ? "var(--color-sidebar-muted)" : "var(--color-error)",
+                  color: "var(--color-text-light)",
                   border: "none",
                   padding: "10px 14px",
-                  borderRadius: "6px",
+                  borderRadius: "8px",
                   fontSize: "12px",
                   fontWeight: 700,
                   cursor: !reviewerNotes.trim() || isSubmitting ? "not-allowed" : "pointer",
@@ -470,20 +472,20 @@ export default function RecordDetail({ recordId, onBack }) {
       </div>
 
       {/* Raw OCR Text Collapsible Drawer */}
-      <div style={{ marginTop: "20px", backgroundColor: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: "8px", padding: "16px" }}>
+      <div style={{ marginTop: "20px", backgroundColor: "var(--color-bg-secondary)", border: "1px solid var(--color-border)", borderRadius: "12px", padding: "20px" }}>
         <button
           onClick={() => setShowRawOcr(!showRawOcr)}
           style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", background: "none", border: "none", cursor: "pointer", padding: 0 }}
         >
-          <span style={{ fontSize: "14px", fontWeight: 700, color: "#0B3B60" }}>
+          <span style={{ fontSize: "15px", fontWeight: 700, color: "var(--color-text-primary)", fontFamily: "serif" }}>
             📝 Raw OCR Recognized Text
           </span>
-          <span style={{ fontSize: "12px", color: "#6B7280", fontWeight: 600 }}>
+          <span style={{ fontSize: "12px", color: "var(--color-text-muted)", fontWeight: 600 }}>
             {showRawOcr ? "▲ Hide Raw Text" : "▼ Show Raw Text"}
           </span>
         </button>
         {showRawOcr && (
-          <pre style={{ marginTop: "12px", backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0", padding: "14px", borderRadius: "8px", fontFamily: "monospace", fontSize: "12px", color: "#334155", whiteSpace: "pre-wrap", maxHeight: "300px", overflowY: "auto" }}>
+          <pre style={{ marginTop: "12px", backgroundColor: "var(--color-bg-primary)", border: "1px solid var(--color-border-subtle)", padding: "14px", borderRadius: "8px", fontFamily: "monospace", fontSize: "12px", color: "var(--color-text-primary)", whiteSpace: "pre-wrap", maxHeight: "300px", overflowY: "auto" }}>
             {record.raw_ocr_text || "No raw OCR text recorded for this document."}
           </pre>
         )}

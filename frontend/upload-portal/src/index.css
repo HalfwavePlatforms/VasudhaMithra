@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./theme.css";
 
 :root {
   /* Colors */
@@ -53,9 +54,49 @@
   --color-coral: #D9714B;
   --color-teal: #1D8374;
   --color-teal-light: #E6F4F1;
-  --color-amber-badge: #D97706;
-  --color-amber-light: #FEF3C7;
+  --color-amber-badge: #B45309;
+  --color-amber-light: #FDE68A;
   --color-card-border: #E6E3DB;
+
+  --color-bg-primary: #F7F5EF;
+  --color-bg-secondary: #FAF9F5;
+  --color-bg-tertiary: #F2EFE8;
+  --color-sidebar-bg: #16241F;
+  --color-sidebar-hover: #22382F;
+  --color-sidebar-active: #2D4A3E;
+  --color-sidebar-border: #243D32;
+  --color-sidebar-text: #E2E8F0;
+  --color-sidebar-muted: #8FA396;
+  --color-sidebar-icon: #637C6F;
+
+  --color-accent: #D9714B;
+  --color-accent-hover: #C25F39;
+  --color-accent-subtle: #FAF3EE;
+
+  --color-text-primary: #16241F;
+  --color-text-secondary: #4A5568;
+  --color-text-muted: #737167;
+  --color-text-light: #F7F5EF;
+
+  --color-border: #E6E3DB;
+  --color-border-subtle: #EAE7DF;
+  --color-border-strong: #DDD9CE;
+
+  --color-success: #1D8374;
+  --color-success-bg: #EBF7F2;
+  --color-success-border: #C5E8D9;
+
+  --color-warning: #B45309;
+  --color-warning-bg: #FDE68A;
+  --color-warning-border: #FCD34D;
+
+  --color-error: #DC2626;
+  --color-error-bg: #FEF2F2;
+  --color-error-border: #FECACA;
+
+  --color-info: #1D8374;
+  --color-info-bg: #E6F4F1;
+  --color-info-border: #B2DDD6;
 
   --font-pp-radio-grotesk-light: 'Instrument Sans', 'DM Sans', 'Plus Jakarta Sans', sans-serif;
   --font-inter: 'Inter', system-ui, sans-serif;
@@ -72,8 +113,8 @@
 
 /* Base Body Styles */
 body {
-  background-color: var(--color-fog);
-  color: var(--color-midnight-ink);
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
   font-family: var(--font-inter);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

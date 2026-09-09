@@ -36,18 +36,18 @@ export default function ReviewQueue({ onSelectRecord }) {
   }, [statusFilter]);
 
   return (
-    <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "24px 24px", fontFamily: "Inter, system-ui, -apple-system, sans-serif", color: "#1F2937" }}>
+    <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "24px 24px", fontFamily: "Inter, system-ui, -apple-system, sans-serif", color: "var(--color-text-primary)" }}>
       {/* Header Banner */}
-      <div style={{ backgroundColor: "#FFFFFF", borderRadius: "8px", border: "1px solid #E5E7EB", padding: "20px", marginBottom: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+      <div style={{ backgroundColor: "var(--color-bg-secondary)", borderRadius: "12px", border: "1px solid var(--color-border)", padding: "24px", marginBottom: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
           <div>
-            <div style={{ fontSize: "11px", letterSpacing: "1.2px", textTransform: "uppercase", color: "#0B3B60", fontWeight: 700, marginBottom: "4px" }}>
+            <div style={{ fontSize: "11px", letterSpacing: "1.2px", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700, marginBottom: "4px" }}>
               Revenue Department Human-in-the-Loop Desk
             </div>
-            <h2 style={{ fontSize: "20px", fontWeight: 700, color: "#0B3B60", margin: 0 }}>
+            <h2 style={{ fontSize: "22px", fontWeight: 700, color: "var(--color-text-primary)", margin: 0, fontFamily: "serif" }}>
               Official Revenue Review & Triage Queue
             </h2>
-            <p style={{ fontSize: "13px", color: "#4B5563", margin: "4px 0 0 0" }}>
+            <p style={{ fontSize: "13px", color: "var(--color-text-muted)", margin: "4px 0 0 0" }}>
               Official revenue backlog requiring human verification, OCR validation, and cadastral GIS audit.
             </p>
           </div>
@@ -65,10 +65,10 @@ export default function ReviewQueue({ onSelectRecord }) {
                   fontSize: "12px",
                   fontWeight: 600,
                   padding: "6px 14px",
-                  borderRadius: "6px",
-                  border: statusFilter === tab.id ? "1px solid #0B3B60" : "1px solid #D1D5DB",
-                  backgroundColor: statusFilter === tab.id ? "#0B3B60" : "#FFFFFF",
-                  color: statusFilter === tab.id ? "#FFFFFF" : "#374151",
+                  borderRadius: "8px",
+                  border: statusFilter === tab.id ? "1px solid var(--color-sidebar-bg)" : "1px solid var(--color-border-strong)",
+                  backgroundColor: statusFilter === tab.id ? "var(--color-sidebar-bg)" : "var(--color-bg-secondary)",
+                  color: statusFilter === tab.id ? "var(--color-text-light)" : "var(--color-text-primary)",
                   cursor: "pointer",
                   transition: "all 0.15s ease",
                 }}
@@ -82,10 +82,10 @@ export default function ReviewQueue({ onSelectRecord }) {
                 fontSize: "12px",
                 fontWeight: 600,
                 padding: "6px 12px",
-                borderRadius: "6px",
-                border: "1px solid #D1D5DB",
-                backgroundColor: "#F9FAFB",
-                color: "#374151",
+                borderRadius: "8px",
+                border: "1px solid var(--color-border-strong)",
+                backgroundColor: "var(--color-bg-tertiary)",
+                color: "var(--color-text-primary)",
                 cursor: "pointer",
                 marginLeft: "4px"
               }}
@@ -98,33 +98,33 @@ export default function ReviewQueue({ onSelectRecord }) {
       </div>
 
       {/* Content Area */}
-      <div style={{ backgroundColor: "#FFFFFF", borderRadius: "8px", border: "1px solid #E5E7EB", padding: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+      <div style={{ backgroundColor: "var(--color-bg-secondary)", borderRadius: "12px", border: "1px solid var(--color-border)", padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
         {loading ? (
-          <div style={{ padding: "48px 16px", textAlign: "center", color: "#6B7280", fontSize: "14px", fontWeight: 500 }}>
+          <div style={{ padding: "48px 16px", textAlign: "center", color: "var(--color-text-muted)", fontSize: "14px", fontWeight: 500 }}>
             ⏳ Loading review queue from API Gateway...
           </div>
         ) : error ? (
-          <div style={{ padding: "20px", backgroundColor: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "8px", color: "#991B1B", fontSize: "13px" }}>
+          <div style={{ padding: "20px", backgroundColor: "var(--color-error-bg)", border: "1px solid var(--color-error-border)", borderRadius: "8px", color: "var(--color-error)", fontSize: "13px" }}>
             <div style={{ fontWeight: 700, marginBottom: "4px" }}>⚠️ Error Loading Review Queue</div>
             <div>{error}</div>
             <div style={{ marginTop: "12px" }}>
               <button
                 onClick={fetchQueue}
-                style={{ backgroundColor: "#DC2626", color: "#FFFFFF", border: "none", padding: "6px 14px", borderRadius: "6px", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}
+                style={{ backgroundColor: "var(--color-error)", color: "var(--color-text-light)", border: "none", padding: "6px 14px", borderRadius: "6px", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}
               >
                 Retry Request
               </button>
             </div>
           </div>
         ) : records.length === 0 ? (
-          <div style={{ padding: "48px 16px", textAlign: "center", color: "#6B7280", fontSize: "14px" }}>
+          <div style={{ padding: "48px 16px", textAlign: "center", color: "var(--color-text-muted)", fontSize: "14px" }}>
             No records pending review.
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "12px" }}>
               <thead>
-                <tr style={{ backgroundColor: "#F8FAFC", borderBottom: "2px solid #E2E8F0", color: "#475569", textTransform: "uppercase", fontSize: "11px", letterSpacing: "0.5px" }}>
+                <tr style={{ backgroundColor: "var(--color-bg-tertiary)", borderBottom: "1px solid var(--color-border)", color: "var(--color-text-muted)", textTransform: "uppercase", fontSize: "11px", letterSpacing: "0.5px" }}>
                   <th style={{ padding: "10px 14px" }}>Record ID</th>
                   <th style={{ padding: "10px 14px" }}>Filename</th>
                   <th style={{ padding: "10px 14px" }}>Document Type</th>
@@ -138,19 +138,19 @@ export default function ReviewQueue({ onSelectRecord }) {
               <tbody>
                 {records.map((r) => {
                   const riskUpper = (r.risk_level || "LOW").toUpperCase();
-                  let riskStyle = { bg: "#ECFDF5", text: "#059669", border: "#A7F3D0", label: "✓ LOW" };
+                  let riskStyle = { bg: "var(--color-success-bg)", text: "var(--color-success)", border: "var(--color-success-border)", label: "✓ LOW" };
                   if (riskUpper === "MEDIUM") {
-                    riskStyle = { bg: "#FFFBEB", text: "#D97706", border: "#FDE68A", label: "⚠️ MEDIUM" };
+                    riskStyle = { bg: "var(--color-warning-bg)", text: "var(--color-warning)", border: "var(--color-warning-border)", label: "⚠️ MEDIUM" };
                   } else if (riskUpper === "HIGH") {
-                    riskStyle = { bg: "#FEF2F2", text: "#DC2626", border: "#FECACA", label: "⚠️ HIGH" };
+                    riskStyle = { bg: "var(--color-error-bg)", text: "var(--color-error)", border: "var(--color-error-border)", label: "⚠️ HIGH" };
                   }
 
                   const statusNorm = (r.status || "pending_review").toLowerCase();
-                  let statusStyle = { bg: "#FFFBEB", text: "#D97706", border: "#FDE68A", label: "⏳ PENDING REVIEW" };
+                  let statusStyle = { bg: "var(--color-warning-bg)", text: "var(--color-warning)", border: "var(--color-warning-border)", label: "⏳ PENDING REVIEW" };
                   if (statusNorm === "validated") {
-                    statusStyle = { bg: "#ECFDF5", text: "#059669", border: "#A7F3D0", label: "✓ VALIDATED" };
+                    statusStyle = { bg: "var(--color-success-bg)", text: "var(--color-success)", border: "var(--color-success-border)", label: "✓ VALIDATED" };
                   } else if (statusNorm === "rejected") {
-                    statusStyle = { bg: "#FEF2F2", text: "#DC2626", border: "#FECACA", label: "✕ REJECTED" };
+                    statusStyle = { bg: "var(--color-error-bg)", text: "var(--color-error)", border: "var(--color-error-border)", label: "✕ REJECTED" };
                   }
 
                   const formattedDate = r.uploaded_at
@@ -170,20 +170,20 @@ export default function ReviewQueue({ onSelectRecord }) {
                         window.location.hash = `/records/${r.record_id}`;
                       }}
                       style={{
-                        borderBottom: "1px solid #F1F5F9",
+                        borderBottom: "1px solid var(--color-border-subtle)",
                         cursor: "pointer",
                         transition: "background-color 0.15s ease",
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#F8FAFC")}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-bg-tertiary)")}
                       onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
                     >
-                      <td style={{ padding: "10px 14px", fontFamily: "monospace", fontWeight: 700, color: "#0B3B60" }}>
+                      <td style={{ padding: "10px 14px", fontFamily: "monospace", fontWeight: 700, color: "var(--color-accent)" }}>
                         {r.record_id}
                       </td>
-                      <td style={{ padding: "10px 14px", fontWeight: 500, color: "#1F2937" }}>
+                      <td style={{ padding: "10px 14px", fontWeight: 500, color: "var(--color-text-primary)" }}>
                         {r.original_filename || "—"}
                       </td>
-                      <td style={{ padding: "10px 14px", color: "#4B5563" }}>
+                      <td style={{ padding: "10px 14px", color: "var(--color-text-secondary)" }}>
                         {r.document_type || "Land Record"}
                       </td>
                       <td style={{ padding: "10px 14px" }}>
@@ -192,7 +192,7 @@ export default function ReviewQueue({ onSelectRecord }) {
                             fontSize: "11px",
                             fontWeight: 700,
                             padding: "3px 8px",
-                            borderRadius: "6px",
+                            borderRadius: "9999px",
                             backgroundColor: riskStyle.bg,
                             color: riskStyle.text,
                             border: `1px solid ${riskStyle.border}`,
@@ -210,7 +210,7 @@ export default function ReviewQueue({ onSelectRecord }) {
                             fontSize: "11px",
                             fontWeight: 700,
                             padding: "3px 8px",
-                            borderRadius: "6px",
+                            borderRadius: "9999px",
                             backgroundColor: statusStyle.bg,
                             color: statusStyle.text,
                             border: `1px solid ${statusStyle.border}`,
@@ -222,10 +222,10 @@ export default function ReviewQueue({ onSelectRecord }) {
                           {statusStyle.label}
                         </span>
                       </td>
-                      <td style={{ padding: "10px 14px", color: "#6B7280", fontSize: "12px" }}>
+                      <td style={{ padding: "10px 14px", color: "var(--color-text-muted)", fontSize: "12px" }}>
                         {formattedDate}
                       </td>
-                      <td style={{ padding: "10px 14px", fontWeight: 700, color: hasOcrConf ? "#0B3B60" : "#6B7280" }}>
+                      <td style={{ padding: "10px 14px", fontWeight: 700, color: hasOcrConf ? "var(--color-success)" : "var(--color-text-muted)" }}>
                         {confidencePct}
                       </td>
                       <td style={{ padding: "10px 14px", textAlign: "right" }}>
@@ -236,8 +236,8 @@ export default function ReviewQueue({ onSelectRecord }) {
                             if (onSelectRecord) onSelectRecord(r.record_id);
                           }}
                           style={{
-                            backgroundColor: "#0B3B60",
-                            color: "#FFFFFF",
+                            backgroundColor: "var(--color-sidebar-bg)",
+                            color: "var(--color-text-light)",
                             padding: "6px 14px",
                             borderRadius: "6px",
                             fontSize: "12px",

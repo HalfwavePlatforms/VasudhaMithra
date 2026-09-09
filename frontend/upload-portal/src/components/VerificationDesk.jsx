@@ -225,13 +225,13 @@ export default function VerificationDesk({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#D9714B]">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-accent)]">
             VERIFICATION & AUDIT
           </span>
-          <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[#16241F] tracking-tight mt-1">
+          <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[var(--color-text-primary)] tracking-tight mt-1">
             Verification desk
           </h1>
-          <p className="text-sm text-[#737167] mt-1">
+          <p className="text-sm text-[var(--color-text-muted)] mt-1">
             Inspect optical extractions, resolve schema violations, and authenticate land title certificates.
           </p>
         </div>
@@ -239,17 +239,17 @@ export default function VerificationDesk({
         {/* Record Selector Pills */}
         {pendingRecords.length > 0 && (
           <div className="flex items-center gap-2 overflow-x-auto max-w-md py-1">
-            <span className="text-xs font-semibold text-[#8A887E] flex-shrink-0">
+            <span className="text-xs font-semibold text-[var(--color-text-muted)] flex-shrink-0">
               Queue ({pendingRecords.length}):
             </span>
             {pendingRecords.slice(0, 5).map((r) => (
               <button
                 key={r.record_id}
                 onClick={() => setSelectedRecordId(r.record_id)}
-                className={`px-2.5 py-1 text-xs font-mono font-semibold rounded-lg transition-all flex-shrink-0 ${
+                className={`px-2.5 py-1 text-xs font-mono font-semibold rounded-lg transition-all flex-shrink-0 cursor-pointer ${
                   r.record_id === selectedRecordId
-                    ? "bg-[#16241F] text-white shadow-xs"
-                    : "bg-white text-[#5A584F] border border-[#DDD9CE] hover:bg-[#F2EFE8]"
+                    ? "bg-[var(--color-sidebar-bg)] text-white shadow-xs"
+                    : "bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] border border-[var(--color-border-strong)] hover:bg-[var(--color-bg-tertiary)]"
                 }`}
               >
                 {r.record_id.slice(0, 8)}...
@@ -264,14 +264,14 @@ export default function VerificationDesk({
         <div
           className={`p-3.5 rounded-xl border text-xs font-medium flex items-center justify-between ${
             notification.type === "success"
-              ? "bg-[#EBF7F2] border-[#C5E8D9] text-[#1D8374]"
-              : "bg-red-50 border-red-200 text-red-700"
+              ? "bg-[var(--color-success-bg)] border-[var(--color-success-border)] text-[var(--color-success)]"
+              : "bg-[var(--color-error-bg)] border-[var(--color-error-border)] text-[var(--color-error)]"
           }`}
         >
           <span>{notification.text}</span>
           <button
             onClick={() => setNotification(null)}
-            className="text-xs underline ml-4 hover:opacity-75"
+            className="text-xs underline ml-4 hover:opacity-75 cursor-pointer"
           >
             Dismiss
           </button>
@@ -279,27 +279,27 @@ export default function VerificationDesk({
       )}
 
       {loadingRecord ? (
-        <div className="p-16 text-center text-[#8A887E]">
-          <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[#D9714B]" />
+        <div className="p-16 text-center text-[var(--color-text-muted)]">
+          <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[var(--color-accent)]" />
           Loading land record verification payload...
         </div>
       ) : !currentRecord ? (
-        <div className="bg-white border border-[#E6E3DB] rounded-xl p-12 text-center text-[#737167]">
-          <ShieldCheck className="w-10 h-10 text-[#1D8374] mx-auto mb-3" />
-          <h3 className="text-base font-bold text-[#16241F]">
+        <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl p-12 text-center text-[var(--color-text-muted)]">
+          <ShieldCheck className="w-10 h-10 text-[var(--color-success)] mx-auto mb-3" />
+          <h3 className="text-base font-bold text-[var(--color-text-primary)]">
             No Record Selected
           </h3>
-          <p className="text-xs text-[#8A887E] mt-1">
+          <p className="text-xs text-[var(--color-text-muted)] mt-1">
             Select a record from the queue above or upload a new deed from Document Intake.
           </p>
         </div>
       ) : currentRecord.status === "processing" ? (
-        <div className="bg-white border border-[#E6E3DB] rounded-xl p-12 text-center text-[#737167] space-y-3">
-          <Loader2 className="w-10 h-10 animate-spin text-[#D9714B] mx-auto mb-2" />
-          <h3 className="text-base font-bold text-[#16241F]">
+        <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl p-12 text-center text-[var(--color-text-muted)] space-y-3">
+          <Loader2 className="w-10 h-10 animate-spin text-[var(--color-accent)] mx-auto mb-2" />
+          <h3 className="text-base font-bold text-[var(--color-text-primary)]">
             Pipeline In Progress for Record {currentRecord.record_id.slice(0, 8)}...
           </h3>
-          <p className="text-xs text-[#8A887E] max-w-md mx-auto">
+          <p className="text-xs text-[var(--color-text-muted)] max-w-md mx-auto">
             Optical OCR and AI layout extraction are active. Real confidence scores, schema fields, and Cadastral GIS spatial validation will populate automatically.
           </p>
         </div>
@@ -308,16 +308,16 @@ export default function VerificationDesk({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Pane (5 Cols): Source Document Preview */}
           <div className="lg:col-span-5 space-y-4">
-            <div className="bg-white border border-[#E6E3DB] rounded-xl p-5 shadow-xs flex flex-col h-[740px]">
+            <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl p-5 shadow-xs flex flex-col h-[740px]">
               {/* Document Header & View Switcher */}
-              <div className="flex items-center justify-between pb-3 border-b border-[#F2EFE8]">
+              <div className="flex items-center justify-between pb-3 border-b border-[var(--color-border-subtle)]">
                 <div>
-                  <div className="text-xs font-bold text-[#16241F] truncate max-w-[200px]">
+                  <div className="text-xs font-bold text-[var(--color-text-primary)] truncate max-w-[200px]">
                     {currentRecord.original_filename || "document_scan.png"}
                   </div>
-                  <div className="text-[11px] text-[#8A887E]">
-                    Lang: <span className="font-semibold uppercase text-[#16241F]">{currentRecord.language}</span> · OCR:{" "}
-                    <span className="font-semibold text-[#1D8374]">
+                  <div className="text-[11px] text-[var(--color-text-muted)]">
+                    Lang: <span className="font-semibold uppercase text-[var(--color-text-primary)]">{currentRecord.language}</span> · OCR:{" "}
+                    <span className="font-semibold text-[var(--color-success)]">
                       {currentRecord.ocr_confidence
                         ? `${(currentRecord.ocr_confidence * 100).toFixed(1)}%`
                         : "N/A"}
@@ -325,23 +325,23 @@ export default function VerificationDesk({
                   </div>
                 </div>
 
-                <div className="flex items-center bg-[#F7F5EF] p-0.5 rounded-lg border border-[#E6E3DB] text-xs">
+                <div className="flex items-center bg-[var(--color-bg-primary)] p-0.5 rounded-lg border border-[var(--color-border)] text-xs">
                   <button
                     onClick={() => setActiveDocView("image")}
-                    className={`px-2.5 py-1 rounded font-semibold transition-all ${
+                    className={`px-2.5 py-1 rounded font-semibold transition-all cursor-pointer ${
                       activeDocView === "image"
-                        ? "bg-white text-[#16241F] shadow-2xs"
-                        : "text-[#737167] hover:text-[#16241F]"
+                        ? "bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] shadow-2xs"
+                        : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
                     }`}
                   >
                     Image
                   </button>
                   <button
                     onClick={() => setActiveDocView("raw_ocr")}
-                    className={`px-2.5 py-1 rounded font-semibold transition-all ${
+                    className={`px-2.5 py-1 rounded font-semibold transition-all cursor-pointer ${
                       activeDocView === "raw_ocr"
-                        ? "bg-white text-[#16241F] shadow-2xs"
-                        : "text-[#737167] hover:text-[#16241F]"
+                        ? "bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] shadow-2xs"
+                        : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
                     }`}
                   >
                     OCR Stream
@@ -350,7 +350,7 @@ export default function VerificationDesk({
               </div>
 
               {/* Document Viewer Body */}
-              <div className="flex-1 overflow-auto mt-4 bg-[#FAF9F5] border border-[#EAE7DF] rounded-lg p-3 flex items-center justify-center">
+              <div className="flex-1 overflow-auto mt-4 bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] rounded-lg p-3 flex items-center justify-center">
                 {activeDocView === "image" && !imageError ? (
                   <img
                     src={`${apiBase}/records/${currentRecord.record_id}/download`}
@@ -359,9 +359,9 @@ export default function VerificationDesk({
                     className="max-w-full max-h-full object-contain rounded shadow-xs"
                   />
                 ) : (
-                  <div className="w-full h-full text-left font-mono text-[11px] leading-relaxed text-[#2C2B27] whitespace-pre-wrap select-text overflow-y-auto">
+                  <div className="w-full h-full text-left font-mono text-[11px] leading-relaxed text-[var(--color-text-primary)] whitespace-pre-wrap select-text overflow-y-auto">
                     {imageError && (
-                      <div className="mb-3 p-2 bg-amber-50 border border-amber-200 text-amber-800 text-[10px] rounded">
+                      <div className="mb-3 p-2 bg-[var(--color-warning-bg)] border border-[var(--color-warning-border)] text-[var(--color-warning)] text-[10px] rounded">
                         Document image not found on local disk. Displaying recognized OCR text stream:
                       </div>
                     )}
@@ -370,8 +370,8 @@ export default function VerificationDesk({
                 )}
               </div>
 
-              <div className="mt-3 pt-3 border-t border-[#F2EFE8] flex items-center justify-between text-[11px] text-[#8A887E]">
-                <span>Status: <strong className="text-[#16241F]">{currentRecord.status}</strong></span>
+              <div className="mt-3 pt-3 border-t border-[var(--color-border-subtle)] flex items-center justify-between text-[11px] text-[var(--color-text-muted)]">
+                <span>Status: <strong className="text-[var(--color-text-primary)]">{currentRecord.status}</strong></span>
                 <span className="font-mono">{currentRecord.record_id.slice(0, 16)}...</span>
               </div>
             </div>
@@ -380,13 +380,13 @@ export default function VerificationDesk({
           {/* Right Pane (7 Cols): Schema, Checks & Actions */}
           <div className="lg:col-span-7 space-y-5">
             {/* Record Overview Banner Card */}
-            <div className="bg-white border border-[#E6E3DB] rounded-xl p-5 shadow-xs">
+            <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl p-5 shadow-xs">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <div className="text-[10px] font-mono text-[#8A887E]">
+                  <div className="text-[10px] font-mono text-[var(--color-text-muted)]">
                     RECORD ID: {currentRecord.record_id}
                   </div>
-                  <h3 className="text-base font-serif font-bold text-[#16241F] mt-0.5">
+                  <h3 className="text-base font-serif font-bold text-[var(--color-text-primary)] mt-0.5">
                     {currentRecord.document_type || "Standard Land Record"}
                   </h3>
                 </div>
@@ -396,10 +396,10 @@ export default function VerificationDesk({
                   <span
                     className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
                       currentRecord.status === "validated"
-                        ? "bg-[#EBF7F2] text-[#1D8374] border border-[#C5E8D9]"
+                        ? "bg-[var(--color-success-bg)] text-[var(--color-success)] border border-[var(--color-success-border)]"
                         : currentRecord.status === "rejected"
-                        ? "bg-rose-50 text-rose-700 border border-rose-200"
-                        : "bg-[#FAF3EE] text-[#D9714B] border border-[#F3DFC7]"
+                        ? "bg-[var(--color-error-bg)] text-[var(--color-error)] border border-[var(--color-error-border)]"
+                        : "bg-[var(--color-warning-bg)] text-[var(--color-warning)] border border-[var(--color-warning-border)]"
                     }`}
                   >
                     ● {currentRecord.status === "validated"
@@ -411,12 +411,12 @@ export default function VerificationDesk({
 
                   {/* Risk Badge */}
                   <span
-                    className={`px-2 py-0.5 rounded text-[11px] font-bold ${
+                    className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
                       currentRecord.risk_level === "LOW"
-                        ? "bg-emerald-100 text-emerald-800"
+                        ? "bg-[var(--color-success-bg)] text-[var(--color-success)] border border-[var(--color-success-border)]"
                         : currentRecord.risk_level === "MEDIUM"
-                        ? "bg-amber-100 text-amber-800"
-                        : "bg-red-100 text-red-800"
+                        ? "bg-[var(--color-warning-bg)] text-[var(--color-warning)] border border-[var(--color-warning-border)]"
+                        : "bg-[var(--color-error-bg)] text-[var(--color-error)] border border-[var(--color-error-border)]"
                     }`}
                   >
                     {currentRecord.risk_level || "MEDIUM"}
@@ -425,9 +425,9 @@ export default function VerificationDesk({
               </div>
 
               {/* REAL Validation Issues List from validators.py */}
-              <div className="mt-4 pt-3 border-t border-[#F2EFE8]">
-                <div className="text-xs font-bold text-[#16241F] mb-2 flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-[#D9714B]" />
+              <div className="mt-4 pt-3 border-t border-[var(--color-border-subtle)]">
+                <div className="text-xs font-bold text-[var(--color-text-primary)] mb-2 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-[var(--color-accent)]" />
                   Validation Rules & Consistency Audit:
                 </div>
 
@@ -436,11 +436,11 @@ export default function VerificationDesk({
                     {currentRecord.violations.map((v, i) => (
                       <div
                         key={i}
-                        className="p-2.5 bg-[#FAF3EE] border border-[#F3DFC7] rounded-lg text-xs flex items-start gap-2 text-[#6D3219]"
+                        className="p-2.5 bg-[var(--color-accent-subtle)] border border-[var(--color-border)] rounded-lg text-xs flex items-start gap-2 text-[var(--color-text-primary)]"
                       >
-                        <AlertTriangle className="w-4 h-4 text-[#D9714B] flex-shrink-0 mt-0.5" />
+                        <AlertTriangle className="w-4 h-4 text-[var(--color-accent)] flex-shrink-0 mt-0.5" />
                         <div>
-                          <strong className="uppercase font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border border-[#E8C5A5] mr-1">
+                          <strong className="uppercase font-mono text-[10px] bg-[var(--color-bg-secondary)] px-1.5 py-0.5 rounded border border-[var(--color-border)] mr-1">
                             {v.rule}
                           </strong>
                           <span>{v.message}</span>
@@ -449,8 +449,8 @@ export default function VerificationDesk({
                     ))}
                   </div>
                 ) : (
-                  <div className="p-2.5 bg-[#EBF7F2] border border-[#C5E8D9] rounded-lg text-xs flex items-center gap-2 text-[#1D8374]">
-                    <CheckCircle2 className="w-4 h-4 text-[#1D8374]" />
+                  <div className="p-2.5 bg-[var(--color-success-bg)] border border-[var(--color-success-border)] rounded-lg text-xs flex items-center gap-2 text-[var(--color-success)]">
+                    <CheckCircle2 className="w-4 h-4 text-[var(--color-success)]" />
                     <span>Zero validation rule violations detected. Record conforms to schema.</span>
                   </div>
                 )}
@@ -458,12 +458,12 @@ export default function VerificationDesk({
             </div>
 
             {/* Extracted Land Record Schema Card */}
-            <div className="bg-white border border-[#E6E3DB] rounded-xl p-5 shadow-xs">
+            <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl p-5 shadow-xs">
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-[#16241F]">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-primary)]">
                   Extracted Land Record Schema
                 </h4>
-                <span className="text-[11px] text-[#8A887E]">
+                <span className="text-[11px] text-[var(--color-text-muted)]">
                   Field Confidence (OCR token derived)
                 </span>
               </div>
@@ -475,25 +475,25 @@ export default function VerificationDesk({
 
                   const isAiAssisted = currentRecord.extraction_sources?.[key] === "ai_assisted";
 
-                  // PROMPT RULE: Use REAL confidence values per field (post fallback-cleanup fix - show "Unverified" not a fake %)
+                  // PROMPT RULE: Use REAL confidence values per field
                   let confDisplay = "Unverified";
-                  let confStyle = "bg-neutral-100 text-neutral-600 border-neutral-200";
+                  let confStyle = "bg-[var(--color-bg-tertiary)] text-[var(--color-text-muted)] border-[var(--color-border)]";
 
                   if (isAiAssisted) {
                     confDisplay = "AI-extracted, pending review";
-                    confStyle = "bg-[#FFF8E6] text-[#B45309] border-[#FDE68A]";
+                    confStyle = "bg-[var(--color-warning-bg)] text-[var(--color-warning)] border-[var(--color-warning-border)]";
                   } else if (rawConf !== null && rawConf !== undefined && typeof rawConf === "number" && rawConf > 0) {
                     const pct = Math.round(rawConf * 100);
                     confDisplay = `${pct}%`;
                     confStyle = pct >= 80
-                      ? "bg-[#EBF7F2] text-[#1D8374] border-[#C5E8D9]"
-                      : "bg-[#FAF3EE] text-[#D9714B] border-[#F3DFC7]";
+                      ? "bg-[var(--color-success-bg)] text-[var(--color-success)] border-[var(--color-success-border)]"
+                      : "bg-[var(--color-accent-subtle)] text-[var(--color-accent)] border-[var(--color-border)]";
                   }
 
                   return (
                     <div key={key} className="space-y-1">
                       <div className="flex items-center justify-between text-[11px]">
-                        <span className="font-semibold text-[#5A584F]">{label}</span>
+                        <span className="font-semibold text-[var(--color-text-secondary)]">{label}</span>
                         <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border ${confStyle}`}>
                           {confDisplay}
                         </span>
@@ -503,7 +503,7 @@ export default function VerificationDesk({
                         value={val || ""}
                         onChange={(e) => handleFieldChange(key, e.target.value)}
                         placeholder={`Enter ${label.toLowerCase()}...`}
-                        className="w-full text-xs bg-[#F7F5EF] border border-[#DDD9CE] rounded-lg px-2.5 py-1.5 text-[#16241F] focus:outline-none focus:ring-1 focus:ring-[#D9714B] focus:border-[#D9714B]"
+                        className="w-full text-xs bg-[var(--color-bg-primary)] border border-[var(--color-border-strong)] rounded-lg px-2.5 py-1.5 text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)]"
                       />
                     </div>
                   );
@@ -512,58 +512,58 @@ export default function VerificationDesk({
             </div>
 
             {/* Document <-> GIS Spatial Consistency Engine Card */}
-            <div className="bg-white border border-[#E6E3DB] rounded-xl p-5 shadow-xs space-y-3">
+            <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl p-5 shadow-xs space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#D9714B]">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-accent)]">
                     SPATIAL CONSISTENCY ENGINE
                   </span>
-                  <h4 className="text-xs font-bold text-[#16241F] flex items-center gap-2">
+                  <h4 className="text-xs font-bold text-[var(--color-text-primary)] flex items-center gap-2">
                     <span>Cadastral GIS Verification</span>
                     {currentRecord.gis?.parcel_id && (
-                      <span className="text-[10px] px-2 py-0.5 bg-[#FAF9F5] border border-[#EAE7DF] rounded text-[#5A584F] font-mono">
+                      <span className="text-[10px] px-2 py-0.5 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded text-[var(--color-text-secondary)] font-mono">
                         {currentRecord.gis.parcel_id}
                       </span>
                     )}
                   </h4>
                 </div>
                 <span
-                  className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                  className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
                     currentRecord.gis?.spatial_consistency === "MATCH"
-                      ? "bg-[#EBF7F2] text-[#1D8374]"
+                      ? "bg-[var(--color-success-bg)] text-[var(--color-success)] border border-[var(--color-success-border)]"
                       : currentRecord.gis?.spatial_consistency === "DISCREPANCY"
-                      ? "bg-rose-100 text-rose-800"
-                      : "bg-[#F2EFE8] text-[#737167]"
+                      ? "bg-[var(--color-error-bg)] text-[var(--color-error)] border border-[var(--color-error-border)]"
+                      : "bg-[var(--color-bg-tertiary)] text-[var(--color-text-muted)] border border-[var(--color-border)]"
                   }`}
                 >
                   {currentRecord.gis?.spatial_consistency || "NOT_EVALUATED"}
                 </span>
               </div>
 
-              <div className="grid grid-cols-3 gap-3 p-3 bg-[#FAF9F5] border border-[#EAE7DF] rounded-lg text-center text-xs">
+              <div className="grid grid-cols-3 gap-3 p-3 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-lg text-center text-xs">
                 <div>
-                  <div className="text-[10px] uppercase font-bold text-[#8A887E]">
+                  <div className="text-[10px] uppercase font-bold text-[var(--color-text-muted)]">
                     Deed Stated Area
                   </div>
-                  <div className="font-bold text-[#16241F] mt-0.5">
+                  <div className="font-bold text-[var(--color-text-primary)] mt-0.5">
                     {currentRecord.gis?.area_doc_acres ? `${currentRecord.gis.area_doc_acres} Acres` : "N/A"}
                   </div>
                 </div>
 
                 <div>
-                  <div className="text-[10px] uppercase font-bold text-[#8A887E]">
+                  <div className="text-[10px] uppercase font-bold text-[var(--color-text-muted)]">
                     Cadastral GIS Area
                   </div>
-                  <div className="font-bold text-[#16241F] mt-0.5">
+                  <div className="font-bold text-[var(--color-text-primary)] mt-0.5">
                     {currentRecord.gis?.area_gis_acres ? `${currentRecord.gis.area_gis_acres} Acres` : "N/A"}
                   </div>
                 </div>
 
                 <div>
-                  <div className="text-[10px] uppercase font-bold text-[#8A887E]">
+                  <div className="text-[10px] uppercase font-bold text-[var(--color-text-muted)]">
                     Spatial Delta (Δ%)
                   </div>
-                  <div className="font-bold text-[#16241F] mt-0.5">
+                  <div className="font-bold text-[var(--color-text-primary)] mt-0.5">
                     {currentRecord.gis?.spatial_delta_pct !== null && currentRecord.gis?.spatial_delta_pct !== undefined
                       ? `${currentRecord.gis.spatial_delta_pct}%`
                       : "N/A"}
@@ -588,9 +588,9 @@ export default function VerificationDesk({
                     const isMaharashtra = stateName.includes("maha") || currentRecord.language === "mr";
 
                     return (
-                      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px] text-[#5A584F] border-t border-[#F2EFE8]">
-                        <span className="flex items-center gap-1 font-semibold text-[#16241F]">
-                          <Layers className="w-3.5 h-3.5 text-[#D9714B]" />
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px] text-[var(--color-text-secondary)] border-t border-[var(--color-border-subtle)]">
+                        <span className="flex items-center gap-1 font-semibold text-[var(--color-text-primary)]">
+                          <Layers className="w-3.5 h-3.5 text-[var(--color-accent)]" />
                           Official State Spatial Portals:
                         </span>
                         <div className="flex items-center gap-2">
@@ -599,10 +599,10 @@ export default function VerificationDesk({
                               href={`https://kgis.ksrsac.in/karnataka/?lat=${lat}&lon=${lon}&zoom=17`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#FAF9F5] border border-[#DDD9CE] rounded hover:bg-[#EAE7DF] text-[#16241F] font-semibold transition-colors"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-[var(--color-bg-secondary)] border border-[var(--color-border-strong)] rounded hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)] font-semibold transition-colors"
                             >
                               <span>KGIS / Bhoomi Cadastre</span>
-                              <ExternalLink className="w-3 h-3 text-[#8A887E]" />
+                              <ExternalLink className="w-3 h-3 text-[var(--color-text-muted)]" />
                             </a>
                           )}
                           {isMaharashtra && (
@@ -610,20 +610,20 @@ export default function VerificationDesk({
                               href="https://mahabhulekh.maharashtra.gov.in/"
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#FAF9F5] border border-[#DDD9CE] rounded hover:bg-[#EAE7DF] text-[#16241F] font-semibold transition-colors"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-[var(--color-bg-secondary)] border border-[var(--color-border-strong)] rounded hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)] font-semibold transition-colors"
                             >
                               <span>Mahabhulekh Bhunaksha</span>
-                              <ExternalLink className="w-3 h-3 text-[#8A887E]" />
+                              <ExternalLink className="w-3 h-3 text-[var(--color-text-muted)]" />
                             </a>
                           )}
                           <a
                             href={`https://bhuvan-app1.nrsc.gov.in/bhuvan2d/bhuvan/bhuvan2d.php?lat=${lat}&lon=${lon}&zoom=17`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#FAF9F5] border border-[#DDD9CE] rounded hover:bg-[#EAE7DF] text-[#16241F] font-semibold transition-colors"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-[var(--color-bg-secondary)] border border-[var(--color-border-strong)] rounded hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)] font-semibold transition-colors"
                           >
                             <span>ISRO Bhuvan (NRSC)</span>
-                            <ExternalLink className="w-3 h-3 text-[#8A887E]" />
+                            <ExternalLink className="w-3 h-3 text-[var(--color-text-muted)]" />
                           </a>
                         </div>
                       </div>
@@ -631,12 +631,12 @@ export default function VerificationDesk({
                   })()}
                 </div>
               ) : (
-                <div className="p-4 bg-[#FAF9F5] border border-dashed border-[#DDD9CE] rounded-lg text-center text-xs text-[#8A887E] space-y-2">
+                <div className="p-4 bg-[var(--color-bg-secondary)] border border-dashed border-[var(--color-border-strong)] rounded-lg text-center text-xs text-[var(--color-text-muted)] space-y-2">
                   <p>Cadastral parcel geometry not yet mapped for this survey number.</p>
                   <button
                     type="button"
                     onClick={handleSaveCorrections}
-                    className="px-3 py-1.5 bg-[#D9714B] text-white rounded text-xs font-semibold hover:bg-[#C05D37] transition-colors"
+                    className="px-3 py-1.5 bg-[var(--color-accent)] text-white rounded text-xs font-semibold hover:bg-[var(--color-accent-hover)] transition-colors cursor-pointer"
                   >
                     Map Cadastral Boundary
                   </button>
@@ -645,9 +645,9 @@ export default function VerificationDesk({
             </div>
 
             {/* Officer Remarks & Decision Buttons */}
-            <div className="bg-white border border-[#E6E3DB] rounded-xl p-5 shadow-xs space-y-4">
+            <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl p-5 shadow-xs space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-[#16241F] mb-1">
+                <label className="block text-xs font-semibold text-[var(--color-text-primary)] mb-1">
                   Revenue Officer Verification Remarks / Mutation Ref
                 </label>
                 <textarea
@@ -655,17 +655,17 @@ export default function VerificationDesk({
                   onChange={(e) => setReviewerNotes(e.target.value)}
                   rows={2}
                   placeholder="Enter verification rationale, mutation reference order, or audit justification..."
-                  className="w-full text-xs bg-[#F7F5EF] border border-[#DDD9CE] rounded-lg p-2.5 text-[#16241F] focus:outline-none focus:ring-1 focus:ring-[#D9714B]"
+                  className="w-full text-xs bg-[var(--color-bg-primary)] border border-[var(--color-border-strong)] rounded-lg p-2.5 text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
                 />
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#F2EFE8]">
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[var(--color-border-subtle)]">
                 <button
                   onClick={handleSaveCorrections}
                   disabled={actionLoading}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold text-[#16241F] bg-white border border-[#DDD9CE] hover:bg-[#F2EFE8] transition-colors inline-flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-lg text-xs font-semibold text-[var(--color-text-primary)] bg-[var(--color-bg-secondary)] border border-[var(--color-border-strong)] hover:bg-[var(--color-bg-tertiary)] transition-colors inline-flex items-center gap-1.5 cursor-pointer"
                 >
-                  <Save className="w-3.5 h-3.5 text-[#737167]" />
+                  <Save className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
                   Save Corrections
                 </button>
 
@@ -673,7 +673,7 @@ export default function VerificationDesk({
                   <button
                     onClick={() => handleDecision("REJECTED")}
                     disabled={actionLoading}
-                    className="px-4 py-2 rounded-lg text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-colors inline-flex items-center gap-1.5"
+                    className="px-4 py-2 rounded-lg text-xs font-semibold text-[var(--color-error)] bg-[var(--color-error-bg)] border border-[var(--color-error-border)] hover:bg-[var(--color-bg-tertiary)] transition-colors inline-flex items-center gap-1.5 cursor-pointer"
                   >
                     <XCircle className="w-3.5 h-3.5" />
                     Flag / Reject
@@ -682,7 +682,7 @@ export default function VerificationDesk({
                   <button
                     onClick={() => handleDecision("APPROVED")}
                     disabled={actionLoading}
-                    className="px-5 py-2 rounded-lg text-xs font-semibold text-white bg-[#D9714B] hover:bg-[#C25F39] transition-colors inline-flex items-center gap-1.5 shadow-xs"
+                    className="px-5 py-2 rounded-lg text-xs font-semibold text-white bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] transition-colors inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     Approve Record

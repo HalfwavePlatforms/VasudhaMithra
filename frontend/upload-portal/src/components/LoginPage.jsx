@@ -314,21 +314,21 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
   };
 
   return (
-    <div className="min-h-screen w-full grid grid-cols-1 lg:grid-cols-2 font-sans bg-[#FAF6EF] text-[#1A2E27]">
+    <div className="min-h-screen w-full grid grid-cols-1 lg:grid-cols-2 font-sans bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
       {/* LEFT PANEL — Auth Form */}
-      <div className="flex flex-col justify-between p-8 sm:p-12 lg:p-16 bg-[#FAF6EF]">
+      <div className="flex flex-col justify-between p-8 sm:p-12 lg:p-16 bg-[var(--color-bg-primary)]">
         <div>
           {/* Logo Row */}
           <div className="flex items-center gap-3 mb-10">
             <div className="relative w-9 h-9">
-              <span className="absolute w-5 h-5 bg-[#D9714A] rounded-xs top-0 left-2.5" />
-              <span className="absolute w-5 h-5 bg-[#7FB89A] rounded-xs bottom-0 left-0" />
+              <span className="absolute w-5 h-5 bg-[var(--color-accent)] rounded-xs top-0 left-2.5" />
+              <span className="absolute w-5 h-5 bg-[var(--color-info)] rounded-xs bottom-0 left-0" />
             </div>
             <div className="leading-tight">
-              <div className="font-serif font-bold text-xl tracking-tight text-[#1A2E27]">
-                Vasudha<span className="text-[#D9714A]">Mithra</span>
+              <div className="font-serif font-bold text-xl tracking-tight text-[var(--color-text-primary)]">
+                Vasudha<span className="text-[var(--color-accent)]">Mithra</span>
               </div>
-              <div className="text-[11px] text-[#8A8A80]">भूमि अभिलेख प्रणाली</div>
+              <div className="text-[11px] text-[var(--color-text-muted)]">भूमि अभिलेख प्रणाली</div>
             </div>
           </div>
 
@@ -336,21 +336,21 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
           <div className="max-w-md w-full">
             {step === "email" ? (
               <form onSubmit={handleSendCode}>
-                <div className="text-[11px] font-bold tracking-widest text-[#D9714A] uppercase mb-3">
+                <div className="text-[11px] font-bold tracking-widest text-[var(--color-accent)] uppercase mb-3">
                   UNIFIED RECORDS CONSOLE
                 </div>
-                <h1 className="font-serif font-bold text-3xl sm:text-4xl text-[#1A2E27] leading-tight mb-3">
+                <h1 className="font-serif font-bold text-3xl sm:text-4xl text-[var(--color-text-primary)] leading-tight mb-3">
                   Enter the land intelligence workspace.
                 </h1>
-                <p className="text-sm text-[#6B6B62] leading-relaxed mb-8">
+                <p className="text-sm text-[var(--color-text-muted)] leading-relaxed mb-8">
                   Secure access for authorised teams digitizing, verifying and connecting India's land records.
                 </p>
 
                 {/* Role Tabs */}
-                <label className="block text-xs font-semibold text-[#1A2E27] mb-2">
+                <label className="block text-xs font-semibold text-[var(--color-text-primary)] mb-2">
                   Workspace role
                 </label>
-                <div className="flex border border-[#E4E0D4] rounded-lg bg-white p-1 mb-6">
+                <div className="flex border border-[var(--color-border)] rounded-lg bg-[var(--color-bg-secondary)] p-1 mb-6">
                   {Object.entries(ROLE_CONFIGS).map(([key, config]) => (
                     <button
                       key={key}
@@ -361,8 +361,8 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
                       }}
                       className={`flex-1 text-center py-2 text-xs transition-all rounded-md font-medium cursor-pointer ${
                         selectedRole === key
-                          ? "bg-[#1A2E27] text-white shadow-xs"
-                          : "text-[#8A8A80] hover:text-[#1A2E27]"
+                          ? "bg-[var(--color-sidebar-bg)] text-white shadow-xs"
+                          : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
                       }`}
                     >
                       {config.label}
@@ -371,16 +371,16 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
                 </div>
 
                 {/* Email Input */}
-                <label className="block text-xs font-semibold text-[#1A2E27] mb-2">
+                <label className="block text-xs font-semibold text-[var(--color-text-primary)] mb-2">
                   {selectedRole === "citizen" ? "Email address (any domain)" : "Official email address"}
                 </label>
                 <div className="mb-4">
                   <div
-                    className={`flex items-center border rounded-lg bg-white px-3.5 h-12 transition-all ${
-                      emailError ? "border-[#C4502B] ring-1 ring-[#C4502B]" : "border-[#E4E0D4] focus-within:border-[#1A2E27]"
+                    className={`flex items-center border rounded-lg bg-[var(--color-bg-secondary)] px-3.5 h-12 transition-all ${
+                      emailError ? "border-[var(--color-error)] ring-1 ring-[var(--color-error)]" : "border-[var(--color-border)] focus-within:border-[var(--color-sidebar-bg)]"
                     }`}
                   >
-                    <span className="text-[#B0AC9E] mr-2.5 text-sm">@</span>
+                    <span className="text-[var(--color-text-muted)] mr-2.5 text-sm">@</span>
                     <input
                       type="email"
                       value={email}
@@ -393,31 +393,31 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
                           ? "yourname@gmail.com (any email)"
                           : "name@department.gov.in"
                       }
-                      className="w-full bg-transparent border-none outline-none text-sm text-[#1A2E27] placeholder-[#B0AC9E]"
+                      className="w-full bg-transparent border-none outline-none text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)]"
                     />
                   </div>
                   {emailError && (
-                    <p className="text-xs text-[#C4502B] mt-1.5 font-medium">{emailError}</p>
+                    <p className="text-xs text-[var(--color-error)] mt-1.5 font-medium">{emailError}</p>
                   )}
                 </div>
 
                 {/* Mobile Number Input with TextBee SMS Gateway Indicator */}
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-2">
-                    <label className="block text-xs font-semibold text-[#1A2E27]">
+                    <label className="block text-xs font-semibold text-[var(--color-text-primary)]">
                       Official mobile number
                     </label>
-                    <span className="text-[10px] font-semibold text-[#1D8374] flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#1D8374] animate-pulse" />
+                    <span className="text-[10px] font-semibold text-[var(--color-success)] flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-success)] animate-pulse" />
                       TextBee SMS Gateway
                     </span>
                   </div>
                   <div
-                    className={`flex items-center border rounded-lg bg-white px-3.5 h-12 transition-all ${
-                      phoneError ? "border-[#C4502B] ring-1 ring-[#C4502B]" : "border-[#E4E0D4] focus-within:border-[#1A2E27]"
+                    className={`flex items-center border rounded-lg bg-[var(--color-bg-secondary)] px-3.5 h-12 transition-all ${
+                      phoneError ? "border-[var(--color-error)] ring-1 ring-[var(--color-error)]" : "border-[var(--color-border)] focus-within:border-[var(--color-sidebar-bg)]"
                     }`}
                   >
-                    <span className="text-[#1A2E27] font-semibold mr-2 text-xs flex items-center gap-1 pr-2.5 border-r border-[#E4E0D4]">
+                    <span className="text-[var(--color-text-primary)] font-semibold mr-2 text-xs flex items-center gap-1 pr-2.5 border-r border-[var(--color-border)]">
                       🇮🇳 +91
                     </span>
                     <input
@@ -430,13 +430,13 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
                         if (phoneError) validatePhone(clean);
                       }}
                       placeholder="98765 43210"
-                      className="w-full bg-transparent border-none outline-none text-sm text-[#1A2E27] placeholder-[#B0AC9E] font-mono tracking-wide"
+                      className="w-full bg-transparent border-none outline-none text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] font-mono tracking-wide"
                     />
                   </div>
                   {phoneError && (
-                    <p className="text-xs text-[#C4502B] mt-1.5 font-medium">{phoneError}</p>
+                    <p className="text-xs text-[var(--color-error)] mt-1.5 font-medium">{phoneError}</p>
                   )}
-                  <p className="text-[11px] text-[#8A8A80] mt-1.5">
+                  <p className="text-[11px] text-[var(--color-text-muted)] mt-1.5">
                     A secure 6-digit login OTP will be dispatched to this number via TextBee.
                   </p>
                 </div>
@@ -445,24 +445,24 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
                 <button
                   type="submit"
                   disabled={isSending}
-                  className="w-full bg-[#1A2E27] hover:bg-[#253E35] text-white rounded-lg h-12 font-semibold text-sm flex items-center justify-center gap-2 mt-4 transition-all shadow-xs disabled:opacity-60 cursor-pointer"
+                  className="w-full bg-[var(--color-sidebar-bg)] hover:bg-[var(--color-sidebar-hover)] text-white rounded-lg h-12 font-semibold text-sm flex items-center justify-center gap-2 mt-4 transition-all shadow-xs disabled:opacity-60 cursor-pointer"
                 >
                   <span>{isSending ? "Dispatching SMS OTP…" : "Send SMS verification code"}</span>
                   <span aria-hidden="true">→</span>
                 </button>
 
                 {/* Divider */}
-                <div className="flex items-center gap-3 text-xs text-[#B0AC9E] my-6">
-                  <div className="flex-1 h-px bg-[#E4E0D4]" />
+                <div className="flex items-center gap-3 text-xs text-[var(--color-text-muted)] my-6">
+                  <div className="flex-1 h-px bg-[var(--color-border)]" />
                   <span>or continue with</span>
-                  <div className="flex-1 h-px bg-[#E4E0D4]" />
+                  <div className="flex-1 h-px bg-[var(--color-border)]" />
                 </div>
 
                 {/* Google SSO Button */}
                 <button
                   type="button"
                   onClick={() => alert("Google SSO domain restriction is configured for @department.gov.in accounts.")}
-                  className="w-full h-12 border border-[#E4E0D4] bg-white hover:bg-[#FBF9F4] rounded-lg text-sm font-medium text-[#1A2E27] flex items-center justify-center gap-2.5 transition-all shadow-2xs"
+                  className="w-full h-12 border border-[var(--color-border)] bg-[var(--color-bg-secondary)] hover:bg-[var(--color-accent-subtle)] rounded-lg text-sm font-medium text-[var(--color-text-primary)] flex items-center justify-center gap-2.5 transition-all shadow-2xs cursor-pointer"
                 >
                   <svg width="18" height="18" viewBox="0 0 48 48">
                     <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.1 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"/>
@@ -474,7 +474,7 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
                 </button>
 
                 {/* Trust Microcopy */}
-                <div className="flex items-center justify-center gap-1.5 text-xs text-[#8A8A80] mt-6">
+                <div className="flex items-center justify-center gap-1.5 text-xs text-[var(--color-text-muted)] mt-6">
                   <span>🛡</span>
                   <span>Protected by role-based access and encrypted verification.</span>
                 </div>
@@ -482,69 +482,69 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
             ) : (
               /* STEP 2: OTP Verification */
               <form onSubmit={handleVerifyOtp}>
-                <div className="text-[11px] font-bold tracking-widest text-[#D9714A] uppercase mb-3">
+                <div className="text-[11px] font-bold tracking-widest text-[var(--color-accent)] uppercase mb-3">
                   VERIFY YOUR IDENTITY
                 </div>
-                <h1 className="font-serif font-bold text-2xl sm:text-3xl text-[#1A2E27] leading-tight mb-2">
+                <h1 className="font-serif font-bold text-2xl sm:text-3xl text-[var(--color-text-primary)] leading-tight mb-2">
                   Enter the code sent to your phone.
                 </h1>
-                <p className="text-sm text-[#6B6B62] leading-relaxed mb-4">
+                <p className="text-sm text-[var(--color-text-muted)] leading-relaxed mb-4">
                   A 6-digit code was dispatched via TextBee SMS Gateway to{" "}
-                  <b className="text-[#1A2E27] font-semibold">
+                  <b className="text-[var(--color-text-primary)] font-semibold">
                     {smsInfo?.masked_phone || `+91 ••••• ••${phone.slice(-4)}`}
                   </b>{" "}
-                  and <span className="text-[#1A2E27]">{email}</span>. It expires in{" "}
-                  <span className="font-mono text-[#D9714A] font-semibold">{formatExpiryTime(expiryTimer)}</span>.
+                  and <span className="text-[var(--color-text-primary)]">{email}</span>. It expires in{" "}
+                  <span className="font-mono text-[var(--color-accent)] font-semibold">{formatExpiryTime(expiryTimer)}</span>.
                 </p>
 
                 {/* TextBee SMS Gateway Status Card with Instant Backup Code */}
                 {smsInfo?.sms_delivered ? (
-                  <div className="p-3.5 bg-[#EBF7F2] border border-[#C5E8D9] rounded-lg text-xs text-[#1D8374] mb-4 space-y-2 shadow-2xs">
+                  <div className="p-3.5 bg-[var(--color-success-bg)] border border-[var(--color-success-border)] rounded-lg text-xs text-[var(--color-success)] mb-4 space-y-2 shadow-2xs">
                     <div className="flex items-center justify-between font-semibold">
                       <span className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-[#1D8374] animate-pulse" />
+                        <span className="w-2 h-2 rounded-full bg-[var(--color-success)] animate-pulse" />
                         SMS Dispatched via TextBee Gateway
                       </span>
-                      <span className="text-[10px] px-2 py-0.5 bg-[#D4EFE4] text-[#166534] rounded-full font-semibold">
+                      <span className="text-[10px] px-2 py-0.5 bg-[var(--color-success-bg)] text-[var(--color-success)] border border-[var(--color-success-border)] rounded-full font-semibold">
                         Real SIM Dispatched
                       </span>
                     </div>
-                    <p className="text-[11px] text-[#245D48] leading-relaxed">
-                      Message dispatched through your linked Android device SIM to <b className="text-[#16241F]">{smsInfo?.masked_phone || phone}</b>.
+                    <p className="text-[11px] text-[var(--color-text-secondary)] leading-relaxed">
+                      Message dispatched through your linked Android device SIM to <b className="text-[var(--color-text-primary)]">{smsInfo?.masked_phone || phone}</b>.
                     </p>
                     {demoOtpCode && (
-                      <div className="pt-1.5 flex items-center justify-between text-xs bg-white/90 p-2 rounded border border-[#C5E8D9]">
-                        <span className="text-[#406857] font-medium">Backup Verification Code:</span>
-                        <code className="font-mono bg-white px-2.5 py-0.5 rounded border border-[#C5E8D9] font-bold text-sm text-[#1D8374] tracking-widest">
+                      <div className="pt-1.5 flex items-center justify-between text-xs bg-[var(--color-bg-secondary)] p-2 rounded border border-[var(--color-success-border)]">
+                        <span className="text-[var(--color-text-secondary)] font-medium">Backup Verification Code:</span>
+                        <code className="font-mono bg-[var(--color-bg-secondary)] px-2.5 py-0.5 rounded border border-[var(--color-success-border)] font-bold text-sm text-[var(--color-success)] tracking-widest">
                           {demoOtpCode}
                         </code>
                       </div>
                     )}
                   </div>
                 ) : demoOtpCode ? (
-                  <div className="p-3.5 bg-[#FFF8E6] border border-[#F2D184] rounded-lg text-xs text-[#8A5B00] mb-4 space-y-1.5 shadow-2xs">
+                  <div className="p-3.5 bg-[var(--color-warning-bg)] border border-[var(--color-warning-border)] rounded-lg text-xs text-[var(--color-warning)] mb-4 space-y-1.5 shadow-2xs">
                     <div className="flex items-center justify-between font-semibold">
-                      <span className="flex items-center gap-1.5 text-[#1A2E27]">
-                        <span className="w-2 h-2 rounded-full bg-[#D9714A]" />
+                      <span className="flex items-center gap-1.5 text-[var(--color-text-primary)]">
+                        <span className="w-2 h-2 rounded-full bg-[var(--color-accent)]" />
                         TextBee SMS Gateway Active
                       </span>
-                      <span className="text-[10px] px-2 py-0.5 bg-[#FCE8B3] text-[#7A4B00] rounded-full font-medium">
+                      <span className="text-[10px] px-2 py-0.5 bg-[var(--color-warning-bg)] text-[var(--color-warning)] border border-[var(--color-warning-border)] rounded-full font-medium">
                         Device Pairing Ready
                       </span>
                     </div>
-                    <p className="text-[11px] text-[#7A4B00] leading-relaxed">
+                    <p className="text-[11px] text-[var(--color-warning)] leading-relaxed">
                       API key authenticated. Once your Android device is linked in the TextBee app, real SIM SMS will be physically sent from your SIM card.
                     </p>
-                    <div className="pt-1 flex items-center justify-between text-xs bg-white/80 p-2 rounded border border-[#E8C670]">
-                      <span className="font-semibold text-[#1A2E27]">Verification Code:</span>
-                      <code className="font-mono bg-white px-2.5 py-0.5 rounded border border-[#DDD] font-bold text-sm text-[#D9714A] tracking-widest">
+                    <div className="pt-1 flex items-center justify-between text-xs bg-[var(--color-bg-secondary)] p-2 rounded border border-[var(--color-warning-border)]">
+                      <span className="font-semibold text-[var(--color-text-primary)]">Verification Code:</span>
+                      <code className="font-mono bg-[var(--color-bg-secondary)] px-2.5 py-0.5 rounded border border-[var(--color-border)] font-bold text-sm text-[var(--color-accent)] tracking-widest">
                         {demoOtpCode}
                       </code>
                     </div>
                   </div>
                 ) : null}
 
-                <label className="block text-xs font-semibold text-[#1A2E27] mb-2">
+                <label className="block text-xs font-semibold text-[var(--color-text-primary)] mb-2">
                   Verification code
                 </label>
 
@@ -560,21 +560,21 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
                       value={digit}
                       onChange={(e) => handleOtpChange(idx, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                      className="w-11 h-13 text-center text-xl font-semibold border border-[#E4E0D4] rounded-lg bg-white outline-none focus:border-[#1A2E27] text-[#1A2E27] shadow-2xs font-mono"
+                      className="w-11 h-13 text-center text-xl font-semibold border border-[var(--color-border)] rounded-lg bg-[var(--color-bg-secondary)] outline-none focus:border-[var(--color-sidebar-bg)] text-[var(--color-text-primary)] shadow-2xs font-mono"
                     />
                   ))}
                 </div>
-                {otpError && <p className="text-xs text-[#C4502B] font-medium mb-3">{otpError}</p>}
+                {otpError && <p className="text-xs text-[var(--color-error)] font-medium mb-3">{otpError}</p>}
 
                 {/* Resend Row */}
                 <div className="flex items-center justify-between text-xs my-4">
-                  <span className="text-[#8A8A80]">Didn't get the SMS?</span>
+                  <span className="text-[var(--color-text-muted)]">Didn't get the SMS?</span>
                   <button
                     type="button"
                     onClick={handleResendCode}
                     disabled={!canResend}
                     className={`font-semibold transition-all ${
-                      canResend ? "text-[#D9714A] hover:underline cursor-pointer" : "text-[#B0AC9E] cursor-not-allowed"
+                      canResend ? "text-[var(--color-accent)] hover:underline cursor-pointer" : "text-[var(--color-text-muted)] cursor-not-allowed"
                     }`}
                   >
                     {canResend ? "Resend SMS code" : `Resend SMS in ${resendTimer}s`}
@@ -585,19 +585,19 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
                 <button
                   type="submit"
                   disabled={isVerifying}
-                  className="w-full bg-[#1A2E27] hover:bg-[#253E35] text-white rounded-lg h-12 font-semibold text-sm flex items-center justify-center gap-2 transition-all shadow-xs disabled:opacity-60 cursor-pointer"
+                  className="w-full bg-[var(--color-sidebar-bg)] hover:bg-[var(--color-sidebar-hover)] text-white rounded-lg h-12 font-semibold text-sm flex items-center justify-center gap-2 transition-all shadow-xs disabled:opacity-60 cursor-pointer"
                 >
                   <span>{isVerifying ? "Verifying code…" : "Verify and enter workspace"}</span>
                   <span aria-hidden="true">→</span>
                 </button>
 
                 {/* Change Email or Phone */}
-                <div className="text-xs text-[#8A8A80] mt-5 flex items-center justify-between">
+                <div className="text-xs text-[var(--color-text-muted)] mt-5 flex items-center justify-between">
                   <span>Incorrect details?</span>
                   <button
                     type="button"
                     onClick={() => setStep("email")}
-                    className="text-[#1A2E27] font-semibold underline hover:opacity-80 cursor-pointer"
+                    className="text-[var(--color-text-primary)] font-semibold underline hover:opacity-80 cursor-pointer"
                   >
                     ← Edit email or mobile number
                   </button>
@@ -608,21 +608,21 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
         </div>
 
         {/* Footer Link */}
-        <div className="text-xs text-[#8A8A80] mt-12 pt-6 border-t border-[#E4E0D4]/60">
+        <div className="text-xs text-[var(--color-text-muted)] mt-12 pt-6 border-t border-[var(--color-border)]/60">
           Need help signing in?{" "}
-          <a href="#support" className="text-[#1A2E27] font-semibold underline hover:opacity-80">
+          <a href="#support" className="text-[var(--color-text-primary)] font-semibold underline hover:opacity-80">
             Contact technical support
           </a>
         </div>
       </div>
 
       {/* RIGHT PANEL — Trust & Marketing */}
-      <div className="bg-[#16332B] text-white p-8 sm:p-12 lg:p-16 flex flex-col justify-between relative overflow-hidden min-h-[500px]">
+      <div className="bg-[var(--color-sidebar-bg)] text-white p-8 sm:p-12 lg:p-16 flex flex-col justify-between relative overflow-hidden min-h-[500px]">
         {/* Topographic Lines Background Pattern */}
         <svg className="absolute inset-0 w-full h-full opacity-15 pointer-events-none" viewBox="0 0 800 900" preserveAspectRatio="none">
-          <path d="M0,150 C200,100 400,220 800,140" stroke="#8FC7A8" strokeWidth="1.5" fill="none" />
-          <path d="M0,400 C250,340 500,460 800,380" stroke="#8FC7A8" strokeWidth="1.5" fill="none" />
-          <path d="M0,650 C220,600 480,720 800,630" stroke="#8FC7A8" strokeWidth="1.5" fill="none" />
+          <path d="M0,150 C200,100 400,220 800,140" stroke="var(--color-sidebar-muted)" strokeWidth="1.5" fill="none" />
+          <path d="M0,400 C250,340 500,460 800,380" stroke="var(--color-sidebar-muted)" strokeWidth="1.5" fill="none" />
+          <path d="M0,650 C220,600 480,720 800,630" stroke="var(--color-sidebar-muted)" strokeWidth="1.5" fill="none" />
         </svg>
 
         {/* Top Bar Header */}
@@ -633,12 +633,12 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
 
         {/* Hero Section */}
         <div className="relative z-10 my-auto py-12">
-          <div className="text-xs font-semibold tracking-widest text-[#8FC7A8] uppercase mb-4">
+          <div className="text-xs font-semibold tracking-widest text-[var(--color-sidebar-muted)] uppercase mb-4">
             LAND INTELLIGENCE · BUILT FOR INDIA
           </div>
           <h2 className="font-serif font-bold text-3xl sm:text-4xl lg:text-5xl leading-tight mb-5 max-w-lg">
             Every parcel has a past.<br />
-            Now it has a <span className="text-[#8FC7A8]">digital future.</span>
+            Now it has a <span className="text-[var(--color-sidebar-muted)]">digital future.</span>
           </h2>
           <p className="text-sm sm:text-base text-white/80 max-w-md leading-relaxed">
             VasudhaMithra turns historic registers, handwritten notes and cadastral maps into one accurate, traceable record of truth.
@@ -670,7 +670,7 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
 
           {/* Status Chip */}
           <div className="inline-flex items-center gap-3 bg-white/5 border border-white/12 rounded-xl px-4 py-3 backdrop-blur-xs">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#6FD89A] animate-pulse" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[var(--color-success)] animate-pulse" />
             <div className="text-xs leading-tight">
               <span className="font-semibold block text-white">Platform services are operational</span>
               <span className="text-white/60 text-[11px]">Securely hosted on NIC Cloud</span>

@@ -32,8 +32,8 @@ export default function CadastralLeafletMap({
   );
 
   const isDiscrepancy = (gis?.spatial_delta_pct || 0) > 5 || gis?.spatial_consistency === "DISCREPANCY";
-  const strokeColor = isDiscrepancy ? "#DC2626" : "#059669";
-  const fillColor = isDiscrepancy ? "#EF4444" : "#10B981";
+  const strokeColor = isDiscrepancy ? "#DC2626" : "#1D8374";
+  const fillColor = isDiscrepancy ? "#DC2626" : "#1D8374";
 
   // 1. Initialize Map, Base Tile Layers, Overlay LayerGroup & Layer Control (once on mount)
   useEffect(() => {
@@ -240,11 +240,11 @@ export default function CadastralLeafletMap({
 
           neighbors.forEach((nb) => {
             const rect = L.rectangle(nb.bounds, {
-              color: "#78716C",
+              color: "#8FA396",
               weight: 1.2,
               dashArray: "4, 4",
-              fillColor: "#F5F5F4",
-              fillOpacity: 0.12,
+              fillColor: "#F7F5EF",
+              fillOpacity: 0.2,
             });
             rect.bindTooltip(`Plot ${nb.label}`, { permanent: false, direction: "center" });
             rect.addTo(meshGroup);
@@ -270,7 +270,7 @@ export default function CadastralLeafletMap({
         width: "100%",
         borderRadius: "12px",
         overflow: "hidden",
-        border: "1px solid #E5E7EB",
+        border: "1px solid var(--color-border)",
         boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
       }}
     >
@@ -285,14 +285,14 @@ export default function CadastralLeafletMap({
           top: "10px",
           left: "52px",
           zIndex: 400,
-          backgroundColor: "rgba(255, 255, 255, 0.96)",
+          backgroundColor: "var(--color-bg-secondary)",
           padding: "4px 10px",
           borderRadius: "8px",
           fontSize: "11px",
           fontWeight: 600,
-          color: "#16241F",
+          color: "var(--color-text-primary)",
           boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
-          border: "1px solid #DDD9CE",
+          border: "1px solid var(--color-border-strong)",
           display: "flex",
           alignItems: "center",
           gap: "6px",
@@ -312,9 +312,9 @@ export default function CadastralLeafletMap({
             fontSize: "10px",
             fontWeight: 700,
             padding: "1px 6px",
-            borderRadius: "4px",
-            backgroundColor: isDiscrepancy ? "#FEE2E2" : "#D1FAE5",
-            color: isDiscrepancy ? "#991B1B" : "#065F46",
+            borderRadius: "9999px",
+            backgroundColor: isDiscrepancy ? "var(--color-error-bg)" : "var(--color-success-bg)",
+            color: isDiscrepancy ? "var(--color-error)" : "var(--color-success)",
           }}
         >
           {isDiscrepancy ? "Discrepancy" : "Match"}

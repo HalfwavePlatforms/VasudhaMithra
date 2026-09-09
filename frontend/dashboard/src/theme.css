@@ -1,0 +1,46 @@
+﻿:root {
+  /* Core palette */
+  --color-bg-primary: #F7F5EF;      /* cream background */
+  --color-bg-secondary: #FAF9F5;    /* lighter card background */
+  --color-bg-tertiary: #F2EFE8;     /* inner container / table / input background */
+  --color-sidebar-bg: #16241F;      /* dark forest green */
+  --color-sidebar-hover: #22382F;
+  --color-sidebar-active: #2D4A3E;
+  --color-sidebar-border: #243D32;
+  --color-sidebar-text: #E2E8F0;
+  --color-sidebar-muted: #8FA396;
+  --color-sidebar-icon: #637C6F;
+
+  /* Brand / Accent */
+  --color-accent: #D9714B;          /* terracotta/coral */
+  --color-accent-hover: #C25F39;
+  --color-accent-subtle: #FAF3EE;
+
+  /* Text */
+  --color-text-primary: #16241F;    /* dark forest for primary text on light bg */
+  --color-text-secondary: #4A5568;
+  --color-text-muted: #737167;
+  --color-text-light: #F7F5EF;
+
+  /* Borders */
+  --color-border: #E6E3DB;          /* card/divider border */
+  --color-border-subtle: #EAE7DF;
+  --color-border-strong: #DDD9CE;
+
+  /* Semantic / Status (triads: text, bg, border) */
+  --color-success: #1D8374;         /* sage-teal */
+  --color-success-bg: #EBF7F2;
+  --color-success-border: #C5E8D9;
+
+  --color-warning: #B45309;         /* deep amber */
+  --color-warning-bg: #FDE68A;
+  --color-warning-border: #FCD34D;
+
+  --color-error: #DC2626;
+  --color-error-bg: #FEF2F2;
+  --color-error-border: #FECACA;
+
+  --color-info: #1D8374;            /* map teal */
+  --color-info-bg: #E6F4F1;
+  --color-info-border: #B2DDD6;
+}

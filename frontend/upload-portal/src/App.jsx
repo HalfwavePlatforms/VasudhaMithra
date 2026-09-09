@@ -103,7 +103,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#F7F5EF] text-[#16241F] font-sans antialiased">
+    <div className="flex min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] font-sans antialiased">
       {/* Fixed Left Sidebar */}
       <Sidebar
         activeTab={activeTab}

@@ -7,8 +7,8 @@
 
 /* Layer Control Container */
 .cadastral-leaflet-map-wrapper .leaflet-control-layers {
-  background: #FFFFFF !important;
-  border: 1.5px solid #DDD9CE !important;
+  background: var(--color-bg-secondary) !important;
+  border: 1.5px solid var(--color-border-strong) !important;
   border-radius: 12px !important;
   box-shadow: 0 4px 16px rgba(22, 36, 31, 0.12), 0 1px 3px rgba(0, 0, 0, 0.05) !important;
   transition: all 0.2s ease;
@@ -23,13 +23,13 @@
   background-repeat: no-repeat !important;
   background-position: center !important;
   background-size: 18px 18px !important;
-  background-color: #FFFFFF !important;
+  background-color: var(--color-bg-secondary) !important;
   border-radius: 10px !important;
   transition: all 0.15s ease;
 }
 
 .cadastral-leaflet-map-wrapper .leaflet-control-layers:hover .leaflet-control-layers-toggle {
-  background-color: #F7F5EF !important;
+  background-color: var(--color-bg-primary) !important;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23D9714B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='12 2 2 7 12 12 22 7 12 2'/%3E%3Cpolyline points='2 17 12 22 22 17'/%3E%3Cpolyline points='2 12 12 17 22 12'/%3E%3C/svg%3E") !important;
   transform: scale(1.04);
 }
@@ -38,7 +38,7 @@
 .cadastral-leaflet-map-wrapper .leaflet-control-layers-expanded {
   padding: 10px 14px 12px 14px !important;
   min-width: 215px !important;
-  color: #16241F !important;
+  color: var(--color-text-primary) !important;
 }
 
 /* Section Header (Base Maps) */
@@ -49,10 +49,10 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #8A887E;
+  color: var(--color-sidebar-muted);
   margin-bottom: 6px;
   padding-bottom: 3px;
-  border-bottom: 1px dashed #EAE7DF;
+  border-bottom: 1px dashed var(--color-border-subtle);
 }
 
 /* Section Header (Overlays) */
@@ -63,15 +63,15 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #8A887E;
+  color: var(--color-sidebar-muted);
   margin-bottom: 6px;
   padding-bottom: 3px;
-  border-bottom: 1px dashed #EAE7DF;
+  border-bottom: 1px dashed var(--color-border-subtle);
 }
 
 /* Separator Line */
 .cadastral-leaflet-map-wrapper .leaflet-control-layers-separator {
-  border-top: 1px solid #EAE7DF !important;
+  border-top: 1px solid var(--color-border-subtle) !important;
   margin: 10px 0 !important;
 }
 
@@ -82,7 +82,7 @@
   gap: 8px !important;
   font-size: 12px !important;
   font-weight: 500 !important;
-  color: #16241F !important;
+  color: var(--color-text-primary) !important;
   padding: 4px 6px !important;
   border-radius: 6px !important;
   margin-bottom: 2px !important;
@@ -92,13 +92,13 @@
 }
 
 .cadastral-leaflet-map-wrapper .leaflet-control-layers label:hover {
-  background-color: #F7F5EF !important;
+  background-color: var(--color-bg-primary) !important;
 }
 
 /* Radio & Checkbox Inputs */
 .cadastral-leaflet-map-wrapper .leaflet-control-layers input[type="radio"],
 .cadastral-leaflet-map-wrapper .leaflet-control-layers input[type="checkbox"] {
-  accent-color: #D9714B !important;
+  accent-color: var(--color-accent) !important;
   width: 14px !important;
   height: 14px !important;
   margin: 0 !important;
@@ -107,28 +107,29 @@
 
 /* Zoom Control Override */
 .cadastral-leaflet-map-wrapper .leaflet-control-zoom {
-  border: 1.5px solid #DDD9CE !important;
+  border: 1.5px solid var(--color-border-strong) !important;
   border-radius: 10px !important;
   overflow: hidden !important;
   box-shadow: 0 4px 12px rgba(22, 36, 31, 0.08) !important;
 }
 
 .cadastral-leaflet-map-wrapper .leaflet-control-zoom a {
-  background-color: #FFFFFF !important;
-  color: #16241F !important;
-  border-bottom: 1px solid #EAE7DF !important;
+  background-color: var(--color-bg-secondary) !important;
+  color: var(--color-text-primary) !important;
+  border-bottom: 1px solid var(--color-border-subtle) !important;
   transition: all 0.15s ease !important;
 }
 
 .cadastral-leaflet-map-wrapper .leaflet-control-zoom a:hover {
-  background-color: #F7F5EF !important;
-  color: #D9714B !important;
+  background-color: var(--color-bg-primary) !important;
+  color: var(--color-accent) !important;
 }
 
 /* Leaflet Attribution Bar */
 .cadastral-leaflet-map-wrapper .leaflet-control-attribution {
-  background: rgba(247, 245, 239, 0.88) !important;
-  color: #737167 !important;
+  background: var(--color-bg-primary) !important;
+  opacity: 0.92;
+  color: var(--color-text-muted) !important;
   font-size: 10px !important;
   backdrop-filter: blur(4px);
   padding: 2px 8px !important;
@@ -136,7 +137,7 @@
 }
 
 .cadastral-leaflet-map-wrapper .leaflet-control-attribution a {
-  color: #1D8374 !important;
+  color: var(--color-success) !important;
   font-weight: 600 !important;
   text-decoration: none !important;
 }

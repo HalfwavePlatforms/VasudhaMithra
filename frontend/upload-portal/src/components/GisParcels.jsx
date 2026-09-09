@@ -185,13 +185,13 @@ export default function GisParcels({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#D9714B]">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-accent)]">
             SPATIAL INTELLIGENCE
           </span>
-          <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[#16241F] tracking-tight mt-1">
+          <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[var(--color-text-primary)] tracking-tight mt-1">
             GIS & cadastral parcels
           </h1>
-          <p className="text-sm text-[#737167] mt-1">
+          <p className="text-sm text-[var(--color-text-muted)] mt-1">
             Reconcile digitized records with surveyed boundaries and spatial masters.
           </p>
         </div>
@@ -201,21 +201,21 @@ export default function GisParcels({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Control Panel (3 Cols) — Formatted strictly top-to-bottom per spec */}
         <div className="lg:col-span-3 space-y-4">
-          <div className="bg-white border border-[#E6E3DB] rounded-xl p-5 shadow-xs space-y-5">
+          <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl p-5 shadow-xs space-y-5">
             {/* 1. "Search or select parcel" (Merged single searchable combobox) */}
             <div className="space-y-2 relative" ref={comboboxRef}>
               <div className="flex items-center justify-between">
-                <label className="block text-xs font-semibold text-[#16241F]">
+                <label className="block text-xs font-semibold text-[var(--color-text-primary)]">
                   Search or select parcel
                 </label>
-                <span className="text-[10px] font-mono text-[#8A887E]">
+                <span className="text-[10px] font-mono text-[var(--color-sidebar-muted)]">
                   {loadingList ? "Loading..." : `${parcels.length} available`}
                 </span>
               </div>
 
               {/* Input + Combobox triggers */}
               <div className="relative">
-                <Search className="w-4 h-4 text-[#8A887E] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Search className="w-4 h-4 text-[var(--color-sidebar-muted)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="text"
                   value={comboboxSearch}
@@ -236,7 +236,7 @@ export default function GisParcels({
                       ? `Survey ${selectedParcel.survey_number} (${selectedParcel.village || "Cadastral"})`
                       : "Search survey, village, or district..."
                   }
-                  className="w-full pl-9 pr-14 py-2 text-xs bg-[#F7F5EF] border border-[#DDD9CE] rounded-lg text-[#16241F] placeholder:text-[#737167] focus:outline-none focus:ring-1 focus:ring-[#D9714B] focus:border-[#D9714B] transition-all"
+                  className="w-full pl-9 pr-14 py-2 text-xs bg-[var(--color-bg-primary)] border border-[var(--color-border-strong)] rounded-lg text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] transition-all"
                 />
 
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
@@ -244,7 +244,7 @@ export default function GisParcels({
                     <button
                       type="button"
                       onClick={() => setComboboxSearch("")}
-                      className="p-1 text-[#8A887E] hover:text-[#16241F] rounded"
+                      className="p-1 text-[var(--color-sidebar-muted)] hover:text-[var(--color-text-primary)] rounded"
                       title="Clear text"
                     >
                       <X className="w-3.5 h-3.5" />
@@ -253,7 +253,7 @@ export default function GisParcels({
                   <button
                     type="button"
                     onClick={() => setComboboxOpen(!comboboxOpen)}
-                    className="p-1 text-[#8A887E] hover:text-[#16241F] rounded"
+                    className="p-1 text-[var(--color-sidebar-muted)] hover:text-[var(--color-text-primary)] rounded"
                     title="Toggle parcel list"
                   >
                     <ChevronDown
@@ -267,17 +267,17 @@ export default function GisParcels({
 
               {/* Active Selection Badge */}
               {selectedParcel && (
-                <div className="p-2 rounded-lg bg-[#FAF9F5] border border-[#EAE7DF] flex items-center justify-between text-xs">
+                <div className="p-2 rounded-lg bg-[var(--color-bg-primary)] border border-[var(--color-border-subtle)] flex items-center justify-between text-xs">
                   <div className="min-w-0 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-[#1D8374] shrink-0" />
-                    <span className="font-semibold text-[#16241F] truncate">
+                    <span className="w-2 h-2 rounded-full bg-[var(--color-success)] shrink-0" />
+                    <span className="font-semibold text-[var(--color-text-primary)] truncate">
                       Survey {selectedParcel.survey_number}
                     </span>
-                    <span className="text-[#8A887E] truncate text-[11px]">
+                    <span className="text-[var(--color-sidebar-muted)] truncate text-[11px]">
                       {selectedParcel.village ? `· ${selectedParcel.village}` : ""}
                     </span>
                   </div>
-                  <span className="text-[11px] font-mono text-[#D9714B] font-medium shrink-0 ml-1.5">
+                  <span className="text-[11px] font-mono text-[var(--color-accent)] font-medium shrink-0 ml-1.5">
                     {selectedParcel.area_acres || parcelDetail?.area_gis || "—"} ac
                   </span>
                 </div>
@@ -285,7 +285,7 @@ export default function GisParcels({
 
               {/* Filtered Dropdown List Popover */}
               {comboboxOpen && (
-                <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white border border-[#DDD9CE] rounded-xl shadow-lg max-h-60 overflow-y-auto divide-y divide-[#F2EFE8]">
+                <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-[var(--color-bg-secondary)] border border-[var(--color-border-strong)] rounded-xl shadow-lg max-h-60 overflow-y-auto divide-y divide-[var(--color-border-subtle)]">
                   {filteredParcels.length > 0 ? (
                     filteredParcels.map((p) => {
                       const isSelected = selectedParcel?.survey_number === p.survey_number;
@@ -296,22 +296,22 @@ export default function GisParcels({
                           onClick={() => handleSelectParcel(p)}
                           className={`w-full text-left px-3.5 py-2.5 text-xs flex items-center justify-between transition-colors ${
                             isSelected
-                              ? "bg-[#FAF9F5] text-[#16241F] font-semibold"
-                              : "hover:bg-[#F7F5EF] text-[#16241F]"
+                              ? "bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)] font-semibold"
+                              : "hover:bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]"
                           }`}
                         >
                           <div className="min-w-0 pr-2">
                             <div className="flex items-center gap-1.5">
-                              <span className="font-mono font-bold text-[#16241F]">
+                              <span className="font-mono font-bold text-[var(--color-text-primary)]">
                                 Survey {p.survey_number}
                               </span>
-                              {isSelected && <Check className="w-3.5 h-3.5 text-[#1D8374]" />}
+                              {isSelected && <Check className="w-3.5 h-3.5 text-[var(--color-success)]" />}
                             </div>
-                            <div className="text-[11px] text-[#8A887E] truncate">
+                            <div className="text-[11px] text-[var(--color-sidebar-muted)] truncate">
                               {p.village}, {p.district} ({p.state || "MP"})
                             </div>
                           </div>
-                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#F2EFE8] text-[#5A584F] shrink-0">
+                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] shrink-0">
                             {p.area_acres} ac
                           </span>
                         </button>
@@ -319,13 +319,13 @@ export default function GisParcels({
                     })
                   ) : (
                     <div className="p-3 text-center">
-                      <div className="text-xs text-[#8A887E] mb-2">
+                      <div className="text-xs text-[var(--color-sidebar-muted)] mb-2">
                         No seeded parcel matching "{comboboxSearch}"
                       </div>
                       <button
                         type="button"
                         onClick={handleCustomSearchSubmit}
-                        className="text-xs font-semibold text-[#D9714B] hover:underline"
+                        className="text-xs font-semibold text-[var(--color-accent)] hover:underline"
                       >
                         Search survey "{comboboxSearch}" directly &rarr;
                       </button>
@@ -336,22 +336,22 @@ export default function GisParcels({
             </div>
 
             {/* 2. Record Status Legend (Moved up directly below the combobox per Problem 2) */}
-            <div className="pt-4 border-t border-[#F2EFE8] space-y-2.5">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-[#8A887E]">
+            <div className="pt-4 border-t border-[var(--color-border-subtle)] space-y-2.5">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--color-sidebar-muted)]">
                 RECORD STATUS LEGEND
               </span>
               <div className="space-y-2 text-xs">
                 <div className="flex items-center gap-2.5">
-                  <span className="w-3 h-3 rounded-xs bg-[#1D8374] shrink-0" />
-                  <span className="text-[#5A584F]">Linked & validated (&le;5% &Delta;)</span>
+                  <span className="w-3 h-3 rounded-xs bg-[var(--color-success)] shrink-0" />
+                  <span className="text-[var(--color-text-secondary)]">Linked & validated (&le;5% &Delta;)</span>
                 </div>
                 <div className="flex items-center gap-2.5">
-                  <span className="w-3 h-3 rounded-xs bg-amber-500 shrink-0" />
-                  <span className="text-[#5A584F]">Pending review</span>
+                  <span className="w-3 h-3 rounded-xs bg-[var(--color-warning)] shrink-0" />
+                  <span className="text-[var(--color-text-secondary)]">Pending review</span>
                 </div>
                 <div className="flex items-center gap-2.5">
-                  <span className="w-3 h-3 rounded-xs bg-[#D9714B] shrink-0" />
-                  <span className="text-[#5A584F]">Boundary mismatch (&gt;5% &Delta;)</span>
+                  <span className="w-3 h-3 rounded-xs bg-[var(--color-accent)] shrink-0" />
+                  <span className="text-[var(--color-text-secondary)]">Boundary mismatch (&gt;5% &Delta;)</span>
                 </div>
               </div>
             </div>
@@ -360,26 +360,26 @@ export default function GisParcels({
         </div>
 
         {/* Center: Interactive Map (5 Cols) */}
-        <div className="lg:col-span-5 bg-white border border-[#E6E3DB] rounded-xl p-4 shadow-xs space-y-2.5">
-          <div className="flex items-center justify-between pb-3 border-b border-[#F2EFE8]">
+        <div className="lg:col-span-5 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl p-4 shadow-xs space-y-2.5">
+          <div className="flex items-center justify-between pb-3 border-b border-[var(--color-border-subtle)]">
             <div className="flex items-center gap-2">
-              <Compass className="w-4 h-4 text-[#1D8374]" />
-              <span className="text-xs font-bold text-[#16241F]">
+              <Compass className="w-4 h-4 text-[var(--color-success)]" />
+              <span className="text-xs font-bold text-[var(--color-text-primary)]">
                 Multi-Layer Cadastral & Satellite Map
               </span>
             </div>
-            <span className="text-[10px] font-mono text-[#8A887E]">
+            <span className="text-[10px] font-mono text-[var(--color-sidebar-muted)]">
               {parcelDetail ? `Survey: ${parcelDetail.survey_number}` : "Select parcel"}
             </span>
           </div>
 
           {loadingDetail ? (
-            <div className="h-[460px] flex items-center justify-center text-xs text-[#8A887E]">
-              <Loader2 className="w-5 h-5 animate-spin mr-2 text-[#D9714B]" />
+            <div className="h-[460px] flex items-center justify-center text-xs text-[var(--color-sidebar-muted)]">
+              <Loader2 className="w-5 h-5 animate-spin mr-2 text-[var(--color-accent)]" />
               Loading cadastral boundary polygon...
             </div>
           ) : parcelDetail?.geometry ? (
-            <div className="rounded-lg overflow-hidden border border-[#DDD9CE]">
+            <div className="rounded-lg overflow-hidden border border-[var(--color-border-strong)]">
               <CadastralLeafletMap
                 geometry={parcelDetail.geometry}
                 gis={{
@@ -394,13 +394,13 @@ export default function GisParcels({
               />
             </div>
           ) : (
-            <div className="h-[460px] bg-[#FAF9F5] rounded-lg border border-[#EAE7DF] flex items-center justify-center text-xs text-[#8A887E]">
+            <div className="h-[460px] bg-[var(--color-bg-primary)] rounded-lg border border-[var(--color-border-subtle)] flex items-center justify-center text-xs text-[var(--color-sidebar-muted)]">
               No geometry found for this survey number.
             </div>
           )}
 
           {/* Contextual Helper text directly below the map per Problem 2 */}
-          <div className="flex items-center justify-between text-[11px] text-[#8A887E] px-1 pt-0.5">
+          <div className="flex items-center justify-between text-[11px] text-[var(--color-sidebar-muted)] px-1 pt-0.5">
             <span className="italic">
               Toggle base tiles (OpenStreetMap, Esri Satellite, CartoDB Positron) and cadastral overlays via the top-right map control.
             </span>
@@ -408,29 +408,29 @@ export default function GisParcels({
         </div>
 
         {/* Right: Selected Parcel Card (4 Cols) */}
-        <div className="lg:col-span-4 bg-white border border-[#E6E3DB] rounded-xl p-6 shadow-xs space-y-5">
+        <div className="lg:col-span-4 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl p-6 shadow-xs space-y-5">
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#8A887E]">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-sidebar-muted)]">
               SELECTED PARCEL
             </span>
-            <h3 className="text-2xl font-serif font-bold text-[#16241F] mt-1">
+            <h3 className="text-2xl font-serif font-bold text-[var(--color-text-primary)] mt-1">
               Survey {parcelDetail?.survey_number || "—"}
             </h3>
-            <div className="text-xs font-mono text-[#737167] mt-0.5">
+            <div className="text-xs font-mono text-[var(--color-text-muted)] mt-0.5">
               {parcelDetail?.parcel_id || "PARCEL-CADASTRAL"}
             </div>
           </div>
 
           {/* Owner Row */}
-          <div className="p-3.5 bg-[#FAF9F5] border border-[#EAE7DF] rounded-xl flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-[#16241F] text-white flex items-center justify-center text-xs font-bold font-serif flex-shrink-0">
+          <div className="p-3.5 bg-[var(--color-bg-primary)] border border-[var(--color-border-subtle)] rounded-xl flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-[var(--color-sidebar-bg)] text-white flex items-center justify-center text-xs font-bold font-serif flex-shrink-0">
               {matchedRecord?.fields?.owner_name ? matchedRecord.fields.owner_name.slice(0, 2).toUpperCase() : "LP"}
             </div>
             <div className="min-w-0">
-              <div className="text-[10px] uppercase font-bold text-[#8A887E]">
+              <div className="text-[10px] uppercase font-bold text-[var(--color-sidebar-muted)]">
                 Recorded Owner
               </div>
-              <div className="text-xs font-bold text-[#16241F] truncate">
+              <div className="text-xs font-bold text-[var(--color-text-primary)] truncate">
                 {matchedRecord?.fields?.owner_name || "Revenue Master Record (Seeded)"}
               </div>
             </div>
@@ -438,43 +438,43 @@ export default function GisParcels({
 
           {/* Details Table */}
           <div className="space-y-2.5 text-xs">
-            <div className="flex justify-between py-1.5 border-b border-[#F2EFE8]">
-              <span className="text-[#737167]">Village (Gram)</span>
-              <span className="font-semibold text-[#16241F]">
+            <div className="flex justify-between py-1.5 border-b border-[var(--color-border-subtle)]">
+              <span className="text-[var(--color-text-muted)]">Village (Gram)</span>
+              <span className="font-semibold text-[var(--color-text-primary)]">
                 {parcelDetail?.metadata?.village || matchedRecord?.fields?.village || "Kothari"}
               </span>
             </div>
-            <div className="flex justify-between py-1.5 border-b border-[#F2EFE8]">
-              <span className="text-[#737167]">District (Zilla)</span>
-              <span className="font-semibold text-[#16241F]">
+            <div className="flex justify-between py-1.5 border-b border-[var(--color-border-subtle)]">
+              <span className="text-[var(--color-text-muted)]">District (Zilla)</span>
+              <span className="font-semibold text-[var(--color-text-primary)]">
                 {parcelDetail?.metadata?.district || matchedRecord?.fields?.district || "Bhopal"}
               </span>
             </div>
-            <div className="flex justify-between py-1.5 border-b border-[#F2EFE8]">
-              <span className="text-[#737167]">Cadastral GIS Area</span>
-              <span className="font-bold text-[#1D8374]">
+            <div className="flex justify-between py-1.5 border-b border-[var(--color-border-subtle)]">
+              <span className="text-[var(--color-text-muted)]">Cadastral GIS Area</span>
+              <span className="font-bold text-[var(--color-success)]">
                 {parcelDetail?.area_gis ? `${parcelDetail.area_gis} Acres` : "—"}
               </span>
             </div>
             {matchedRecord?.gis?.area_doc_acres && (
-              <div className="flex justify-between py-1.5 border-b border-[#F2EFE8]">
-                <span className="text-[#737167]">Deed Stated Area</span>
-                <span className="font-semibold text-[#16241F]">
+              <div className="flex justify-between py-1.5 border-b border-[var(--color-border-subtle)]">
+                <span className="text-[var(--color-text-muted)]">Deed Stated Area</span>
+                <span className="font-semibold text-[var(--color-text-primary)]">
                   {matchedRecord.gis.area_doc_acres} Acres
                 </span>
               </div>
             )}
             {matchedRecord?.gis?.spatial_delta_pct !== undefined && (
-              <div className="flex justify-between py-1.5 border-b border-[#F2EFE8]">
-                <span className="text-[#737167]">Area Variance (Δ%)</span>
-                <span className="font-bold text-[#16241F]">
+              <div className="flex justify-between py-1.5 border-b border-[var(--color-border-subtle)]">
+                <span className="text-[var(--color-text-muted)]">Area Variance (Δ%)</span>
+                <span className="font-bold text-[var(--color-text-primary)]">
                   {matchedRecord.gis.spatial_delta_pct}%
                 </span>
               </div>
             )}
-            <div className="flex justify-between py-1.5 border-b border-[#F2EFE8]">
-              <span className="text-[#737167]">Geodetic Source</span>
-              <span className="font-medium text-[11px] text-[#1D8374] text-right truncate max-w-[170px]" title={parcelDetail?.metadata?.geocoding_provider || "State Cadastral Master"}>
+            <div className="flex justify-between py-1.5 border-b border-[var(--color-border-subtle)]">
+              <span className="text-[var(--color-text-muted)]">Geodetic Source</span>
+              <span className="font-medium text-[11px] text-[var(--color-success)] text-right truncate max-w-[170px]" title={parcelDetail?.metadata?.geocoding_provider || "State Cadastral Master"}>
                 {parcelDetail?.source === "osm_nominatim_dynamic_cadastre"
                   ? "OSM Nominatim (Live)"
                   : (parcelDetail?.metadata?.geocoding_provider ? "Public Geodetic Service" : "Cadastral Master")}
@@ -484,14 +484,14 @@ export default function GisParcels({
 
           {/* Variance Status Alert */}
           {matchedRecord?.gis?.spatial_consistency === "DISCREPANCY" ? (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2 text-xs text-red-700">
+            <div className="p-3 bg-[var(--color-error-bg)] border border-[var(--color-error-border)] rounded-lg flex items-start gap-2 text-xs text-[var(--color-error)]">
               <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
               <div>
                 <strong>Spatial Discrepancy (&gt;5%):</strong> Deed extent and cadastral boundary differ significantly.
               </div>
             </div>
           ) : (
-            <div className="p-3 bg-[#EBF7F2] border border-[#C5E8D9] rounded-lg flex items-center gap-2 text-xs text-[#1D8374]">
+            <div className="p-3 bg-[var(--color-success-bg)] border border-[var(--color-success-border)] rounded-lg flex items-center gap-2 text-xs text-[var(--color-success)]">
               <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
               <span>Boundary reconciled within statutory tolerance.</span>
             </div>
@@ -504,10 +504,10 @@ export default function GisParcels({
                 if (setSelectedRecordId) setSelectedRecordId(matchedRecord.record_id);
                 if (setActiveTab) setActiveTab("verification_desk");
               }}
-              className="w-full py-2.5 px-4 rounded-lg text-xs font-semibold text-white bg-[#16241F] hover:bg-[#243B30] inline-flex items-center justify-center gap-2 shadow-xs transition-colors"
+              className="w-full py-2.5 px-4 rounded-lg text-xs font-semibold text-white bg-[var(--color-sidebar-bg)] hover:bg-[var(--color-sidebar-hover)] inline-flex items-center justify-center gap-2 shadow-xs transition-colors"
             >
               Open land record
-              <ArrowRight className="w-3.5 h-3.5 text-[#D9714B]" />
+              <ArrowRight className="w-3.5 h-3.5 text-[var(--color-accent)]" />
             </button>
           )}
         </div>

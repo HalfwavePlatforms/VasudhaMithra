@@ -114,22 +114,22 @@ export default function AuditTrailView({
     <div className="space-y-6 pb-16 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#D9714B]">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-accent)]">
             GOVERNANCE & COMPLIANCE
           </span>
           <div className="flex flex-wrap items-center gap-3 mt-1">
-            <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[#16241F] tracking-tight">
+            <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[var(--color-text-primary)] tracking-tight">
               Audit trail
             </h1>
             {uniqueRecordIds.length > 0 && (
-              <div className="flex items-center gap-2 bg-[#FAF9F5] p-1 rounded-xl border border-[#DDD9CE]">
+              <div className="flex items-center gap-2 bg-[var(--color-bg-secondary)] p-1 rounded-xl border border-[var(--color-border-strong)]">
                 <select
                   value={targetRecordId}
                   onChange={(e) => {
                     setTargetRecordId(e.target.value);
                     setVerifyResult(null);
                   }}
-                  className="text-xs bg-white border border-[#DDD9CE] rounded-lg px-2 py-1.5 font-mono text-[#16241F] focus:outline-none"
+                  className="text-xs bg-[var(--color-bg-secondary)] border border-[var(--color-border-strong)] rounded-lg px-2 py-1.5 font-mono text-[var(--color-text-primary)] focus:outline-none"
                   title="Select record to verify"
                 >
                   {uniqueRecordIds.map((id) => (
@@ -141,7 +141,7 @@ export default function AuditTrailView({
                 <button
                   onClick={() => handleVerifyIntegrity(targetRecordId)}
                   disabled={verifying || !targetRecordId}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[#1D8374] hover:bg-[#16675B] rounded-lg shadow-xs transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[var(--color-success)] hover:brightness-90 rounded-lg shadow-xs transition-colors disabled:opacity-50"
                   title="Cryptographically verify hash-chain integrity of this record"
                 >
                   {verifying ? (
@@ -154,7 +154,7 @@ export default function AuditTrailView({
               </div>
             )}
           </div>
-          <p className="text-sm text-[#737167] mt-1">
+          <p className="text-sm text-[var(--color-text-muted)] mt-1">
             Tamper-evident SHA-256 hash-chain audit trail of all ingestion, optical OCR, schema validation, and human review actions.
           </p>
 
@@ -163,19 +163,19 @@ export default function AuditTrailView({
             <div className="mt-2.5">
               {verifyResult.valid ? (
                 verifyResult.note ? (
-                  <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-50 border border-amber-300 text-amber-900 shadow-xs">
-                    <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                  <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--color-warning-bg)] border border-[var(--color-warning-border)] text-[var(--color-warning)] shadow-xs">
+                    <AlertTriangle className="w-4 h-4 text-[var(--color-warning)] flex-shrink-0" />
                     <span>Legacy entries present (unhashed) &mdash; verified {verifyResult.verified_entries} hashed events</span>
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 border border-emerald-300 text-emerald-900 shadow-xs">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--color-success-bg)] border border-[var(--color-success-border)] text-[var(--color-success)] shadow-xs">
+                    <ShieldCheck className="w-4 h-4 text-[var(--color-success)] flex-shrink-0" />
                     <span>Audit trail verified &mdash; {verifyResult.verified_entries} events, chain intact</span>
                   </span>
                 )
               ) : (
-                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 border border-rose-300 text-rose-900 shadow-xs">
-                  <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--color-error-bg)] border border-[var(--color-error-border)] text-[var(--color-error)] shadow-xs">
+                  <AlertTriangle className="w-4 h-4 text-[var(--color-error)] flex-shrink-0" />
                   <span>
                     TAMPER DETECTED at event {verifyResult.broken_at ? `${verifyResult.broken_at.slice(0, 8)}...` : "unknown"} &mdash; hash mismatch
                   </span>
@@ -188,36 +188,36 @@ export default function AuditTrailView({
         <button
           onClick={fetchAuditLogs}
           disabled={loading}
-          className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-[#16241F] bg-white border border-[#DDD9CE] hover:bg-[#F2EFE8] rounded-lg shadow-xs transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-[var(--color-text-primary)] bg-[var(--color-bg-secondary)] border border-[var(--color-border-strong)] hover:bg-[var(--color-bg-tertiary)] rounded-lg shadow-xs transition-colors"
         >
-          <RefreshCw className={`w-3.5 h-3.5 text-[#737167] ${loading ? "animate-spin" : ""}`} />
+          <RefreshCw className={`w-3.5 h-3.5 text-[var(--color-text-muted)] ${loading ? "animate-spin" : ""}`} />
           Refresh trail
         </button>
       </div>
 
       {/* Filter */}
-      <div className="bg-white border border-[#E6E3DB] rounded-xl p-4 shadow-xs flex items-center justify-between">
+      <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl p-4 shadow-xs flex items-center justify-between">
         <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-[#8A887E] absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-[var(--color-sidebar-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search action, actor, or record ID..."
-            className="w-full pl-9 pr-4 py-1.5 text-xs bg-[#F7F5EF] border border-[#DDD9CE] rounded-lg text-[#16241F] placeholder-[#8A887E] focus:outline-none focus:ring-1 focus:ring-[#D9714B]"
+            className="w-full pl-9 pr-4 py-1.5 text-xs bg-[var(--color-bg-primary)] border border-[var(--color-border-strong)] rounded-lg text-[var(--color-text-primary)] placeholder-[var(--color-sidebar-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
           />
         </div>
-        <span className="text-xs text-[#8A887E]">
+        <span className="text-xs text-[var(--color-sidebar-muted)]">
           {filteredLogs.length} events logged
         </span>
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-[#E6E3DB] rounded-xl shadow-xs overflow-hidden">
+      <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="bg-[#FAF9F5] border-b border-[#E6E3DB] text-[#737167] font-semibold uppercase tracking-wider text-[10px]">
+              <tr className="bg-[var(--color-bg-tertiary)] border-b border-[var(--color-border)] text-[var(--color-text-muted)] font-semibold uppercase tracking-wider text-[10px]">
                 <th className="py-3.5 px-4">TIMESTAMP</th>
                 <th className="py-3.5 px-4">ACTION</th>
                 <th className="py-3.5 px-4">ACTOR</th>
@@ -225,17 +225,17 @@ export default function AuditTrailView({
                 <th className="py-3.5 px-4">DETAILS</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#F2EFE8]">
+            <tbody className="divide-y divide-[var(--color-border-subtle)]">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-[#8A887E]">
-                    <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-[#D9714B]" />
+                  <td colSpan={5} className="py-12 text-center text-[var(--color-sidebar-muted)]">
+                    <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-[var(--color-accent)]" />
                     Loading audit trail from database...
                   </td>
                 </tr>
               ) : filteredLogs.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-[#8A887E]">
+                  <td colSpan={5} className="py-12 text-center text-[var(--color-sidebar-muted)]">
                     No audit records match your search.
                   </td>
                 </tr>
@@ -253,24 +253,24 @@ export default function AuditTrailView({
                       key={log.id}
                       className={
                         isTamperedRow
-                          ? "bg-rose-50 border-l-4 border-rose-500 transition-colors"
-                          : "hover:bg-[#FAF9F5] transition-colors"
+                          ? "bg-[var(--color-error-bg)] border-l-4 border-[var(--color-error)] transition-colors"
+                          : "hover:bg-[var(--color-bg-tertiary)] transition-colors"
                       }
                     >
-                      <td className="py-3 px-4 font-mono text-[11px] text-[#737167] whitespace-nowrap">
+                      <td className="py-3 px-4 font-mono text-[11px] text-[var(--color-text-muted)] whitespace-nowrap">
                         {log.created_at
                           ? new Date(log.created_at).toLocaleString()
                           : "—"}
                       </td>
                       <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded font-mono font-bold text-[10px] uppercase tracking-wide bg-[#F2EFE8] text-[#16241F]">
+                        <span className="px-2 py-0.5 rounded font-mono font-bold text-[10px] uppercase tracking-wide bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)]">
                           {log.action}
                         </span>
                       </td>
-                      <td className="py-3 px-4 font-semibold text-[#16241F]">
+                      <td className="py-3 px-4 font-semibold text-[var(--color-text-primary)]">
                         {log.actor || "System"}
                       </td>
-                      <td className="py-3 px-4 font-mono text-[11px] text-[#D9714B]">
+                      <td className="py-3 px-4 font-mono text-[11px] text-[var(--color-accent)]">
                         {log.record_id ? (
                           <div className="flex items-center gap-2">
                             <button
@@ -288,7 +288,7 @@ export default function AuditTrailView({
                                 setTargetRecordId(log.record_id);
                                 handleVerifyIntegrity(log.record_id);
                               }}
-                              className="px-1.5 py-0.5 rounded text-[10px] font-sans font-medium text-[#1D8374] bg-[#EBF7F2] hover:bg-[#D5EFE5] border border-[#C5E8D9] transition-colors"
+                              className="px-1.5 py-0.5 rounded text-[10px] font-sans font-medium text-[var(--color-success)] bg-[var(--color-success-bg)] hover:bg-[var(--color-success-border)] border border-[var(--color-success-border)] transition-colors"
                               title="Verify hash-chain for this record"
                             >
                               Verify
@@ -298,7 +298,7 @@ export default function AuditTrailView({
                           "—"
                         )}
                       </td>
-                      <td className="py-3 px-4 text-[#5A584F] max-w-xs truncate">
+                      <td className="py-3 px-4 text-[var(--color-text-secondary)] max-w-xs truncate">
                         {detailEntries.join(" | ") || "—"}
                       </td>
                     </tr>
