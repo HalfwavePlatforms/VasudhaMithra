@@ -510,6 +510,8 @@ def verify_audit_trail(record_id: uuid.UUID, db: Session = Depends(get_db)):
     for entry in entries:
         if not entry.curr_hash or not entry.hash_input_ts:
             legacy_count += 1
+            if entry.curr_hash:
+                expected_prev = entry.curr_hash
             continue
 
         if entry.prev_hash != expected_prev:
@@ -934,7 +936,7 @@ def compute_audit_hash(
 def _log(db: Session, record_id: uuid.UUID, action: str, actor: str = "system", details: dict = None):
     latest = (
         db.query(AuditLog)
-        .filter(AuditLog.record_id == record_id)
+        .filter(AuditLog.record_id == record_id, AuditLog.curr_hash.isnot(None))
         .order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
         .first()
     )

@@ -180,6 +180,74 @@ def test_audit_hash_chain_tamper_detection():
         db.close()
 
 
+def test_audit_hash_chain_legacy_continuity():
+    from database import SessionLocal
+    from models.db_models import Record, AuditLog
+    from routes.records import _log
+    from datetime import datetime, timezone, timedelta
+    import uuid
+
+    db = SessionLocal()
+    rec_id = uuid.uuid4()
+    record = Record(
+        id=rec_id,
+        original_filename="mixed_audit_test.pdf",
+        file_path="/storage/mixed.pdf",
+        status="pending_review",
+    )
+    db.add(record)
+    db.commit()
+
+    try:
+        now = datetime.now(timezone.utc)
+        # 1. Entry 1: manually insert a row with curr_hash set but hash_input_ts=None (simulating a row from between the two migrations)
+        e1 = AuditLog(
+            record_id=rec_id,
+            action="uploaded",
+            actor="citizen",
+            details={"file": "mixed_audit_test.pdf"},
+            created_at=now - timedelta(minutes=10),
+            prev_hash="GENESIS",
+            curr_hash="legacy_hash_abc123",
+            hash_input_ts=None,
+        )
+        db.add(e1)
+
+        # 2. Entry 2: a second manually inserted row with curr_hash=None entirely (true legacy, pre-hash-chain)
+        e2 = AuditLog(
+            record_id=rec_id,
+            action="legacy_pre_hash_event",
+            actor="system",
+            details={"note": "pre-hash-chain entry"},
+            created_at=now - timedelta(minutes=5),
+            prev_hash=None,
+            curr_hash=None,
+            hash_input_ts=None,
+        )
+        db.add(e2)
+        db.commit()
+
+        # 3. Entry 3: normal _log() call producing a full hash_input_ts entry with prev_hash correctly pointing to entry (1)'s curr_hash
+        e3 = _log(db, rec_id, "human_reviewed", actor="Revenue Officer", details={"decision": "APPROVED"})
+        assert e3.prev_hash == "legacy_hash_abc123"
+        assert e3.hash_input_ts is not None
+
+        # 4. Call /audit/verify and assert valid=True
+        verify_resp = client.get(f"/records/{rec_id}/audit/verify")
+        assert verify_resp.status_code == 200
+        verify_data = verify_resp.json()
+        assert verify_data["valid"] is True
+        assert verify_data["verified_entries"] == 1
+        assert verify_data["broken_at"] is None
+        assert "legacy entries present" in verify_data.get("note", "")
+
+    finally:
+        db.query(AuditLog).filter(AuditLog.record_id == rec_id).delete()
+        db.query(Record).filter(Record.id == rec_id).delete()
+        db.commit()
+        db.close()
+
+
 def test_correction_feedback_learning_loop():
     from database import SessionLocal
     from models.db_models import Record, RecordField, CorrectionLog, AuditLog
