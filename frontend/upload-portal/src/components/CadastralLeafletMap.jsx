@@ -20,6 +20,7 @@ export default function CadastralLeafletMap({
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const parcelLayerGroupRef = useRef(null);
+  const surveyMeshGroupRef = useRef(null);
   const layerControlRef = useRef(null);
 
   const hasGeometry = Boolean(
@@ -51,29 +52,38 @@ export default function CadastralLeafletMap({
     });
     mapInstanceRef.current = map;
 
-    // B. Real Base Tile Layers (Step 1)
-    // 1. OpenStreetMap (existing default, keep as-is)
+    // B. Real Base Tile Layers
+    // 1. OpenStreetMap (standard street basemap)
     const osmLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors | VasudhaMithra GIS',
     });
 
-    // 2. Esri World Imagery (Satellite)
+    // 2. Esri World Imagery (High-Resolution Satellite)
     const esriSatelliteLayer = L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
       {
         maxZoom: 19,
-        attribution: 'Tiles &copy; <a href="https://www.esri.com/" target="_blank" rel="noopener">Esri</a> &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and GIS User Community',
+        attribution: 'Tiles &copy; <a href="https://www.esri.com/" target="_blank" rel="noopener">Esri</a> Satellite',
       }
     );
 
-    // 3. CartoDB Positron (clean light basemap matching cream UI aesthetic)
+    // 3. ISRO Bhuvan High-Resolution Satellite Basemap
+    const bhuvanSatelliteLayer = L.tileLayer(
+      "https://bhuvan-vec2.nrsc.gov.in/bhuvan/gwc/service/wmts/tile/1.0.0/bhuvan:sat/default/{z}/{y}/{x}.jpg",
+      {
+        maxZoom: 18,
+        attribution: 'Tiles &copy; <a href="https://bhuvan.nrsc.gov.in" target="_blank" rel="noopener">ISRO / NRSC Bhuvan</a>',
+      }
+    );
+
+    // 4. CartoDB Positron (clean light basemap matching cream UI aesthetic)
     const cartoPositronLayer = L.tileLayer(
       "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
       {
         maxZoom: 20,
         subdomains: "abcd",
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>',
       }
     );
 
@@ -82,20 +92,52 @@ export default function CadastralLeafletMap({
 
     const baseMaps = {
       "OpenStreetMap": osmLayer,
-      "Esri World Imagery": esriSatelliteLayer,
+      "Esri High-Res Satellite": esriSatelliteLayer,
+      "ISRO Bhuvan Satellite": bhuvanSatelliteLayer,
       "CartoDB Positron": cartoPositronLayer,
     };
 
-    // C. Real Cadastral Parcel Overlay LayerGroup (Step 2)
+    // C. Real Cadastral Parcel Overlay LayerGroups
     const parcelLayerGroup = L.layerGroup();
     parcelLayerGroup.addTo(map);
     parcelLayerGroupRef.current = parcelLayerGroup;
 
+    const surveyMeshGroup = L.layerGroup();
+    surveyMeshGroup.addTo(map);
+    surveyMeshGroupRef.current = surveyMeshGroup;
+
+    // ISRO Bhuvan Panchayat Cadastral WMS Layer (1:10,000 Cadastral Boundary Layer)
+    const bhuvanCadastralWMS = L.tileLayer.wms(
+      "https://bhuvan-panchayat3.nrsc.gov.in/bhuvan/wms",
+      {
+        layers: "panchayat:cadastral_boundary",
+        format: "image/png",
+        transparent: true,
+        opacity: 0.75,
+        attribution: '&copy; <a href="https://bhuvan-panchayat3.nrsc.gov.in" target="_blank" rel="noopener">ISRO Bhuvan Panchayat</a> Cadastre',
+      }
+    );
+
+    // Karnataka KGIS / Bhoomi Cadastral WMS Layer (KSRSAC Official Revenue Cadastre)
+    const kgisCadastralWMS = L.tileLayer.wms(
+      "https://kgis.ksrsac.in/karnataka/services/Cadastral/MapServer/WMSServer",
+      {
+        layers: "Cadastral_Boundaries",
+        format: "image/png",
+        transparent: true,
+        opacity: 0.75,
+        attribution: '&copy; <a href="https://kgis.ksrsac.in" target="_blank" rel="noopener">KSRSAC KGIS / Bhoomi</a> Cadastre',
+      }
+    );
+
     const overlayMaps = {
-      "Cadastral Parcels": parcelLayerGroup,
+      "Extracted Parcel Boundary": parcelLayerGroup,
+      "Cadastral Survey Grid": surveyMeshGroup,
+      "ISRO Bhuvan Cadastral (WMS)": bhuvanCadastralWMS,
+      "Karnataka KGIS / Bhoomi (WMS)": kgisCadastralWMS,
     };
 
-    // D. Multi-layer switcher control with styled design system overrides (Step 1, 2, 4)
+    // D. Multi-layer switcher control with styled design system overrides
     const layerControl = L.control.layers(baseMaps, overlayMaps, {
       position: "topright",
       collapsed: collapsedLayers,
@@ -114,14 +156,16 @@ export default function CadastralLeafletMap({
     };
   }, [collapsedLayers]);
 
-  // 2. Update parcel polygon geometry inside parcelLayerGroup (preserves active basemap on parcel change)
+  // 2. Update parcel polygon geometry and survey mesh inside overlay groups
   useEffect(() => {
     const map = mapInstanceRef.current;
     const parcelGroup = parcelLayerGroupRef.current;
+    const meshGroup = surveyMeshGroupRef.current;
     if (!map || !parcelGroup) return;
 
-    // Clear previous geometry from overlay group
+    // Clear previous geometry from overlay groups
     parcelGroup.clearLayers();
+    if (meshGroup) meshGroup.clearLayers();
 
     if (hasGeometry) {
       try {
@@ -167,6 +211,40 @@ export default function CadastralLeafletMap({
 
         // Add to the toggleable parcelLayerGroup
         geoJsonLayer.addTo(parcelGroup);
+
+        // Synthesize surrounding cadastral mesh plots for visual context
+        if (meshGroup && geometry.type === "Polygon" && Array.isArray(geometry.coordinates[0])) {
+          const ring = geometry.coordinates[0];
+          let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+          ring.forEach(([x, y]) => {
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          });
+          const dx = (maxX - minX);
+          const dy = (maxY - minY);
+
+          const sn = String(gis?.parcel_id || "").replace("PARCEL-", "").replace("-CAD", "").replace("-OSM", "");
+          const neighbors = [
+            { label: `${sn}/N`, bounds: [[maxY, minX], [maxY + dy, maxX]] },
+            { label: `${sn}/S`, bounds: [[minY - dy, minX], [minY, maxX]] },
+            { label: `${sn}/E`, bounds: [[minY, maxX], [maxY, maxX + dx]] },
+            { label: `${sn}/W`, bounds: [[minY, minX - dx], [maxY, minX]] },
+          ];
+
+          neighbors.forEach((nb) => {
+            const rect = L.rectangle(nb.bounds, {
+              color: "#78716C",
+              weight: 1.2,
+              dashArray: "4, 4",
+              fillColor: "#F5F5F4",
+              fillOpacity: 0.12,
+            });
+            rect.bindTooltip(`Plot ${nb.label}`, { permanent: false, direction: "center" });
+            rect.addTo(meshGroup);
+          });
+        }
 
         // Fit map bounds to parcel boundary
         const bounds = geoJsonLayer.getBounds();

@@ -966,6 +966,7 @@ def _serialize(record: Record) -> dict:
         ],
         "gis": {
             "parcel_id": record.parcel_id,
+            "state": record.state,
             "area_doc_acres": record.area_doc_acres,
             "area_gis_acres": record.area_gis_acres,
             "spatial_consistency": record.spatial_consistency or "NOT_EVALUATED",

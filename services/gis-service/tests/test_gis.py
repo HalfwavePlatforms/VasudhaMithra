@@ -52,4 +52,17 @@ def test_get_cadastral_engine_parcel():
     # Centroid should be in Karnataka vicinity (~12-14 deg N, ~75-78 deg E)
     centroid = body.get("centroid")
     assert 12.0 <= centroid[0] <= 16.0
-    assert 74.0 <= centroid[1] <= 78.0
+    assert 74.0 <= centroid[1] <= 78.0
+    assert "official_portal" in body["metadata"]
+    assert "kgis" in body["metadata"]["official_portal"]["portal_url"] or "bhuvan" in body["metadata"]["official_portal"]["portal_url"]
+
+
+def test_get_spatial_portals():
+    response = client.get("/gis/spatial-portals")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "ok"
+    assert "karnataka" in data["portals"]
+    assert "national" in data["portals"]
+    assert "kgis.ksrsac.in" in data["portals"]["karnataka"]["portal_url"]
+    assert "bhuvan" in data["portals"]["national"]["portal_url"]

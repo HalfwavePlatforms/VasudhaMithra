@@ -571,14 +571,64 @@ export default function VerificationDesk({
                 </div>
               </div>
 
-              {/* If geometry is available, render Leaflet map */}
+              {/* If geometry is available, render Leaflet map & Official State Portal Links */}
               {currentRecord.gis?.geometry ? (
-                <div className="mt-2">
+                <div className="mt-2 space-y-2">
                   <CadastralLeafletMap
                     geometry={currentRecord.gis.geometry}
                     gis={currentRecord.gis}
                     height="200px"
                   />
+                  {(() => {
+                    const firstCoord = currentRecord.gis.geometry?.coordinates?.[0]?.[0];
+                    const lon = firstCoord ? firstCoord[0] : 77.1006;
+                    const lat = firstCoord ? firstCoord[1] : 13.3400;
+                    const stateName = String(currentRecord.gis.state || (currentRecord.language === "kn" ? "Karnataka" : "")).toLowerCase();
+                    const isKarnataka = stateName.includes("karn") || currentRecord.language === "kn";
+                    const isMaharashtra = stateName.includes("maha") || currentRecord.language === "mr";
+
+                    return (
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px] text-[#5A584F] border-t border-[#F2EFE8]">
+                        <span className="flex items-center gap-1 font-semibold text-[#16241F]">
+                          <Layers className="w-3.5 h-3.5 text-[#D9714B]" />
+                          Official State Spatial Portals:
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {isKarnataka && (
+                            <a
+                              href={`https://kgis.ksrsac.in/karnataka/?lat=${lat}&lon=${lon}&zoom=17`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#FAF9F5] border border-[#DDD9CE] rounded hover:bg-[#EAE7DF] text-[#16241F] font-semibold transition-colors"
+                            >
+                              <span>KGIS / Bhoomi Cadastre</span>
+                              <ExternalLink className="w-3 h-3 text-[#8A887E]" />
+                            </a>
+                          )}
+                          {isMaharashtra && (
+                            <a
+                              href="https://mahabhulekh.maharashtra.gov.in/"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#FAF9F5] border border-[#DDD9CE] rounded hover:bg-[#EAE7DF] text-[#16241F] font-semibold transition-colors"
+                            >
+                              <span>Mahabhulekh Bhunaksha</span>
+                              <ExternalLink className="w-3 h-3 text-[#8A887E]" />
+                            </a>
+                          )}
+                          <a
+                            href={`https://bhuvan-app1.nrsc.gov.in/bhuvan2d/bhuvan/bhuvan2d.php?lat=${lat}&lon=${lon}&zoom=17`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#FAF9F5] border border-[#DDD9CE] rounded hover:bg-[#EAE7DF] text-[#16241F] font-semibold transition-colors"
+                          >
+                            <span>ISRO Bhuvan (NRSC)</span>
+                            <ExternalLink className="w-3 h-3 text-[#8A887E]" />
+                          </a>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               ) : (
                 <div className="p-4 bg-[#FAF9F5] border border-dashed border-[#DDD9CE] rounded-lg text-center text-xs text-[#8A887E] space-y-2">

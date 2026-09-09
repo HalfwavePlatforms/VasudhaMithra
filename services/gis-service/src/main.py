@@ -199,6 +199,7 @@ def _query_seeded(survey_number: str) -> Optional[dict]:
             "tehsil": parcel.get("tehsil"),
             "district": parcel.get("district"),
             "state": parcel.get("state"),
+            "official_portal": _get_official_spatial_portal(parcel.get("state") or "India", centroid_lat, centroid_lon),
         },
     }
 
@@ -314,6 +315,7 @@ def _query_dynamic_osm(
             "state": state or "India",
             "display_name": display_name,
             "geocoding_provider": "OpenStreetMap Nominatim (Free Public Geodetic Service)",
+            "official_portal": _get_official_spatial_portal(state or "India", lat, lon),
         },
     }
 
@@ -448,6 +450,89 @@ INDIAN_GEODETIC_ANCHORS: dict[str, tuple[float, float]] = {
 }
 
 
+STATE_SPATIAL_PORTALS: dict[str, dict] = {
+    "karnataka": {
+        "portal_name": "Karnataka GIS (KSRSAC / Bhoomi)",
+        "portal_url": "https://kgis.ksrsac.in/karnataka/",
+        "wms_url": "https://kgis.ksrsac.in/karnataka/services/Cadastral/MapServer/WMSServer",
+        "wms_layer": "Cadastral_Boundaries",
+        "state": "Karnataka",
+        "description": "Karnataka State Remote Sensing Applications Centre & Bhoomi Cadastral Engine",
+        "deep_link_template": "https://kgis.ksrsac.in/karnataka/?lat={lat}&lon={lon}&zoom=17",
+    },
+    "maharashtra": {
+        "portal_name": "Mahabhulekh Bhunaksha (Maharashtra)",
+        "portal_url": "https://mahabhulekh.maharashtra.gov.in/",
+        "wms_url": "https://mahabhunakshatiles.mahabhumi.gov.in/geoserver/wms",
+        "wms_layer": "bhunaksha_parcels",
+        "state": "Maharashtra",
+        "description": "Maharashtra Land Records & Bhunaksha Cadastral Mapping Portal",
+        "deep_link_template": "https://mahabhulekh.maharashtra.gov.in/?lat={lat}&lon={lon}",
+    },
+    "telangana": {
+        "portal_name": "Dharani Integrated Land Records GIS (Telangana)",
+        "portal_url": "https://dharani.telangana.gov.in/",
+        "wms_url": "https://dharanigis.telangana.gov.in/geoserver/wms",
+        "wms_layer": "dharani_cadastre",
+        "state": "Telangana",
+        "description": "Telangana Dharani Land Administration & Cadastral Portal",
+        "deep_link_template": "https://dharani.telangana.gov.in/?lat={lat}&lon={lon}",
+    },
+    "madhya pradesh": {
+        "portal_name": "MP Bhu-Abhilekh (Madhya Pradesh)",
+        "portal_url": "https://mpbhulekh.gov.in/",
+        "wms_url": "https://mpbhulekh.gov.in/geoserver/wms",
+        "wms_layer": "mp_khasra_cadastre",
+        "state": "Madhya Pradesh",
+        "description": "Madhya Pradesh Commissioner of Land Records GIS",
+        "deep_link_template": "https://mpbhulekh.gov.in/?lat={lat}&lon={lon}",
+    },
+    "tamil nadu": {
+        "portal_name": "Tamil Nilam (Tamil Nadu)",
+        "portal_url": "https://eservices.tn.gov.in/eservicesnew/land/chitta.html",
+        "wms_url": "https://tngis.tn.gov.in/geoserver/wms",
+        "wms_layer": "tn_cadastral",
+        "state": "Tamil Nadu",
+        "description": "Tamil Nadu Geographic Information System (TNGIS)",
+        "deep_link_template": "https://tngis.tn.gov.in/?lat={lat}&lon={lon}",
+    },
+    "west bengal": {
+        "portal_name": "Banglarbhumi (West Bengal)",
+        "portal_url": "https://banglarbhumi.gov.in/",
+        "wms_url": "https://banglarbhumi.gov.in/geoserver/wms",
+        "wms_layer": "wb_cadastral_mouza",
+        "state": "West Bengal",
+        "description": "Directorate of Land Records & Surveys West Bengal",
+        "deep_link_template": "https://banglarbhumi.gov.in/?lat={lat}&lon={lon}",
+    },
+    "national": {
+        "portal_name": "Bhuvan Panchayat (ISRO / NRSC)",
+        "portal_url": "https://bhuvan-panchayat3.nrsc.gov.in/",
+        "wms_url": "https://bhuvan-vec1.nrsc.gov.in/bhuvan/gwc/service/wms",
+        "wms_layer": "panchayat:cadastral_boundary",
+        "satellite_wms": "https://bhuvan-vec2.nrsc.gov.in/bhuvan/wms",
+        "state": "National (India)",
+        "description": "National Remote Sensing Centre (NRSC / ISRO) 1:10,000 Cadastral & High-Resolution Satellite Portal",
+        "deep_link_template": "https://bhuvan-app1.nrsc.gov.in/bhuvan2d/bhuvan/bhuvan2d.php?lat={lat}&lon={lon}&zoom=17",
+    },
+}
+
+
+def _get_official_spatial_portal(state_name: str, lat: float, lon: float) -> dict:
+    st = (state_name or "").lower()
+    portal_key = "national"
+    for key in STATE_SPATIAL_PORTALS:
+        if key != "national" and key in st:
+            portal_key = key
+            break
+    portal = dict(STATE_SPATIAL_PORTALS[portal_key])
+    safe_lat = round(lat, 6)
+    safe_lon = round(lon, 6)
+    portal["deep_link"] = portal["deep_link_template"].format(lat=safe_lat, lon=safe_lon)
+    portal["national_bhuvan_deep_link"] = STATE_SPATIAL_PORTALS["national"]["deep_link_template"].format(lat=safe_lat, lon=safe_lon)
+    return portal
+
+
 def _resolve_cadastral_anchor(
     village: str = "",
     tehsil: str = "",
@@ -539,6 +624,7 @@ def _query_cadastral_spatial_engine(
             "state": state or "Karnataka",
             "anchor_location": anchor_name,
             "geodetic_engine": "VasudhaMithra Cadastral Spatial Engine",
+            "official_portal": _get_official_spatial_portal(state or anchor_name, lat, lon),
         },
     }
 
@@ -559,6 +645,20 @@ def _query_cadastral_spatial_engine(
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
+
+@app.get("/gis/spatial-portals")
+def get_spatial_portals():
+    """
+    Returns registered official Indian State Spatial Portals and ISRO Bhuvan endpoints
+    for cadastral WMS layers and cross-verification deep links.
+    """
+    return {
+        "status": "ok",
+        "total_portals": len(STATE_SPATIAL_PORTALS),
+        "portals": STATE_SPATIAL_PORTALS,
+        "default_national": "national",
+    }
+
 
 @app.get("/health")
 def health():
