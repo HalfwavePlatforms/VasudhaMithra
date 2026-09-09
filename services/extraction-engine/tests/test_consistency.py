@@ -13,7 +13,10 @@ Comprehensive tests for extraction engine:
 import sys
 import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
+if sys.path[0] != src_dir:
+    sys.path.insert(0, src_dir)
+sys.modules.pop("main", None)
 
 import pytest
 from fastapi.testclient import TestClient

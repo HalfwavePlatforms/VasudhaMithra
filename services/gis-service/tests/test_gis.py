@@ -1,6 +1,11 @@
-# services/gis-service/tests/test_gis.py
-import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+import os
+import sys
+
+src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
+if sys.path[0] != src_dir:
+    sys.path.insert(0, src_dir)
+sys.modules.pop("main", None)
+
 from fastapi.testclient import TestClient
 from main import app
 
