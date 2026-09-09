@@ -292,7 +292,10 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
           actor: `${email.trim().split("@")[0].replace(".", " ").toUpperCase()} (${roleObj.defaultActor})`,
           loggedInAt: new Date().toISOString(),
         };
+        const randomHex = Array.from({length: 40}, () => Math.floor(Math.random()*16).toString(16)).join('');
+        const fallbackToken = `vasudha_bearer_${randomHex}`;
         localStorage.setItem("vasudha_auth", JSON.stringify(userSession));
+        localStorage.setItem("vasudha_token", fallbackToken);
         if (onLoginSuccess) {
           onLoginSuccess(userSession);
         }

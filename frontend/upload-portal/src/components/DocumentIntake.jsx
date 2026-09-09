@@ -88,6 +88,11 @@ export default function DocumentIntake({
       setUploadProgress(85);
 
       if (!res.ok) {
+        if (res.status === 401) {
+          localStorage.removeItem("vasudha_token");
+          localStorage.removeItem("vasudha_auth");
+          throw new Error("Session expired or invalid. Please refresh the page to sign in again.");
+        }
         const errData = await res.json().catch(() => ({}));
         throw new Error(errData.detail || `Upload failed with HTTP ${res.status}`);
       }

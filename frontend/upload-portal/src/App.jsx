@@ -43,6 +43,7 @@ export default function App() {
 
   const handleLogout = () => {
     localStorage.removeItem("vasudha_auth");
+    localStorage.removeItem("vasudha_token");
     setUser(null);
   };
 
