@@ -114,9 +114,9 @@ def run_ocr(image: np.ndarray, language_hint: str = "en") -> dict:
                 # do NOT crash the request, fall back to Tesseract result we already have, flagged clearly
                 logger.warning(f"Google Vision fallback attempt failed: {e}. Preserving Tesseract result.")
                 err_str = str(e).lower()
-                if "billing to be enabled" in err_str or "api key not valid" in err_str:
-                    _vision_billing_disabled_until = time.time() + 30.0
-                    logger.warning("Google Vision retry suspended for 30s awaiting cloud billing propagation. Defaulting to Tesseract.")
+                if "billing to be enabled" in err_str or "api key not valid" in err_str or "permissiondenied" in err_str:
+                    _vision_billing_disabled_until = time.time() + 3600.0
+                    logger.warning("Google Vision retry suspended for 1 hour due to billing/key configuration. Defaulting to fast local Tesseract engine.")
                 tesseract_result["fallback_attempted"] = True
                 tesseract_result["fallback_error"] = str(e)
                 tesseract_result["fallback_triggered"] = False
@@ -185,10 +185,15 @@ def _run_mock_ocr(image: np.ndarray) -> dict:
 
 
 def _detect_dominant_script(image: np.ndarray) -> str:
-    """Fast header sampling (< 3s) to detect script for 'auto' mode rather than running 7 heavy models simultaneously."""
+    """Fast header sampling (< 1s) to detect script for 'auto' mode rather than running heavy full-res multi-model passes."""
     try:
         h, w = image.shape[:2]
-        header = image[:int(h * 0.30), :]
+        header = image[:int(h * 0.25), :]
+        # Downscale header to max width 800px to ensure lighting-fast sampling (< 0.5s)
+        hh, hw = header.shape[:2]
+        if hw > 800:
+            scale = 800.0 / hw
+            header = cv2.resize(header, (800, int(hh * scale)), interpolation=cv2.INTER_AREA)
         sample_txt = pytesseract.image_to_string(header, lang="kan+hin+tam+tel+ben+eng", config="--psm 6")
         counts = {
             "kan+eng": sum(1 for c in sample_txt if "\u0c80" <= c <= "\u0cff"),
@@ -198,7 +203,7 @@ def _detect_dominant_script(image: np.ndarray) -> str:
             "ben+eng": sum(1 for c in sample_txt if "\u0980" <= c <= "\u09ff"),
         }
         dom_lang, count = max(counts.items(), key=lambda x: x[1])
-        if count >= 15:
+        if count >= 8:
             return dom_lang
     except Exception as e:
         logger.debug(f"Script auto-sampling error: {e}")
@@ -224,18 +229,22 @@ def _run_tesseract(image: np.ndarray, language_hint: str) -> dict:
     else:
         lang = lang_map.get(language_hint, "kan+hin+eng")
 
-    # 1. Resolution upscaling for enhanced optical stroke recognition
+    # 1. Resolution normalization for enhanced optical stroke recognition
+    # Avoid massive over-scaling of standard-resolution documents
     h, w = image.shape[:2]
-    if min(h, w) < 900:
-        scale_factor = 2.0
-    elif w < 1800 or h < 1400:
+    max_dim = max(h, w)
+    min_dim = min(h, w)
+    if min_dim < 650 or max_dim < 900:
         scale_factor = 1.5
+    elif max_dim > 2400:
+        scale_factor = 2000.0 / max_dim
     else:
         scale_factor = 1.0
 
-    if scale_factor > 1.0:
+    if scale_factor != 1.0:
         proc_image = cv2.resize(
-            image, (int(w * scale_factor), int(h * scale_factor)), interpolation=cv2.INTER_CUBIC
+            image, (int(w * scale_factor), int(h * scale_factor)),
+            interpolation=cv2.INTER_CUBIC if scale_factor > 1.0 else cv2.INTER_AREA
         )
     else:
         proc_image = image
@@ -281,30 +290,30 @@ def _run_tesseract(image: np.ndarray, language_hint: str) -> dict:
         orig_h, orig_w = image.shape[:2]
         cadastral_crop = image[int(0.03 * orig_h):int(0.65 * orig_h), 0:int(0.38 * orig_w)]
         y_offset = float(int(0.03 * orig_h))
-        for psm_mode in ["--psm 6", "--psm 11"]:
-            cadastral_data = pytesseract.image_to_data(
-                cadastral_crop, lang=lang, config=psm_mode, output_type=pytesseract.Output.DICT
-            )
-            for i, text in enumerate(cadastral_data["text"]):
-                if text.strip():
-                    conf = float(cadastral_data["conf"][i])
-                    if conf < 0:
-                        continue
-                    words.append(text)
-                    confidences.append(conf / 100.0)
-                    x, y, bw, bh = (
-                        float(cadastral_data["left"][i]),
-                        float(cadastral_data["top"][i]) + y_offset,
-                        float(cadastral_data["width"][i]),
-                        float(cadastral_data["height"][i]),
-                    )
-                    boxes.append(
-                        {
-                            "text": text,
-                            "confidence": conf / 100.0,
-                            "box": [float(x), float(y), float(x + bw), float(y + bh)],
-                        }
-                    )
+        # Run single --psm 11 pass on crop to avoid redundant processing
+        cadastral_data = pytesseract.image_to_data(
+            cadastral_crop, lang=lang, config="--psm 11", output_type=pytesseract.Output.DICT
+        )
+        for i, text in enumerate(cadastral_data["text"]):
+            if text.strip():
+                conf = float(cadastral_data["conf"][i])
+                if conf < 0:
+                    continue
+                words.append(text)
+                confidences.append(conf / 100.0)
+                x, y, bw, bh = (
+                    float(cadastral_data["left"][i]),
+                    float(cadastral_data["top"][i]) + y_offset,
+                    float(cadastral_data["width"][i]),
+                    float(cadastral_data["height"][i]),
+                )
+                boxes.append(
+                    {
+                        "text": text,
+                        "confidence": conf / 100.0,
+                        "box": [float(x), float(y), float(x + bw), float(y + bh)],
+                    }
+                )
     except Exception as crop_err:
         logger.debug(f"Cadastral crop pass skipped: {crop_err}")
 

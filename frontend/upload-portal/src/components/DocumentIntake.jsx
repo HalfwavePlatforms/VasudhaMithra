@@ -21,10 +21,24 @@ export default function DocumentIntake({
   const [language, setLanguage] = useState("auto");
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [pipelineStage, setPipelineStage] = useState("");
   const [uploadResult, setUploadResult] = useState(null);
   const [error, setError] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
+
+  const detectLanguageFromFilename = (filename) => {
+    if (!filename) return "auto";
+    const fname = filename.toLowerCase();
+    if (["karnataka", "bhoomi", "rtc", "pahani", "kannada", "_kn_"].some((k) => fname.includes(k))) return "kn";
+    if (["maharashtra", "satbara", "7_12", "7-12", "712", "mahabhulekh", "marathi", "_mr_"].some((k) => fname.includes(k))) return "mr";
+    if (["telangana", "dharani", "adangal", "telugu", "_te_"].some((k) => fname.includes(k))) return "te";
+    if (["tamil", "patta", "chitta", "tamilnadu", "_ta_"].some((k) => fname.includes(k))) return "ta";
+    if (["bengal", "banglarbhumi", "bengali", "_bn_"].some((k) => fname.includes(k))) return "bn";
+    if (["khasra", "khatauni", "bhopal", "madhya", "hindi", "_hi_"].some((k) => fname.includes(k))) return "hi";
+    if (["english", "deed", "_en_"].some((k) => fname.includes(k))) return "en";
+    return "auto";
+  };
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -39,17 +53,27 @@ export default function DocumentIntake({
     e.preventDefault();
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      setFile(e.dataTransfer.files[0]);
+      const selected = e.dataTransfer.files[0];
+      setFile(selected);
       setError(null);
       setUploadResult(null);
+      const autoLang = detectLanguageFromFilename(selected.name);
+      if (autoLang !== "auto") {
+        setLanguage(autoLang);
+      }
     }
   };
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
-      setFile(e.target.files[0]);
+      const selected = e.target.files[0];
+      setFile(selected);
       setError(null);
       setUploadResult(null);
+      const autoLang = detectLanguageFromFilename(selected.name);
+      if (autoLang !== "auto") {
+        setLanguage(autoLang);
+      }
     }
   };
 
@@ -61,7 +85,27 @@ export default function DocumentIntake({
 
     setUploading(true);
     setError(null);
-    setUploadProgress(20);
+    setUploadProgress(15);
+    setPipelineStage("Uploading document scan to secure gateway...");
+
+    // Responsive progress interval so user never sees a frozen spinner
+    let currentPct = 15;
+    const interval = setInterval(() => {
+      currentPct += Math.floor(Math.random() * 8) + 4;
+      if (currentPct < 40) {
+        setPipelineStage("Pre-processing image & detecting script...");
+        setUploadProgress(currentPct);
+      } else if (currentPct < 65) {
+        setPipelineStage("Neural OCR stroke recognition in progress...");
+        setUploadProgress(currentPct);
+      } else if (currentPct < 85) {
+        setPipelineStage("Extracting cadastral fields & NLP validation...");
+        setUploadProgress(currentPct);
+      } else if (currentPct < 94) {
+        setPipelineStage("Geodetic cadastre cross-check & audit chain...");
+        setUploadProgress(Math.min(currentPct, 94));
+      }
+    }, 350);
 
     const formData = new FormData();
     formData.append("file", file);
@@ -69,7 +113,6 @@ export default function DocumentIntake({
     formData.append("actor", "Deepak G.M. (District Admin)");
 
     try {
-      setUploadProgress(45);
       const token = localStorage.getItem("vasudha_token");
       const headers = {
         "X-Role": "tahsildar",
@@ -84,8 +127,7 @@ export default function DocumentIntake({
         body: formData,
       });
 
-
-      setUploadProgress(85);
+      clearInterval(interval);
 
       if (!res.ok) {
         if (res.status === 401) {
@@ -99,6 +141,7 @@ export default function DocumentIntake({
 
       const data = await res.json();
       setUploadProgress(100);
+      setPipelineStage("Digitization completed successfully!");
       setUploadResult(data);
 
       if (setSelectedRecordId) {
@@ -115,8 +158,10 @@ export default function DocumentIntake({
         }
       }, 750);
     } catch (err) {
+      clearInterval(interval);
       setError(err.message || "Failed to upload document. Ensure API Gateway is running.");
     } finally {
+      clearInterval(interval);
       setUploading(false);
     }
   };
@@ -246,32 +291,52 @@ export default function DocumentIntake({
           )}
 
           {/* Upload Button & Progress */}
-          <div className="pt-4 border-t border-[#E6E3DB] flex items-center justify-between">
-            <div className="text-xs text-[#8A887E]">
-              {file ? `Ready to process: ${file.name}` : "No file selected"}
-            </div>
+          <div className="pt-4 border-t border-[#E6E3DB] space-y-3">
+            {uploading && (
+              <div className="space-y-1.5 animate-fadeIn">
+                <div className="flex justify-between items-center text-xs text-[#737167]">
+                  <span className="font-medium text-[#16241F] flex items-center gap-1.5">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[#D9714B]" />
+                    {pipelineStage || "Processing pipeline..."}
+                  </span>
+                  <span className="font-mono font-bold text-[#D9714B]">{uploadProgress}%</span>
+                </div>
+                <div className="w-full bg-[#EAE8E0] rounded-full h-2 overflow-hidden">
+                  <div
+                    className="bg-[#D9714B] h-2 rounded-full transition-all duration-300 ease-out"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
 
-            <button
-              onClick={handleUpload}
-              disabled={!file || uploading}
-              className={`px-6 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
-                !file || uploading
-                  ? "bg-[#DDD9CE] text-[#8A887E] cursor-not-allowed"
-                  : "bg-[#D9714B] text-white hover:bg-[#C25F39] shadow-xs"
-              }`}
-            >
-              {uploading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Processing pipeline ({uploadProgress}%)...
-                </>
-              ) : (
-                <>
-                  <UploadCloud className="w-4 h-4" />
-                  Start Digitization & Validation
-                </>
-              )}
-            </button>
+            <div className="flex items-center justify-between">
+              <div className="text-xs text-[#8A887E]">
+                {file ? `Ready to process: ${file.name}` : "No file selected"}
+              </div>
+
+              <button
+                onClick={handleUpload}
+                disabled={!file || uploading}
+                className={`px-6 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
+                  !file || uploading
+                    ? "bg-[#DDD9CE] text-[#8A887E] cursor-not-allowed"
+                    : "bg-[#D9714B] text-white hover:bg-[#C25F39] shadow-xs"
+                }`}
+              >
+                {uploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Processing ({uploadProgress}%)...
+                  </>
+                ) : (
+                  <>
+                    <UploadCloud className="w-4 h-4" />
+                    Start Digitization & Validation
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       ) : (

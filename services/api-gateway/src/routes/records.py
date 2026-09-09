@@ -287,19 +287,19 @@ async def upload_record(
         lang_hint = language
         if not lang_hint or lang_hint == "auto":
             fname = (file.filename or "").lower()
-            if "_kn_" in fname or "kannada" in fname:
+            if any(k in fname for k in ["karnataka", "bhoomi", "rtc", "pahani", "kannada", "_kn_"]):
                 lang_hint = "kn"
-            elif "_mr_" in fname or "marathi" in fname:
+            elif any(k in fname for k in ["maharashtra", "satbara", "7_12", "7-12", "712", "mahabhulekh", "marathi", "_mr_"]):
                 lang_hint = "mr"
-            elif "_ta_" in fname or "tamil" in fname:
-                lang_hint = "ta"
-            elif "_te_" in fname or "telugu" in fname:
+            elif any(k in fname for k in ["telangana", "dharani", "adangal", "telugu", "_te_"]):
                 lang_hint = "te"
-            elif "_bn_" in fname or "bengali" in fname:
+            elif any(k in fname for k in ["tamil", "patta", "chitta", "tamilnadu", "_ta_"]):
+                lang_hint = "ta"
+            elif any(k in fname for k in ["bengal", "banglarbhumi", "bengali", "_bn_"]):
                 lang_hint = "bn"
-            elif "_hi_" in fname or "hindi" in fname:
+            elif any(k in fname for k in ["khasra", "khatauni", "bhopal", "madhya", "hindi", "_hi_"]):
                 lang_hint = "hi"
-            elif "_en_" in fname or "english" in fname:
+            elif any(k in fname for k in ["english", "deed", "_en_"]):
                 lang_hint = "en"
             else:
                 lang_hint = "auto"
