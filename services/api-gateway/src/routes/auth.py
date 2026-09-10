@@ -7,9 +7,16 @@ import secrets
 import time
 from pathlib import Path
 from typing import Dict, Any, Optional
-import cv2
+try:
+    import cv2
+    import numpy as np
+    CV2_AVAILABLE = True
+except ImportError:
+    cv2 = None
+    np = None
+    CV2_AVAILABLE = False
+
 import httpx
-import numpy as np
 from fastapi import APIRouter, HTTPException, Depends, Header
 from pydantic import BaseModel, Field
 
@@ -471,9 +478,13 @@ _CASCADE_CLASSIFIER = None
 
 def _get_cascade():
     global _CASCADE_CLASSIFIER
-    if _CASCADE_CLASSIFIER is None:
+    if _CASCADE_CLASSIFIER is None and cv2 is not None:
         if _CASCADE_PATH.exists():
             _CASCADE_CLASSIFIER = cv2.CascadeClassifier(str(_CASCADE_PATH))
+        elif hasattr(cv2, "data") and hasattr(cv2.data, "haarcascades"):
+            cv_cascade = os.path.join(cv2.data.haarcascades, "haarcascade_frontalface_default.xml")
+            if os.path.exists(cv_cascade):
+                _CASCADE_CLASSIFIER = cv2.CascadeClassifier(cv_cascade)
     return _CASCADE_CLASSIFIER
 
 
@@ -486,7 +497,27 @@ def process_webcam_face_opencv(image_b64: str) -> tuple[str, bool, dict]:
     4. Normalize and resize to standard 256x256 avatar dimension.
     5. Enhance contrast and illumination using CLAHE (Contrast Limited Adaptive Histogram Equalization).
     6. Return optimized JPEG base64 string and metadata.
+    Falls back gracefully to Pillow if OpenCV is not installed.
     """
+    if not CV2_AVAILABLE or cv2 is None or np is None:
+        try:
+            import io
+            from PIL import Image
+            header, sep, encoded = image_b64.partition(",")
+            raw_data = base64.b64decode(encoded if sep else header)
+            pil_img = Image.open(io.BytesIO(raw_data)).convert("RGB")
+            w, h = pil_img.size
+            sq = min(w, h)
+            left = (w - sq) // 2
+            top = (h - sq) // 2
+            cropped = pil_img.crop((left, top, left + sq, top + sq)).resize((256, 256), Image.Resampling.LANCZOS)
+            buf = io.BytesIO()
+            cropped.save(buf, format="JPEG", quality=92)
+            out_b64 = "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode("utf-8")
+            return out_b64, False, {}
+        except Exception as err:
+            raise HTTPException(status_code=400, detail=f"Image processing failed: {err}")
+
     header, sep, encoded = image_b64.partition(",")
     raw_data = base64.b64decode(encoded if sep else header)
     nparr = np.frombuffer(raw_data, np.uint8)
