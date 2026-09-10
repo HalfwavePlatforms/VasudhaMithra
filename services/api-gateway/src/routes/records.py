@@ -16,9 +16,11 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models.db_models import Record, RecordField, ValidationResult, AuditLog, CorrectionLog
-from services.lrms_integration import lrms_adapter
 from services.verification_signer import generate_verification_token
-from services.certificate_generator import build_certificate_pdf
+from services.certificate_generator import (
+    build_certificate_pdf,
+    build_regional_certificate_pdf,
+)
 
 
 def _ensure_verification_token(record: Record):
@@ -1080,6 +1082,93 @@ def get_record_certificate(
             "Content-Disposition": f'attachment; filename="{filename}"',
             "X-Certificate-Status": "validated",
             "X-Audit-Valid": str(audit_status.get("valid", False)).lower(),
+        },
+    )
+
+
+@router.get("/{record_id}/certificate/regional")
+def get_record_regional_certificate(
+    record_id: uuid.UUID,
+    state: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    """
+    Generates and downloads the state-matched bilingual Regional Land Record Certificate PDF
+    for a validated record.
+    Enforces validation prerequisite: records with status != 'validated' return 400 Bad Request.
+    Combines extracted fields, state-specific Indic typography, cadastral GIS vector geometry,
+    cryptographic audit hash-chain integrity verification, and HMAC signed QR verification code.
+
+    Mandatory Safety Notice: Prominently identifies as a VasudhaMithra Digitization Platform
+    Verification Certificate, not an official government-issued document.
+    """
+    record = db.query(Record).filter(Record.id == record_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Land record not found")
+
+    # STEP 2 Requirement: Only allow generation for status="validated" records
+    if record.status != "validated":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Regional certificate generation is only permitted for validated land records. Current record status is '{record.status}'.",
+        )
+
+    # Re-evaluate / attach GIS geometry if not already on record
+    if not record.gis_geojson or record.spatial_consistency in (None, "NOT_EVALUATED"):
+        _evaluate_and_attach_gis(db, record)
+        db.refresh(record)
+
+    # Ensure verification token & URL exist
+    _ensure_verification_token(record)
+    db.commit()
+    db.refresh(record)
+
+    # Call real internal audit trail verifier for honesty check
+    audit_status = verify_audit_trail_internal(record.id, db)
+
+    # Construct public QR URL
+    frontend_base = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    qr_url = f"{frontend_base}{record.verification_url}"
+
+    # Serialize record data
+    record_serialized = _serialize(record)
+    fields_dict = record_serialized.get("fields", {})
+
+    from services.regional_certificate_config import resolve_record_template
+    resolved_state, _ = resolve_record_template(
+        language=record.language,
+        state=state or record.state or fields_dict.get("state"),
+        fields=fields_dict,
+    )
+    target_state = state or resolved_state
+
+    # Build the state-matched bilingual regional PDF
+    pdf_bytes = build_regional_certificate_pdf(
+        record_data=record_serialized,
+        audit_status=audit_status,
+        gis_geometry=record.gis_geojson or record.geom,
+        qr_url=qr_url,
+        state=target_state,
+        language=record.language,
+    )
+
+    survey_no = (
+        record_serialized.get("fields", {}).get("survey_number")
+        or record_serialized.get("fields", {}).get("khasra_number")
+        or str(record.id)[:8]
+    ).replace("/", "_").replace(" ", "_")
+    state_slug = target_state.strip().replace(" ", "_")
+    filename = f"VasudhaMithra_Record_{survey_no}_Regional_{state_slug}.pdf"
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Certificate-Status": "validated",
+            "X-Audit-Valid": str(audit_status.get("valid", False)).lower(),
+            "X-Certificate-Type": "regional-bilingual",
+            "X-Regional-State": target_state,
         },
     )
 

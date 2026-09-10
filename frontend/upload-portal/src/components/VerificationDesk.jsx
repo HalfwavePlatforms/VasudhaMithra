@@ -15,6 +15,7 @@ import {
   Loader2,
   QrCode,
   FileCheck,
+  Globe,
 } from "lucide-react";
 import CadastralLeafletMap from "./CadastralLeafletMap";
 import BhuvanGisMap from "./BhuvanGisMap";
@@ -468,15 +469,26 @@ export default function VerificationDesk({
 
                   {/* Digital Certificate Download (Only for validated records) */}
                   {currentRecord.status === "validated" ? (
-                    <a
-                      href={`${apiBase}/records/${currentRecord.record_id}/certificate`}
-                      download
-                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-[var(--color-success-bg)] border border-[var(--color-success-border)] hover:bg-[var(--color-success-bg)]/80 text-[var(--color-success)] rounded-full text-xs font-semibold transition-colors cursor-pointer shadow-2xs"
-                      title="Download Official Digital Land Record Certificate (PDF)"
-                    >
-                      <FileCheck className="w-3.5 h-3.5" />
-                      <span>Digital Certificate</span>
-                    </a>
+                    <div className="inline-flex items-center gap-1.5 flex-wrap">
+                      <a
+                        href={`${apiBase}/records/${currentRecord.record_id}/certificate`}
+                        download
+                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-[var(--color-success-bg)] border border-[var(--color-success-border)] hover:bg-[var(--color-success-bg)]/80 text-[var(--color-success)] rounded-full text-xs font-semibold transition-colors cursor-pointer shadow-2xs"
+                        title="Download Standard English Certificate (PDF)"
+                      >
+                        <FileCheck className="w-3.5 h-3.5" />
+                        <span>Download Certificate</span>
+                      </a>
+                      <a
+                        href={`${apiBase}/records/${currentRecord.record_id}/certificate/regional`}
+                        download
+                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-[var(--color-accent-subtle)] border border-[var(--color-accent)]/30 hover:bg-[var(--color-accent-subtle)]/80 text-[var(--color-accent)] rounded-full text-xs font-semibold transition-colors cursor-pointer shadow-2xs"
+                        title={`Download State-Matched Bilingual Certificate (${currentRecord.gis?.state || currentRecord.fields?.state || currentRecord.state || "Regional"}) (PDF)`}
+                      >
+                        <Globe className="w-3.5 h-3.5" />
+                        <span>Regional Certificate ({currentRecord.gis?.state || currentRecord.fields?.state || currentRecord.state || "Regional"})</span>
+                      </a>
+                    </div>
                   ) : (
                     <span
                       className="inline-flex items-center gap-1.5 px-3 py-1 bg-[var(--color-bg-primary)] border border-[var(--color-border-subtle)] text-[var(--color-text-muted)]/40 rounded-full text-xs font-semibold cursor-not-allowed"

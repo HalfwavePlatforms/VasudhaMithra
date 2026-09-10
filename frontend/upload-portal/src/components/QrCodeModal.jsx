@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   CheckCircle2,
   FileCheck,
+  Globe,
 } from "lucide-react";
 
 export default function QrCodeModal({ record, onClose }) {
@@ -124,14 +125,24 @@ export default function QrCodeModal({ record, onClose }) {
 
         {/* Digital Certificate Download Option */}
         {record.status === "validated" && (
-          <a
-            href={`http://localhost:8000/records/${record.record_id || record.id}/certificate`}
-            download
-            className="w-full py-2.5 px-4 bg-[var(--color-success-bg)] hover:bg-[var(--color-success-bg)]/80 text-[var(--color-success)] border border-[var(--color-success-border)] rounded-lg text-xs font-semibold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-2xs"
-          >
-            <FileCheck className="w-4 h-4" />
-            <span>Download Official Digital Certificate (PDF)</span>
-          </a>
+          <div className="flex flex-col gap-2">
+            <a
+              href={`http://localhost:8000/records/${record.record_id || record.id}/certificate`}
+              download
+              className="w-full py-2.5 px-4 bg-[var(--color-success-bg)] hover:bg-[var(--color-success-bg)]/80 text-[var(--color-success)] border border-[var(--color-success-border)] rounded-lg text-xs font-semibold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-2xs"
+            >
+              <FileCheck className="w-4 h-4" />
+              <span>Download Standard Certificate (PDF)</span>
+            </a>
+            <a
+              href={`http://localhost:8000/records/${record.record_id || record.id}/certificate/regional`}
+              download
+              className="w-full py-2.5 px-4 bg-[var(--color-accent-subtle)] hover:bg-[var(--color-accent-subtle)]/80 text-[var(--color-accent)] border border-[var(--color-accent)]/30 rounded-lg text-xs font-semibold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-2xs"
+            >
+              <Globe className="w-4 h-4" />
+              <span>Download Regional Certificate ({record.gis?.state || record.fields?.state || record.state || "Regional"})</span>
+            </a>
+          </div>
         )}
 
         {/* Action Buttons */}

@@ -16,6 +16,7 @@ import {
   RefreshCw,
   QrCode,
   FileCheck,
+  Globe,
 } from "lucide-react";
 import QrCodeModal from "./QrCodeModal";
 
@@ -364,14 +365,24 @@ export default function LandRecords({
                         <div className="flex items-center justify-end gap-1">
                           {/* Download Digital Certificate (Active for validated, disabled otherwise) */}
                           {isValidated ? (
-                            <a
-                              href={`${apiBase}/records/${r.record_id}/certificate`}
-                              download
-                              className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-success)] hover:bg-[var(--color-success-bg)] rounded-lg transition-colors cursor-pointer"
-                              title="Download Official Digital Land Record Certificate (PDF)"
-                            >
-                              <FileCheck className="w-4 h-4" />
-                            </a>
+                            <>
+                              <a
+                                href={`${apiBase}/records/${r.record_id}/certificate`}
+                                download
+                                className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-success)] hover:bg-[var(--color-success-bg)] rounded-lg transition-colors cursor-pointer"
+                                title="Download Official Digital Land Record Certificate (Standard English PDF)"
+                              >
+                                <FileCheck className="w-4 h-4" />
+                              </a>
+                              <a
+                                href={`${apiBase}/records/${r.record_id}/certificate/regional`}
+                                download
+                                className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-subtle)] rounded-lg transition-colors cursor-pointer"
+                                title={`Download State-Matched Bilingual Certificate (${r.gis?.state || r.fields?.state || r.state || "Regional"}) (PDF)`}
+                              >
+                                <Globe className="w-4 h-4" />
+                              </a>
+                            </>
                           ) : (
                             <span
                               className="p-1.5 text-[var(--color-text-muted)]/30 rounded-lg cursor-not-allowed inline-block"

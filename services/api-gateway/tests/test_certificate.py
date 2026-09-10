@@ -1,4 +1,4 @@
-﻿import os
+import os
 import sys
 import uuid
 import pytest
@@ -13,6 +13,7 @@ from services.certificate_generator import (
     render_parcel_map_image,
     generate_qr_image,
     build_certificate_pdf,
+    build_regional_certificate_pdf,
 )
 from routes.records import _log, _ensure_verification_token
 
@@ -155,3 +156,163 @@ def test_certificate_generation_end_to_end(db_session):
     # Clean up
     db_session.delete(rec)
     db_session.commit()
+
+
+def test_regional_certificate_rejected_if_not_validated(db_session):
+    rec = Record(
+        original_filename="pending_regional.pdf",
+        status="pending_review",
+        document_type="Record of Rights",
+        state="Karnataka",
+    )
+    db_session.add(rec)
+    db_session.commit()
+    db_session.refresh(rec)
+
+    res = client.get(f"/records/{rec.id}/certificate/regional")
+    assert res.status_code == 400
+    assert "Regional certificate generation is only permitted for validated land records" in res.json()["detail"]
+
+    db_session.delete(rec)
+    db_session.commit()
+
+
+def test_regional_certificate_generation_end_to_end(db_session):
+    rec = Record(
+        original_filename="regional_pahani.pdf",
+        status="validated",
+        document_type="Record of Rights (RTC)",
+        state="Karnataka",
+        parcel_id="KA-BLR-152",
+        area_doc_acres=3.25,
+        area_gis_acres=3.25,
+        spatial_consistency="MATCH",
+        gis_geojson={
+            "type": "Polygon",
+            "coordinates": [
+                [
+                    [77.5800, 13.0000],
+                    [77.5850, 13.0000],
+                    [77.5850, 13.0050],
+                    [77.5800, 13.0050],
+                    [77.5800, 13.0000],
+                ]
+            ],
+        },
+    )
+    db_session.add(rec)
+    db_session.commit()
+    db_session.refresh(rec)
+
+    db_session.add(RecordField(record_id=rec.id, field_name="survey_number", field_value="152/1", confidence=0.98))
+    db_session.add(RecordField(record_id=rec.id, field_name="khasra_number", field_value="152", confidence=0.97))
+    db_session.add(RecordField(record_id=rec.id, field_name="khata_number", field_value="KT-890", confidence=0.95))
+    db_session.add(RecordField(record_id=rec.id, field_name="owner_name", field_value="Smt. Lakshmi Devi", confidence=0.99))
+    db_session.add(RecordField(record_id=rec.id, field_name="plot_area", field_value="3.25 Acres", confidence=0.94))
+    db_session.add(RecordField(record_id=rec.id, field_name="village", field_value="Yelahanka", confidence=0.96))
+    db_session.add(RecordField(record_id=rec.id, field_name="tehsil", field_value="Bengaluru North", confidence=0.96))
+    db_session.add(RecordField(record_id=rec.id, field_name="district", field_value="Bengaluru Urban", confidence=0.98))
+    db_session.commit()
+
+    _log(db_session, rec.id, "uploaded", actor="Citizen", details={"filename": "regional_pahani.pdf"})
+    _log(db_session, rec.id, "validated", actor="Tahsildar", details={"status": "validated"})
+    _ensure_verification_token(rec)
+    db_session.commit()
+
+    # 1. Test standard regional certificate for Karnataka
+    res = client.get(f"/records/{rec.id}/certificate/regional")
+    assert res.status_code == 200
+    assert res.headers["content-type"] == "application/pdf"
+    assert "VasudhaMithra_Record_152_1_Regional_Karnataka.pdf" in res.headers["content-disposition"]
+    assert res.headers.get("x-certificate-type") == "regional-bilingual"
+    assert res.headers.get("x-regional-state") == "Karnataka"
+    assert res.headers.get("x-audit-valid") == "true"
+    assert res.content.startswith(b"%PDF-")
+    assert len(res.content) > 15000
+
+    import pypdf
+    import io
+    reader_ka = pypdf.PdfReader(io.BytesIO(res.content))
+    assert len(reader_ka.pages) == 1, f"Karnataka certificate must be exactly 1 single page, got {len(reader_ka.pages)}"
+
+    # 2. Test state query parameter override (e.g. Tamil Nadu)
+    res_tn = client.get(f"/records/{rec.id}/certificate/regional?state=Tamil+Nadu")
+    assert res_tn.status_code == 200
+    assert "VasudhaMithra_Record_152_1_Regional_Tamil_Nadu.pdf" in res_tn.headers["content-disposition"]
+    assert res_tn.headers.get("x-regional-state") == "Tamil Nadu"
+    assert res_tn.content.startswith(b"%PDF-")
+    reader_tn = pypdf.PdfReader(io.BytesIO(res_tn.content))
+    assert len(reader_tn.pages) == 1, f"Tamil Nadu certificate must be exactly 1 single page, got {len(reader_tn.pages)}"
+
+    db_session.delete(rec)
+    db_session.commit()
+
+
+def test_language_auto_detection_and_single_page_for_all_uploaded_languages(db_session):
+    """
+    Tests that the regional certificate automatically matches the uploaded record's language:
+    - Tamil (ta) -> Tamil Nadu tnreginet extract
+    - Telugu (te) -> Telangana Dharani extract
+    - Kannada (kn) -> Karnataka Bhoomi RTC extract
+    - Telugu with AP fields -> Andhra Pradesh Meebhoomi extract
+    - English common certificate -> exactly 1 page
+    """
+    import pypdf
+    import io
+
+    # Test Matrix: (lang, state_hint, expected_state, fields_extra)
+    cases = [
+        ("ta", None, "Tamil Nadu", {"district": "Chennai", "village": "Madhavaram", "taluk": "Ambattur"}),
+        ("te", None, "Telangana", {"district": "Warangal", "village": "Kazipet", "mandal": "Hanamkonda"}),
+        ("kn", None, "Karnataka", {"district": "Bengaluru", "village": "Yelahanka", "taluk": "North"}),
+        ("te", None, "Andhra Pradesh", {"district": "Vizianagaram", "village": "Gajapathinagaram", "mandal": "Gajapathinagaram"}),
+    ]
+
+    for lang, state_hint, expected_state, extra_fields in cases:
+        rec = Record(
+            original_filename=f"upload_{lang}.pdf",
+            status="validated",
+            language=lang,
+            state=state_hint,
+            document_type="Record of Rights",
+            parcel_id=f"TEST-{lang.upper()}-01",
+            area_doc_acres=2.5,
+            area_gis_acres=2.5,
+            spatial_consistency="MATCH",
+        )
+        db_session.add(rec)
+        db_session.commit()
+        db_session.refresh(rec)
+
+        db_session.add(RecordField(record_id=rec.id, field_name="survey_number", field_value="88/2", confidence=0.98))
+        db_session.add(RecordField(record_id=rec.id, field_name="owner_name", field_value="Sri Ramalingam", confidence=0.99))
+        for k, v in extra_fields.items():
+            db_session.add(RecordField(record_id=rec.id, field_name=k, field_value=v, confidence=0.95))
+        db_session.commit()
+
+        _log(db_session, rec.id, "uploaded", actor="Citizen")
+        _log(db_session, rec.id, "validated", actor="Tahsildar")
+        _ensure_verification_token(rec)
+        db_session.commit()
+
+        # 1. Download English Common Certificate -> Must be 1 page
+        res_en = client.get(f"/records/{rec.id}/certificate")
+        assert res_en.status_code == 200
+        reader_en = pypdf.PdfReader(io.BytesIO(res_en.content))
+        assert len(reader_en.pages) == 1, f"English certificate for {lang} must be 1 page, got {len(reader_en.pages)}"
+
+        # 2. Download Regional Certificate -> Must auto-resolve state matching language & be 1 page
+        res_reg = client.get(f"/records/{rec.id}/certificate/regional")
+        assert res_reg.status_code == 200
+        assert res_reg.headers.get("x-regional-state") == expected_state, (
+            f"Expected auto-detected state '{expected_state}' for language '{lang}', got '{res_reg.headers.get('x-regional-state')}'"
+        )
+        reader_reg = pypdf.PdfReader(io.BytesIO(res_reg.content))
+        assert len(reader_reg.pages) == 1, (
+            f"Regional certificate for {expected_state} ({lang}) must be exactly 1 page, got {len(reader_reg.pages)}"
+        )
+
+        db_session.delete(rec)
+        db_session.commit()
+
+
