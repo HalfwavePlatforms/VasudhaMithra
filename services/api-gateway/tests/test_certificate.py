@@ -279,6 +279,10 @@ def test_language_auto_detection_and_single_page_for_all_uploaded_languages(db_s
             area_doc_acres=2.5,
             area_gis_acres=2.5,
             spatial_consistency="MATCH",
+            gis_geojson={
+                "type": "Polygon",
+                "coordinates": [[[77.58, 13.0], [77.585, 13.0], [77.585, 13.005], [77.58, 13.005], [77.58, 13.0]]],
+            },
         )
         db_session.add(rec)
         db_session.commit()
