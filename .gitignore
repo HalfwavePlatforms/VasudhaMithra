@@ -30,6 +30,8 @@ storage/*
 !storage/.gitkeep
 services/api-gateway/src/storage/*
 !services/api-gateway/src/storage/.gitkeep
+services/api-gateway/storage/*
+!services/api-gateway/storage/.gitkeep
 
 # OS
 .DS_Store
