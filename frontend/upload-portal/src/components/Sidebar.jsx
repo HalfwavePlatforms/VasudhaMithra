@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   LayoutGrid,
   UploadCloud,
@@ -6,11 +7,8 @@ import {
   FileText,
   MapPin,
   Clock,
-  Layers,
   BarChart2,
-  ShieldCheck,
-  CheckCircle2,
-  Mic
+  Mic,
 } from "lucide-react";
 
 export default function Sidebar({
@@ -19,62 +17,64 @@ export default function Sidebar({
   pendingCount = 0,
   discrepancyCount = 0,
 }) {
+  const { t } = useTranslation();
+
   const navItems = [
     {
-      group: "OPERATIONS",
+      group: t("sidebar.operations"),
       items: [
         {
           id: "command_centre",
-          label: "Command centre",
+          label: t("sidebar.commandCentre"),
           icon: LayoutGrid,
         },
         {
           id: "document_intake",
-          label: "Document intake",
+          label: t("sidebar.documentIntake"),
           icon: UploadCloud,
         },
         {
           id: "verification_desk",
-          label: "Verification desk",
+          label: t("sidebar.verificationDesk"),
           icon: CheckSquare,
           badge: pendingCount > 0 ? pendingCount : null,
           badgeColor: "bg-[var(--color-accent)] text-white",
         },
         {
           id: "land_records",
-          label: "Land records",
+          label: t("sidebar.landRecords"),
           icon: FileText,
         },
         {
           id: "gis_parcels",
-          label: "GIS & parcels",
+          label: t("sidebar.gisParcels"),
           icon: MapPin,
-          badge: discrepancyCount > 0 ? `${discrepancyCount} alert` : null,
+          badge: discrepancyCount > 0 ? `${discrepancyCount} ${t("sidebar.alerts")}` : null,
           badgeColor: "bg-[var(--color-warning-bg)] text-[var(--color-warning)] border border-[var(--color-warning-border)]",
         },
       ],
     },
     {
-      group: "GOVERNANCE",
+      group: t("sidebar.governance"),
       items: [
         {
           id: "analytics",
-          label: "Analytics",
+          label: t("sidebar.analytics"),
           icon: BarChart2,
         },
         {
           id: "audit_trail",
-          label: "Audit trail",
+          label: t("sidebar.auditTrail"),
           icon: Clock,
         },
       ],
     },
     {
-      group: "PUBLIC SERVICES",
+      group: t("sidebar.publicServices"),
       items: [
         {
           id: "citizen_voice",
-          label: "Citizen Voice Query",
+          label: t("sidebar.citizenVoice"),
           icon: Mic,
           href: "/ask",
           badge: "Live",
@@ -96,10 +96,10 @@ export default function Sidebar({
           </div>
           <div>
             <h1 className="text-white text-lg font-serif font-bold tracking-tight leading-tight">
-              VasudhaMithra
+              {t("sidebar.appName")}
             </h1>
             <p className="text-[var(--color-sidebar-muted)] text-[11px] font-medium tracking-wide">
-              भूमि अभिलेख प्रणाली
+              {t("sidebar.appTagline")}
             </p>
           </div>
         </div>
@@ -177,16 +177,16 @@ export default function Sidebar({
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
               <span className="text-xs font-medium text-[var(--color-sidebar-text)]">
-                Systems operational
+                {t("sidebar.systemsOperational")}
               </span>
             </div>
             <span className="text-[10px] text-[var(--color-sidebar-muted)]">Live API</span>
           </div>
           <p className="text-[11px] text-[var(--color-sidebar-muted)] mt-1">
-            Real data from PostgreSQL & GIS
+            {t("sidebar.realDataNotice")}
           </p>
           <div className="flex justify-between items-center mt-2 pt-2 border-t border-[var(--color-sidebar-border)] text-[10px] text-[var(--color-sidebar-icon)]">
-            <span>NIC Cloud · Bengaluru</span>
+            <span>{t("sidebar.cloudRegion")}</span>
             <span className="font-mono">v2.4.0</span>
           </div>
         </div>

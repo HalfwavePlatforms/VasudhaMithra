@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import {
   UploadCloud,
   FileText,
@@ -17,6 +18,7 @@ export default function DocumentIntake({
   setActiveTab,
   setSelectedRecordId,
 }) {
+  const { t } = useTranslation();
   const [file, setFile] = useState(null);
   const [language, setLanguage] = useState("auto");
   const [uploading, setUploading] = useState(false);
@@ -179,13 +181,13 @@ export default function DocumentIntake({
       {/* Page Header */}
       <div>
         <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-label-muted)]">
-          DOCUMENT INGESTION
+          {t("sidebar.operations")}
         </span>
         <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[var(--color-text-primary)] tracking-tight mt-1">
-          Document intake
+          {t("documentIntake.title")}
         </h1>
         <p className="text-sm text-[var(--color-text-muted)] mt-1">
-          Upload scanned land deeds, mutation registers, and Khasra extracts for automated OCR and spatial validation.
+          {t("documentIntake.subtitle")}
         </p>
       </div>
 
@@ -231,11 +233,13 @@ export default function DocumentIntake({
               ) : (
                 <div className="space-y-1">
                   <div className="text-sm font-semibold text-[var(--color-text-primary)]">
-                    Drop your scanned deed or ledger here, or{" "}
-                    <span className="text-[var(--color-accent-text)] underline">browse</span>
+                    {t("documentIntake.dragDropTitle")},{" "}
+                    <span className="text-[var(--color-accent-text)] underline">
+                      {t("documentIntake.browseFiles")}
+                    </span>
                   </div>
                   <div className="text-xs text-[var(--color-text-muted)]">
-                    Supports PDF, PNG, JPG, TIFF up to 25MB
+                    {t("documentIntake.dragDropSubtitle")}
                   </div>
                 </div>
               )}
@@ -246,7 +250,7 @@ export default function DocumentIntake({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
             <div>
               <label className="block text-xs font-semibold text-[var(--color-text-primary)] mb-1.5">
-                Language / Script Hint
+                {t("documentIntake.selectDocLanguage")}
               </label>
               <select
                 value={language}
@@ -262,7 +266,7 @@ export default function DocumentIntake({
                 <option value="te">Telugu (Adangal / Pahani)</option>
               </select>
               <p className="text-[11px] text-[var(--color-text-muted)] mt-1">
-                Passed to OCR pipeline for script-specific preprocessing.
+                {t("documentIntake.guideline2")}
               </p>
             </div>
 
@@ -327,12 +331,12 @@ export default function DocumentIntake({
                 {uploading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Processing ({uploadProgress}%)...
+                    {t("documentIntake.uploading")} ({uploadProgress}%)...
                   </>
                 ) : (
                   <>
                     <UploadCloud className="w-4 h-4" />
-                    Start Digitization & Validation
+                    {t("documentIntake.startIngestion")}
                   </>
                 )}
               </button>
@@ -348,10 +352,10 @@ export default function DocumentIntake({
             </div>
             <div>
               <h2 className="text-lg font-serif font-bold text-[var(--color-text-primary)]">
-                Document Ingested Successfully
+                {t("documentIntake.title")} - {t("common.validated")}
               </h2>
               <p className="text-xs text-[var(--color-text-muted)]">
-                Pipeline completed: OCR extraction, rule validation & GIS cross-check.
+                {t("documentIntake.guideline3")}
               </p>
             </div>
           </div>
@@ -360,7 +364,7 @@ export default function DocumentIntake({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-5 bg-[var(--color-bg-primary)] rounded-xl border border-[var(--color-border)]">
             <div>
               <span className="text-[10px] uppercase font-bold text-[var(--color-text-muted)]">
-                RECORD ID
+                {t("verificationDesk.surveyNumber")} / ID
               </span>
               <div className="text-xs font-mono font-semibold text-[var(--color-text-primary)] truncate mt-1">
                 {uploadResult.record_id}
@@ -369,7 +373,7 @@ export default function DocumentIntake({
 
             <div>
               <span className="text-[10px] uppercase font-bold text-[var(--color-text-muted)]">
-                STATUS
+                {t("common.status")}
               </span>
               <div className="mt-1">
                 <span
@@ -379,14 +383,14 @@ export default function DocumentIntake({
                       : "bg-[var(--color-accent-subtle)] text-[var(--color-accent)] border border-[var(--color-border)]"
                   }`}
                 >
-                  ● {uploadResult.status === "validated" ? "Validated" : "Pending Review"}
+                  ● {uploadResult.status === "validated" ? t("common.validated") : t("common.pending")}
                 </span>
               </div>
             </div>
 
             <div>
               <span className="text-[10px] uppercase font-bold text-[var(--color-text-muted)]">
-                RISK LEVEL
+                {t("analytics.fieldAccuracyTitle")}
               </span>
               <div className="mt-1">
                 <span
@@ -405,7 +409,7 @@ export default function DocumentIntake({
 
             <div>
               <span className="text-[10px] uppercase font-bold text-[var(--color-text-muted)]">
-                SPATIAL GIS
+                {t("sidebar.gisParcels")}
               </span>
               <div className="text-xs font-semibold text-[var(--color-text-primary)] mt-1">
                 {uploadResult.spatial_consistency || "NOT_EVALUATED"}
@@ -419,7 +423,7 @@ export default function DocumentIntake({
               onClick={resetForm}
               className="text-xs font-semibold text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors cursor-pointer"
             >
-              + Upload another document
+              + {t("commandCentre.intakeBatch")}
             </button>
 
             <button
@@ -429,7 +433,7 @@ export default function DocumentIntake({
               }}
               className="w-full sm:w-auto px-6 py-2.5 rounded-lg text-xs font-semibold text-white bg-[var(--color-sidebar-bg)] hover:bg-[var(--color-sidebar-hover)] inline-flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
             >
-              Inspect in Verification Desk
+              {t("sidebar.verificationDesk")}
               <ArrowRight className="w-4 h-4 text-[var(--color-accent)]" />
             </button>
           </div>

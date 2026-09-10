@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ShieldCheck,
   AlertTriangle,
@@ -28,6 +29,7 @@ export default function VerificationDesk({
   onRecordUpdated,
   setActiveTab,
 }) {
+  const { t } = useTranslation();
   const [pendingRecords, setPendingRecords] = useState([]);
   const [currentRecord, setCurrentRecord] = useState(null);
   const [editedFields, setEditedFields] = useState({});
@@ -242,16 +244,16 @@ export default function VerificationDesk({
 
 
   const schemaLabels = {
-    survey_number: "Survey Number",
-    khasra_number: "Khasra Number",
-    khata_number: "Khata Number",
-    owner_name: "Owner / Khatedar Name",
-    plot_area: "Plot Extent / Area",
-    village: "Village (Gram)",
-    tehsil: "Taluk / Tehsil",
-    district: "District (Zilla)",
-    land_classification: "Land Classification",
-    mutation_number: "Mutation Reference No",
+    survey_number: t("verificationDesk.surveyNumber"),
+    khasra_number: t("verificationDesk.khasraNumber"),
+    khata_number: t("verificationDesk.khataNumber"),
+    owner_name: t("verificationDesk.ownerName"),
+    plot_area: t("verificationDesk.plotArea"),
+    village: t("verificationDesk.village"),
+    tehsil: t("verificationDesk.tehsil"),
+    district: t("verificationDesk.district"),
+    land_classification: t("verificationDesk.landClassification"),
+    mutation_number: t("verificationDesk.mutationNumber"),
   };
 
   return (
@@ -260,13 +262,13 @@ export default function VerificationDesk({
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-label-muted)]">
-            VERIFICATION & AUDIT
+            {t("sidebar.operations")}
           </span>
           <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[var(--color-text-primary)] tracking-tight mt-1">
-            Verification desk
+            {t("verificationDesk.title")}
           </h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-1">
-            Inspect optical extractions, resolve schema violations, and authenticate land title certificates.
+            {t("verificationDesk.subtitle")}
           </p>
         </div>
 
@@ -321,10 +323,10 @@ export default function VerificationDesk({
         <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl p-12 text-center text-[var(--color-text-muted)]">
           <ShieldCheck className="w-10 h-10 text-[var(--color-success)] mx-auto mb-3" />
           <h3 className="text-base font-bold text-[var(--color-text-primary)]">
-            No Record Selected
+            {t("verificationDesk.noRecordSelected")}
           </h3>
           <p className="text-xs text-[var(--color-text-muted)] mt-1">
-            Select a record from the queue above or upload a new deed from Document Intake.
+            {t("verificationDesk.confidenceWarning")}
           </p>
         </div>
       ) : currentRecord.status === "processing" ? (
@@ -750,13 +752,13 @@ export default function VerificationDesk({
             <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl p-5 shadow-xs space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-[var(--color-text-primary)] mb-1">
-                  Revenue Officer Verification Remarks / Mutation Ref
+                  {t("verificationDesk.auditRationale")}
                 </label>
                 <textarea
                   value={reviewerNotes}
                   onChange={(e) => setReviewerNotes(e.target.value)}
                   rows={2}
-                  placeholder="Enter verification rationale, mutation reference order, or audit justification..."
+                  placeholder={t("verificationDesk.auditRationalePlaceholder")}
                   className="w-full text-xs bg-[var(--color-bg-primary)] border border-[var(--color-border-strong)] rounded-lg p-2.5 text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
                 />
               </div>
@@ -768,7 +770,7 @@ export default function VerificationDesk({
                   className="px-4 py-2 rounded-lg text-xs font-semibold text-[var(--color-text-primary)] bg-[var(--color-bg-secondary)] border border-[var(--color-border-strong)] hover:bg-[var(--color-bg-tertiary)] transition-colors inline-flex items-center gap-1.5 cursor-pointer"
                 >
                   <Save className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
-                  Save Corrections
+                  {t("verificationDesk.saveCorrections")}
                 </button>
 
                 <div className="flex items-center gap-2">
@@ -778,7 +780,7 @@ export default function VerificationDesk({
                     className="px-4 py-2 rounded-lg text-xs font-semibold text-[var(--color-error)] bg-[var(--color-error-bg)] border border-[var(--color-error-border)] hover:bg-[var(--color-bg-tertiary)] transition-colors inline-flex items-center gap-1.5 cursor-pointer"
                   >
                     <XCircle className="w-3.5 h-3.5" />
-                    Flag / Reject
+                    {t("verificationDesk.rejectRecord")}
                   </button>
 
                   <button
@@ -787,7 +789,7 @@ export default function VerificationDesk({
                     className="px-5 py-2 rounded-lg text-xs font-semibold text-white bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] transition-colors inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    Approve Record
+                    {t("verificationDesk.approveRecord")}
                   </button>
                 </div>
               </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   BarChart3,
   TrendingUp,
@@ -16,6 +17,7 @@ import {
 } from "lucide-react";
 
 export default function AnalyticsView({ apiBase }) {
+  const { t } = useTranslation();
   const resolvedApiBase = apiBase || import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
   const [loading, setLoading] = useState(true);
@@ -83,10 +85,10 @@ export default function AnalyticsView({ apiBase }) {
             <span className="text-xs text-[var(--color-text-muted)]">• No fabricated trends</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[var(--color-text-primary)]">
-            Digitization Analytics & Precision
+            {t("analytics.title")}
           </h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-1">
-            Real-time aggregations from official records, audit hash-chains, and GIS spatial consistency checks.
+            {t("analytics.subtitle")}
           </p>
         </div>
 
@@ -94,10 +96,10 @@ export default function AnalyticsView({ apiBase }) {
           type="button"
           onClick={fetchAnalytics}
           disabled={loading}
-          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-secondary)] hover:bg-[var(--color-border)]/30 text-xs font-semibold text-[var(--color-text-primary)] transition-colors shadow-xs"
+          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-secondary)] hover:bg-[var(--color-border)]/30 text-xs font-semibold text-[var(--color-text-primary)] transition-colors shadow-xs cursor-pointer"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-          <span>Refresh Data</span>
+          <span>{t("common.refresh")}</span>
         </button>
       </div>
 
@@ -119,24 +121,24 @@ export default function AnalyticsView({ apiBase }) {
         {/* Total Processed */}
         <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl p-5 shadow-xs">
           <span className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider block">
-            Total Records Digitized
+            {t("analytics.totalDigitized")}
           </span>
           <div className="flex items-baseline gap-2 mt-2">
             <span className="text-3xl font-bold font-serif text-[var(--color-text-primary)]">
               {throughput.total_records || 0}
             </span>
-            <span className="text-xs text-[var(--color-text-muted)]">parcels</span>
+            <span className="text-xs text-[var(--color-text-muted)]">{t("analytics.parcelsUnit")}</span>
           </div>
           <div className="mt-3 flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
             <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Across 8 Administrative Districts</span>
+            <span>{t("analytics.activeDistricts")}</span>
           </div>
         </div>
 
         {/* Validated Records */}
         <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl p-5 shadow-xs">
           <span className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider block">
-            Officially Validated
+            {t("analytics.officiallyValidated")}
           </span>
           <div className="flex items-baseline gap-2 mt-2">
             <span className="text-3xl font-bold font-serif text-[var(--color-text-primary)]">
@@ -147,39 +149,39 @@ export default function AnalyticsView({ apiBase }) {
             </span>
           </div>
           <div className="mt-3 text-xs text-[var(--color-text-muted)]">
-            Approved by Tahsildar / Revenue Officers
+            {t("analytics.tahsildarApproval")}
           </div>
         </div>
 
         {/* Overall Extraction Accuracy */}
         <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl p-5 shadow-xs">
           <span className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider block">
-            Rule-Based Extraction Accuracy
+            {t("analytics.ruleAccuracy")}
           </span>
           <div className="flex items-baseline gap-2 mt-2">
             <span className="text-3xl font-bold font-serif text-[var(--color-text-primary)]">
               {accuracy.overall_average_accuracy_pct || "0.0"}%
             </span>
-            <span className="text-xs text-[var(--color-text-muted)]">weighted avg</span>
+            <span className="text-xs text-[var(--color-text-muted)]">{t("analytics.weightedAvg")}</span>
           </div>
           <div className="mt-3 text-xs text-[var(--color-text-muted)]">
-            Across {accuracy.total_scored_fields || 0} verified field extractions
+            {t("analytics.verifiedExtractions")}
           </div>
         </div>
 
         {/* Flagged Review Issues */}
         <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl p-5 shadow-xs">
           <span className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider block">
-            Manual Review Triggers
+            {t("analytics.reviewTriggers")}
           </span>
           <div className="flex items-baseline gap-2 mt-2">
             <span className="text-3xl font-bold font-serif text-amber-600 dark:text-amber-400">
               {data?.review_reasons?.total_flagged_issues || 0}
             </span>
-            <span className="text-xs text-[var(--color-text-muted)]">flags</span>
+            <span className="text-xs text-[var(--color-text-muted)]">{t("analytics.flagsUnit")}</span>
           </div>
           <div className="mt-3 text-xs text-[var(--color-text-muted)]">
-            Preventing unverified records from entering ledger
+            {t("analytics.preventingNotice")}
           </div>
         </div>
       </div>
@@ -189,10 +191,10 @@ export default function AnalyticsView({ apiBase }) {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
           <div>
             <h2 className="text-lg font-serif font-bold text-[var(--color-text-primary)]">
-              Daily Digitization & Validation Throughput
+              {t("analytics.throughputTitle")}
             </h2>
             <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-              Exact count of records ingested vs. approved per calendar day.
+              {t("analytics.throughputSubtitle")}
             </p>
           </div>
 
@@ -200,11 +202,11 @@ export default function AnalyticsView({ apiBase }) {
           <div className="flex items-center gap-4 text-xs">
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded bg-[var(--color-accent)] inline-block" />
-              <span className="text-[var(--color-text-muted)]">Total Created</span>
+              <span className="text-[var(--color-text-muted)]">{t("analytics.legendCreated")}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded bg-emerald-600 dark:bg-emerald-500 inline-block" />
-              <span className="text-[var(--color-text-muted)]">Validated</span>
+              <span className="text-[var(--color-text-muted)]">{t("analytics.legendValidated")}</span>
             </div>
           </div>
         </div>
@@ -262,7 +264,7 @@ export default function AnalyticsView({ apiBase }) {
         {selectedDay && (
           <div className="mt-4 pt-3 flex flex-wrap items-center justify-between gap-4 text-xs">
             <div className="flex items-center gap-2">
-              <span className="text-[var(--color-text-muted)]">Selected Date:</span>
+              <span className="text-[var(--color-text-muted)]">{t("analytics.selectedDate")}:</span>
               <span className="font-bold text-[var(--color-text-primary)]">
                 {new Date(selectedDay.date).toLocaleDateString("en-GB", {
                   weekday: "short",
@@ -273,10 +275,10 @@ export default function AnalyticsView({ apiBase }) {
               </span>
             </div>
             <div className="flex items-center gap-4 text-[11px]">
-              <span>Created: <strong>{selectedDay.created}</strong></span>
-              <span className="text-emerald-600 dark:text-emerald-400">Validated: <strong>{selectedDay.validated}</strong></span>
-              <span className="text-amber-600 dark:text-amber-400">Pending Review: <strong>{selectedDay.pending}</strong></span>
-              <span className="text-rose-600 dark:text-rose-400">Rejected: <strong>{selectedDay.rejected}</strong></span>
+              <span>{t("analytics.createdLabel")}: <strong>{selectedDay.created}</strong></span>
+              <span className="text-emerald-600 dark:text-emerald-400">{t("analytics.validatedLabel")}: <strong>{selectedDay.validated}</strong></span>
+              <span className="text-amber-600 dark:text-amber-400">{t("analytics.pendingLabel")}: <strong>{selectedDay.pending}</strong></span>
+              <span className="text-rose-600 dark:text-rose-400">{t("analytics.rejectedLabel")}: <strong>{selectedDay.rejected}</strong></span>
             </div>
           </div>
         )}
@@ -289,14 +291,14 @@ export default function AnalyticsView({ apiBase }) {
           <div>
             <div className="flex items-center justify-between mb-1">
               <h2 className="text-lg font-serif font-bold text-[var(--color-text-primary)]">
-                Field-Level OCR Accuracy
+                {t("analytics.fieldAccuracyTitle")}
               </h2>
               <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
                 Avg: {accuracy.overall_average_accuracy_pct || "0.0"}%
               </span>
             </div>
             <p className="text-xs text-[var(--color-text-muted)] mb-5">
-              Direct confidence evaluations across rule-based extractions.
+              {t("analytics.fieldAccuracySubtitle")}
             </p>
 
             {/* Field Progress List */}
@@ -318,7 +320,7 @@ export default function AnalyticsView({ apiBase }) {
                       </span>
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] text-[var(--color-text-muted)]">
-                          ({field.sample_count} records)
+                          ({field.sample_count} {t("common.records")})
                         </span>
                         <span className="font-mono font-bold text-[var(--color-text-primary)]">
                           {pct}%
@@ -348,14 +350,14 @@ export default function AnalyticsView({ apiBase }) {
           <div>
             <div className="flex items-center justify-between mb-1">
               <h2 className="text-lg font-serif font-bold text-[var(--color-text-primary)]">
-                District Digitization Progress
+                {t("analytics.districtProgressTitle")}
               </h2>
               <span className="text-xs font-bold text-[var(--color-info)] bg-[var(--color-info)]/10 px-2 py-0.5 rounded">
-                {districts.filter((d) => d.district !== "Unassigned").length} Districts Active
+                {districts.filter((d) => d.district !== "Unassigned").length} {t("analytics.activeDistricts")}
               </span>
             </div>
             <p className="text-xs text-[var(--color-text-muted)] mb-5">
-              Real proportion of validated records vs. total ingested per administrative district.
+              {t("analytics.districtProgressSubtitle")}
             </p>
 
             <div className="space-y-4">
@@ -372,7 +374,7 @@ export default function AnalyticsView({ apiBase }) {
                         </span>
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] text-[var(--color-text-muted)]">
-                            {dist.validated_records} of {dist.total_records} validated
+                            {dist.validated_records} of {dist.total_records} {t("common.validated").toLowerCase()}
                           </span>
                           <span className="font-mono font-bold text-[var(--color-text-primary)]">
                             {pct}%
@@ -403,14 +405,14 @@ export default function AnalyticsView({ apiBase }) {
         <div className="flex items-center justify-between mb-1">
           <div>
             <h2 className="text-lg font-serif font-bold text-[var(--color-text-primary)]">
-              Reasons for Manual Review Flagging
+              {t("analytics.reviewReasonsTitle")}
             </h2>
             <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-              Aggregated from ValidationResult rule failures and spatial GIS boundary checks.
+              {t("analytics.reviewReasonsSubtitle")}
             </p>
           </div>
           <span className="text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full">
-            {data?.review_reasons?.total_flagged_issues || 0} Total Violations
+            {data?.review_reasons?.total_flagged_issues || 0} {t("analytics.totalViolations")}
           </span>
         </div>
 

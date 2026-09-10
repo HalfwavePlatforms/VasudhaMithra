@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   FileText,
   CheckCircle2,
@@ -21,26 +22,28 @@ export default function CommandCentre({
   onExport,
   user,
 }) {
+  const { t } = useTranslation();
+
   if (loading && !stats) {
     return (
       <div className="p-12 text-center text-[var(--color-text-muted)] font-medium">
-        Loading Command Centre intelligence...
+        {t("common.loading")}
       </div>
     );
   }
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 17) return "Good afternoon";
-    return "Good evening";
+    if (hour < 12) return t("commandCentre.greetingMorning");
+    if (hour < 17) return t("commandCentre.greetingAfternoon");
+    return t("commandCentre.greetingEvening");
   };
 
   const rawName =
     user?.name?.split(" ")[0] ||
     user?.actor?.split(" ")[0] ||
     (user?.email ? user.email.split("@")[0].split(".")[0] : null) ||
-    "Deepak";
+    "Officer";
   const firstName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
 
   const totalProcessed = stats?.total_processed || 0;
@@ -59,13 +62,13 @@ export default function CommandCentre({
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-label-muted)]">
-            DIGITIZATION OVERVIEW
+            {t("sidebar.commandCentre").toUpperCase()}
           </span>
           <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[var(--color-text-primary)] tracking-tight mt-1">
             {getGreeting()}, {firstName}.
           </h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-1 font-normal">
-            Here's what needs attention across your land record operations today.
+            {t("commandCentre.overviewSubtitle")}
           </p>
         </div>
 
@@ -75,14 +78,14 @@ export default function CommandCentre({
             className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-[var(--color-text-primary)] bg-[var(--color-bg-secondary)] border border-[var(--color-border-strong)] hover:bg-[var(--color-bg-tertiary)] rounded-lg shadow-xs transition-colors cursor-pointer"
           >
             <Download className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
-            Export report
+            {t("commandCentre.exportReport")}
           </button>
           <button
             onClick={() => setActiveTab("document_intake")}
             className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-[var(--color-sidebar-bg)] hover:bg-[var(--color-sidebar-hover)] rounded-lg shadow-xs transition-colors cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5 text-white" />
-            Add documents
+            {t("commandCentre.intakeBatch")}
           </button>
         </div>
       </div>
@@ -96,10 +99,10 @@ export default function CommandCentre({
             </div>
             <div>
               <div className="text-sm font-bold text-[var(--color-text-primary)]">
-                {pendingCount} records need verification
+                {pendingCount} {t("commandCentre.pendingReview")}
               </div>
               <div className="text-xs text-[var(--color-text-muted)]">
-                AI confidence below threshold or flagged for revenue officer review.
+                {t("commandCentre.requiresAttention")}
               </div>
             </div>
           </div>
@@ -107,7 +110,7 @@ export default function CommandCentre({
             onClick={() => setActiveTab("verification_desk")}
             className="inline-flex items-center gap-1.5 text-xs font-bold text-[var(--color-accent-text)] hover:text-[var(--color-accent-hover)] transition-colors self-end sm:self-auto cursor-pointer"
           >
-            Open verification desk
+            {t("sidebar.verificationDesk")}
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -119,10 +122,10 @@ export default function CommandCentre({
             </div>
             <div>
               <div className="text-sm font-bold text-[var(--color-text-primary)]">
-                All records verified
+                {t("common.validated")}
               </div>
               <div className="text-xs text-[var(--color-text-muted)]">
-                0 records pending verification in this queue.
+                0 {t("commandCentre.pendingReview")}
               </div>
             </div>
           </div>
@@ -135,7 +138,7 @@ export default function CommandCentre({
         <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl p-5 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-[var(--color-text-muted)]">
             <span className="text-xs font-semibold uppercase tracking-wider">
-              Records digitized
+              {t("commandCentre.totalProcessed")}
             </span>
             <FileText className="w-4 h-4 text-[var(--color-text-muted)]" />
           </div>
@@ -144,7 +147,7 @@ export default function CommandCentre({
               {totalProcessed.toLocaleString()}
             </div>
             <div className="text-xs text-[var(--color-success)] font-medium mt-1 flex items-center gap-1">
-              <span>●</span> Live database total
+              <span>●</span> {t("commandCentre.parcelsDigitized")}
             </div>
           </div>
           {/* Mini Sparkline Bar Visual */}
@@ -163,7 +166,7 @@ export default function CommandCentre({
         <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl p-5 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-[var(--color-text-muted)]">
             <span className="text-xs font-semibold uppercase tracking-wider">
-              Field accuracy
+              {t("analytics.ruleAccuracy")}
             </span>
             <CheckCircle2 className="w-4 h-4 text-[var(--color-text-muted)]" />
           </div>
@@ -173,7 +176,7 @@ export default function CommandCentre({
                 {accuracyPct}%
               </div>
               <div className="text-xs text-[var(--color-success)] font-medium mt-1">
-                Avg token confidence
+                {t("analytics.weightedAvg")}
               </div>
             </div>
             {/* Donut Visual */}
@@ -202,7 +205,7 @@ export default function CommandCentre({
             </div>
           </div>
           <div className="mt-4 text-[11px] text-[var(--color-text-muted)]">
-            Post-verification calibrated
+            {t("analytics.verifiedExtractions")}
           </div>
         </div>
 
@@ -210,7 +213,7 @@ export default function CommandCentre({
         <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl p-5 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-[var(--color-text-muted)]">
             <span className="text-xs font-semibold uppercase tracking-wider">
-              Spatial discrepancies
+              {t("commandCentre.spatialDiscrepancy")}
             </span>
             <Compass className="w-4 h-4 text-[var(--color-text-muted)]" />
           </div>
@@ -219,13 +222,13 @@ export default function CommandCentre({
               {discrepancyCount}
             </div>
             <div className="text-xs text-[var(--color-accent-text)] font-medium mt-1">
-              Deed vs Cadastral GIS
+              {t("commandCentre.areaMismatch")}
             </div>
           </div>
           <div className="mt-4 flex items-center gap-1.5">
             <span className={`w-2 h-2 rounded-full ${discrepancyCount > 0 ? "bg-[var(--color-accent)]" : "bg-[var(--color-success)]"}`} />
             <span className="text-[11px] text-[var(--color-text-muted)]">
-              {discrepancyCount > 0 ? "Flagged for parcel survey" : "All boundaries consistent"}
+              {discrepancyCount > 0 ? t("commandCentre.areaMismatch") : t("common.match")}
             </span>
           </div>
         </div>
@@ -234,7 +237,7 @@ export default function CommandCentre({
         <div className="bg-[var(--color-sidebar-bg)] text-white rounded-xl p-5 shadow-xs flex flex-col justify-between border border-[var(--color-sidebar-border)]">
           <div className="flex items-center justify-between text-[var(--color-sidebar-muted)]">
             <span className="text-xs font-semibold uppercase tracking-wider">
-              Pending validation
+              {t("commandCentre.pendingReview")}
             </span>
             <Clock className="w-4 h-4 text-[var(--color-sidebar-muted)]" />
           </div>
@@ -243,7 +246,7 @@ export default function CommandCentre({
               {pendingCount}
             </div>
             <div className="text-xs text-[var(--color-sidebar-muted)] font-medium mt-1">
-              Requires Tahsildar sign-off
+              {t("analytics.tahsildarApproval")}
             </div>
           </div>
           <div className="mt-4 pt-2 border-t border-[var(--color-sidebar-border)]">
@@ -251,7 +254,7 @@ export default function CommandCentre({
               onClick={() => setActiveTab("verification_desk")}
               className="text-xs font-semibold text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] inline-flex items-center gap-1 transition-colors cursor-pointer"
             >
-              Review queue
+              {t("sidebar.verificationDesk")}
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -265,17 +268,17 @@ export default function CommandCentre({
           <div className="flex items-center justify-between mb-4">
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-label-muted)]">
-                LATEST ACTIVITY
+                {t("sidebar.governance").toUpperCase()}
               </span>
               <h3 className="text-lg font-serif font-bold text-[var(--color-text-primary)]">
-                Recent audit events
+                {t("commandCentre.recentActivity")}
               </h3>
             </div>
             <button
               onClick={() => setActiveTab("audit_trail")}
               className="text-xs font-bold text-[var(--color-accent-text)] hover:text-[var(--color-accent-hover)] inline-flex items-center gap-1 cursor-pointer"
             >
-              View all
+              {t("commandCentre.viewAll")}
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -319,7 +322,7 @@ export default function CommandCentre({
                     </div>
 
                     <div className="text-right flex-shrink-0 text-[11px] text-[var(--color-text-muted)]">
-                      <div>{log.actor || "System"}</div>
+                      <div>{log.actor || t("topbar.officer")}</div>
                       <div>
                         {log.created_at
                           ? new Date(log.created_at).toLocaleTimeString([], {
@@ -335,7 +338,7 @@ export default function CommandCentre({
             </div>
           ) : (
             <div className="py-8 text-center text-xs text-[var(--color-text-muted)]">
-              No recent audit events recorded.
+              {t("topbar.noNotifications")}
             </div>
           )}
         </div>
@@ -344,10 +347,10 @@ export default function CommandCentre({
         <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl p-6 shadow-xs flex flex-col justify-between">
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-label-muted)]">
-              COVERAGE
+              {t("analytics.activeDistricts").toUpperCase()}
             </span>
             <h3 className="text-lg font-serif font-bold text-[var(--color-text-primary)] mb-4">
-              District records
+              {t("analytics.districtProgressTitle")}
             </h3>
 
             {Object.keys(byDistrict).length > 0 ? (
@@ -376,7 +379,7 @@ export default function CommandCentre({
               </div>
             ) : (
               <div className="text-xs text-[var(--color-text-muted)] py-4">
-                No district breakdown available.
+                {t("analytics.districtProgressSubtitle")}
               </div>
             )}
 
@@ -406,8 +409,8 @@ export default function CommandCentre({
               onClick={() => setActiveTab("land_records")}
               className="text-xs font-bold text-[var(--color-accent-text)] hover:text-[var(--color-accent-hover)] inline-flex items-center gap-1 cursor-pointer"
             >
-              View master table
-              <ArrowRight className="w-3 h-3" />
+              {t("sidebar.landRecords")}
+              <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>

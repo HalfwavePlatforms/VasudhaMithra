@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import Sidebar from "./components/Sidebar";
 import TopBar from "./components/TopBar";
 import CommandCentre from "./components/CommandCentre";
@@ -140,14 +141,16 @@ export default function App() {
     );
   }
 
+  const { t } = useTranslation();
+
   const pageTitles = {
-    command_centre: "Command centre",
-    document_intake: "Document intake",
-    verification_desk: "Verification desk",
-    land_records: "Land records",
-    gis_parcels: "GIS & parcels",
-    audit_trail: "Audit trail",
-    analytics: "Analytics & precision",
+    command_centre: t("sidebar.commandCentre"),
+    document_intake: t("sidebar.documentIntake"),
+    verification_desk: t("sidebar.verificationDesk"),
+    land_records: t("sidebar.landRecords"),
+    gis_parcels: t("sidebar.gisParcels"),
+    audit_trail: t("sidebar.auditTrail"),
+    analytics: t("sidebar.analytics"),
   };
 
   return (
@@ -164,14 +167,15 @@ export default function App() {
       <div className="flex-1 ml-64 flex flex-col min-h-screen">
         {/* Top Header Bar */}
         <TopBar
-          title={pageTitles[activeTab] || "Command centre"}
-          breadcrumb="KARNATAKA / REVENUE DEPARTMENT"
+          title={pageTitles[activeTab] || t("sidebar.commandCentre")}
+          breadcrumb={t("topbar.breadcrumbState")}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
           pendingCount={stats?.pending_review_count || 0}
           user={user}
           onLogout={handleLogout}
           onUpdatePhoto={() => setShowCaptureModal(true)}
+          auditLogs={auditLogs}
         />
 
         {/* Dynamic Page View */}

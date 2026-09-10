@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   FileText,
   Search,
@@ -27,6 +28,7 @@ export default function LandRecords({
   setSelectedRecordId,
   selectedRecordId,
 }) {
+  const { t } = useTranslation();
   const [records, setRecords] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -146,13 +148,13 @@ export default function LandRecords({
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-label-muted)]">
-            MASTER REPOSITORY
+            {t("sidebar.governance")}
           </span>
           <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[var(--color-text-primary)] tracking-tight mt-1">
-            Land records
+            {t("sidebar.landRecords")}
           </h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-1">
-            Search, inspect and export validated records across the district.
+            {t("commandCentre.overviewSubtitle")}
           </p>
         </div>
 
@@ -162,14 +164,14 @@ export default function LandRecords({
             className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-[var(--color-text-primary)] bg-[var(--color-bg-secondary)] border border-[var(--color-border-strong)] hover:bg-[var(--color-bg-tertiary)] rounded-lg shadow-xs transition-colors cursor-pointer"
           >
             <Download className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
-            Export CSV
+            {t("common.export")} CSV
           </button>
           <button
             onClick={() => setActiveTab("document_intake")}
             className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-[var(--color-sidebar-bg)] hover:bg-[var(--color-sidebar-hover)] rounded-lg shadow-xs transition-colors cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5 text-white" />
-            Add records
+            {t("commandCentre.intakeBatch")}
           </button>
         </div>
       </div>
@@ -179,49 +181,49 @@ export default function LandRecords({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 divide-y sm:divide-y-0 sm:divide-x divide-[var(--color-sidebar-border)]">
           <div className="pt-2 sm:pt-0">
             <span className="text-[11px] uppercase font-semibold tracking-wider text-[var(--color-sidebar-muted)]">
-              Total records
+              {t("commandCentre.totalProcessed")}
             </span>
             <div className="text-2xl font-serif font-bold text-white mt-1">
               {totalProcessed.toLocaleString()}
             </div>
             <div className="text-[11px] text-[var(--color-sidebar-muted)] mt-0.5">
-              Live database master
+              {t("commandCentre.liveLedger")}
             </div>
           </div>
 
           <div className="pt-2 sm:pt-0 sm:pl-6">
             <span className="text-[11px] uppercase font-semibold tracking-wider text-[var(--color-sidebar-muted)]">
-              Validated
+              {t("common.validated")}
             </span>
             <div className="text-2xl font-serif font-bold text-[var(--color-success)] mt-1">
               {verifiedCount.toLocaleString()}
             </div>
             <div className="text-[11px] text-[var(--color-sidebar-muted)] mt-0.5">
-              {verifiedPct}% of repository
+              {verifiedPct}% {t("commandCentre.rateSuffix")}
             </div>
           </div>
 
           <div className="pt-2 sm:pt-0 sm:pl-6">
             <span className="text-[11px] uppercase font-semibold tracking-wider text-[var(--color-sidebar-muted)]">
-              Pending review
+              {t("commandCentre.pendingReview")}
             </span>
             <div className="text-2xl font-serif font-bold text-[var(--color-accent)] mt-1">
               {pendingCount.toLocaleString()}
             </div>
             <div className="text-[11px] text-[var(--color-sidebar-muted)] mt-0.5">
-              Action required
+              {t("commandCentre.requiresAttention")}
             </div>
           </div>
 
           <div className="pt-2 sm:pt-0 sm:pl-6">
             <span className="text-[11px] uppercase font-semibold tracking-wider text-[var(--color-sidebar-muted)]">
-              Spatial Status
+              {t("commandCentre.spatialDiscrepancy")}
             </span>
             <div className="text-2xl font-serif font-bold text-white mt-1">
               {stats?.spatial_discrepancy_count || 0}
             </div>
             <div className="text-[11px] text-[var(--color-sidebar-muted)] mt-0.5">
-              Cadastral discrepancies
+              {t("commandCentre.areaMismatch")}
             </div>
           </div>
         </div>
@@ -236,7 +238,7 @@ export default function LandRecords({
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by owner, survey or khata number..."
+            placeholder={t("topbar.searchPlaceholder")}
             className="w-full pl-9 pr-4 py-1.5 text-xs bg-[var(--color-bg-primary)] border border-[var(--color-border-strong)] rounded-lg text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
           />
         </div>
@@ -245,7 +247,7 @@ export default function LandRecords({
         <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
           <div className="flex items-center gap-2 text-xs text-[var(--color-text-secondary)]">
             <Filter className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
-            <span>Status:</span>
+            <span>{t("common.status")}:</span>
             <select
               value={statusFilter}
               onChange={(e) => {
@@ -254,24 +256,24 @@ export default function LandRecords({
               }}
               className="text-xs bg-[var(--color-bg-primary)] border border-[var(--color-border-strong)] rounded-lg px-2.5 py-1.5 text-[var(--color-text-primary)] font-semibold focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
             >
-              <option value="all">All statuses</option>
-              <option value="validated">Validated</option>
-              <option value="pending_review">Pending Review</option>
-              <option value="rejected">Rejected</option>
+              <option value="all">{t("common.all")} {t("common.status")}</option>
+              <option value="validated">{t("common.validated")}</option>
+              <option value="pending_review">{t("common.pending")}</option>
+              <option value="rejected">{t("common.rejected")}</option>
             </select>
           </div>
 
           <button
             onClick={() => fetchRecords(currentPage, statusFilter)}
             disabled={loading}
-            title="Refresh records from database"
+            title={t("common.refresh")}
             className="p-1.5 bg-[var(--color-bg-secondary)] border border-[var(--color-border-strong)] hover:bg-[var(--color-bg-tertiary)] rounded-lg text-[var(--color-text-muted)] transition-colors cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-[var(--color-accent)]" : ""}`} />
           </button>
 
           <span className="text-xs text-[var(--color-text-muted)]">
-            {filteredRecords.length} records shown
+            {filteredRecords.length} {t("common.records")}
           </span>
         </div>
       </div>
@@ -282,14 +284,14 @@ export default function LandRecords({
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="bg-[var(--color-bg-primary)] border-b border-[var(--color-border)] text-[var(--color-text-muted)] font-semibold uppercase tracking-wider text-[10px]">
-                <th className="py-3.5 px-4">SURVEY NO.</th>
-                <th className="py-3.5 px-4">OWNER</th>
-                <th className="py-3.5 px-4">KHATA NO.</th>
-                <th className="py-3.5 px-4">VILLAGE</th>
-                <th className="py-3.5 px-4">AREA</th>
-                <th className="py-3.5 px-4">CLASSIFICATION</th>
-                <th className="py-3.5 px-4">STATUS</th>
-                <th className="py-3.5 px-4 text-right">ACTION</th>
+                <th className="py-3.5 px-4">{t("verificationDesk.surveyNumber").toUpperCase()}</th>
+                <th className="py-3.5 px-4">{t("verificationDesk.ownerName").toUpperCase()}</th>
+                <th className="py-3.5 px-4">{t("verificationDesk.khataNumber").toUpperCase()}</th>
+                <th className="py-3.5 px-4">{t("verificationDesk.village").toUpperCase()}</th>
+                <th className="py-3.5 px-4">{t("verificationDesk.plotArea").toUpperCase()}</th>
+                <th className="py-3.5 px-4">{t("verificationDesk.landClassification").toUpperCase()}</th>
+                <th className="py-3.5 px-4">{t("common.status").toUpperCase()}</th>
+                <th className="py-3.5 px-4 text-right">{t("common.actions").toUpperCase()}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--color-border-subtle)]">
@@ -349,15 +351,15 @@ export default function LandRecords({
                       <td className="py-3.5 px-4">
                         {isValidated ? (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--color-success-bg)] text-[var(--color-success)] border border-[var(--color-success-border)]">
-                            ● Validated
+                            ● {t("common.validated")}
                           </span>
                         ) : isRejected ? (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--color-error-bg)] text-[var(--color-error)] border border-[var(--color-error-border)]">
-                            ● Mismatch
+                            ● {t("common.discrepancy")}
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--color-warning-bg)] text-[var(--color-warning)] border border-[var(--color-warning-border)]">
-                            ● Review needed
+                            ● {t("common.pending")}
                           </span>
                         )}
                       </td>

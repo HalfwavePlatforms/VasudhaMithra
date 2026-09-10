@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import {
   MapPin,
   Search,
@@ -20,6 +21,7 @@ export default function GisParcels({
   setActiveTab,
   setSelectedRecordId,
 }) {
+  const { t } = useTranslation();
   const [parcels, setParcels] = useState([]);
   const [selectedParcel, setSelectedParcel] = useState(null);
   const [parcelDetail, setParcelDetail] = useState(null);
@@ -186,13 +188,13 @@ export default function GisParcels({
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-label-muted)]">
-            SPATIAL INTELLIGENCE
+            {t("sidebar.operations")}
           </span>
           <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[var(--color-text-primary)] tracking-tight mt-1">
-            GIS & cadastral parcels
+            {t("sidebar.gisParcels")}
           </h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-1">
-            Reconcile digitized records with surveyed boundaries and spatial masters.
+            {t("gis.satelliteSubtitle")}
           </p>
         </div>
       </div>
@@ -206,10 +208,10 @@ export default function GisParcels({
             <div className="space-y-2 relative" ref={comboboxRef}>
               <div className="flex items-center justify-between">
                 <label className="block text-xs font-semibold text-[var(--color-text-primary)]">
-                  Search or select parcel
+                  {t("gis.searchPlaceholder")}
                 </label>
                 <span className="text-[10px] font-mono text-[var(--color-sidebar-muted)]">
-                  {loadingList ? "Loading..." : `${parcels.length} available`}
+                  {loadingList ? t("common.loading") : `${parcels.length} ${t("common.records")}`}
                 </span>
               </div>
 
@@ -411,10 +413,10 @@ export default function GisParcels({
         <div className="lg:col-span-4 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl p-6 shadow-xs space-y-5">
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-sidebar-muted)]">
-              SELECTED PARCEL
+              {t("gis.boundaryInspection").toUpperCase()}
             </span>
             <h3 className="text-2xl font-serif font-bold text-[var(--color-text-primary)] mt-1">
-              Survey {parcelDetail?.survey_number || "—"}
+              {t("verificationDesk.surveyNumber")} {parcelDetail?.survey_number || "—"}
             </h3>
             <div className="text-xs font-mono text-[var(--color-text-muted)] mt-0.5">
               {parcelDetail?.parcel_id || "PARCEL-CADASTRAL"}
@@ -428,10 +430,10 @@ export default function GisParcels({
             </div>
             <div className="min-w-0">
               <div className="text-[10px] uppercase font-bold text-[var(--color-sidebar-muted)]">
-                Recorded Owner
+                {t("verificationDesk.ownerName")}
               </div>
               <div className="text-xs font-bold text-[var(--color-text-primary)] truncate">
-                {matchedRecord?.fields?.owner_name || "Revenue Master Record (Seeded)"}
+                {matchedRecord?.fields?.owner_name || "Revenue Master Record"}
               </div>
             </div>
           </div>
@@ -439,26 +441,26 @@ export default function GisParcels({
           {/* Details Table */}
           <div className="space-y-2.5 text-xs">
             <div className="flex justify-between py-1.5 border-b border-[var(--color-border-subtle)]">
-              <span className="text-[var(--color-text-muted)]">Village (Gram)</span>
+              <span className="text-[var(--color-text-muted)]">{t("verificationDesk.village")}</span>
               <span className="font-semibold text-[var(--color-text-primary)]">
                 {parcelDetail?.metadata?.village || matchedRecord?.fields?.village || "Kothari"}
               </span>
             </div>
             <div className="flex justify-between py-1.5 border-b border-[var(--color-border-subtle)]">
-              <span className="text-[var(--color-text-muted)]">District (Zilla)</span>
+              <span className="text-[var(--color-text-muted)]">{t("verificationDesk.district")}</span>
               <span className="font-semibold text-[var(--color-text-primary)]">
                 {parcelDetail?.metadata?.district || matchedRecord?.fields?.district || "Bhopal"}
               </span>
             </div>
             <div className="flex justify-between py-1.5 border-b border-[var(--color-border-subtle)]">
-              <span className="text-[var(--color-text-muted)]">Cadastral GIS Area</span>
+              <span className="text-[var(--color-text-muted)]">{t("gis.gisCalculatedArea")}</span>
               <span className="font-bold text-[var(--color-success)]">
                 {parcelDetail?.area_gis ? `${parcelDetail.area_gis} Acres` : "—"}
               </span>
             </div>
             {matchedRecord?.gis?.area_doc_acres && (
               <div className="flex justify-between py-1.5 border-b border-[var(--color-border-subtle)]">
-                <span className="text-[var(--color-text-muted)]">Deed Stated Area</span>
+                <span className="text-[var(--color-text-muted)]">{t("gis.documentArea")}</span>
                 <span className="font-semibold text-[var(--color-text-primary)]">
                   {matchedRecord.gis.area_doc_acres} Acres
                 </span>
@@ -466,7 +468,7 @@ export default function GisParcels({
             )}
             {matchedRecord?.gis?.spatial_delta_pct !== undefined && (
               <div className="flex justify-between py-1.5 border-b border-[var(--color-border-subtle)]">
-                <span className="text-[var(--color-text-muted)]">Area Variance (Δ%)</span>
+                <span className="text-[var(--color-text-muted)]">{t("gis.spatialDelta")}</span>
                 <span className="font-bold text-[var(--color-text-primary)]">
                   {matchedRecord.gis.spatial_delta_pct}%
                 </span>
@@ -487,7 +489,7 @@ export default function GisParcels({
             <div className="p-3 bg-[var(--color-error-bg)] border border-[var(--color-error-border)] rounded-lg flex items-start gap-2 text-xs text-[var(--color-error)]">
               <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
               <div>
-                <strong>Spatial Discrepancy (&gt;5%):</strong> Deed extent and cadastral boundary differ significantly.
+                <strong>{t("commandCentre.spatialDiscrepancy")}:</strong> {t("commandCentre.areaMismatch")}
               </div>
             </div>
           ) : (
@@ -504,9 +506,9 @@ export default function GisParcels({
                 if (setSelectedRecordId) setSelectedRecordId(matchedRecord.record_id);
                 if (setActiveTab) setActiveTab("verification_desk");
               }}
-              className="w-full py-2.5 px-4 rounded-lg text-xs font-semibold text-white bg-[var(--color-sidebar-bg)] hover:bg-[var(--color-sidebar-hover)] inline-flex items-center justify-center gap-2 shadow-xs transition-colors"
+              className="w-full py-2.5 px-4 rounded-lg text-xs font-semibold text-white bg-[var(--color-sidebar-bg)] hover:bg-[var(--color-sidebar-hover)] inline-flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
             >
-              Open land record
+              {t("gis.openVerification")}
               <ArrowRight className="w-3.5 h-3.5 text-[var(--color-accent)]" />
             </button>
           )}

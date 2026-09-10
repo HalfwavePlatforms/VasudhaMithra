@@ -38,7 +38,7 @@
 
   /* Typography */
   --font-serif: 'Playfair Display', Georgia, Cambria, serif;
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Inter', 'Noto Sans Kannada', 'Noto Sans Devanagari', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Bengali', system-ui, -apple-system, sans-serif;
 
   /* Borders */
   --color-border: #E6E3DB;          /* card/divider border */
