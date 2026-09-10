@@ -1,3 +1,4 @@
+import base64
 import json
 import logging
 import os
@@ -6,7 +7,9 @@ import secrets
 import time
 from pathlib import Path
 from typing import Dict, Any, Optional
+import cv2
 import httpx
+import numpy as np
 from fastapi import APIRouter, HTTPException, Depends, Header
 from pydantic import BaseModel, Field
 
@@ -456,3 +459,157 @@ async def send_test_sms(req: TestSmsRequest):
     """
     res = await send_sms(req.phone, req.message)
     return res
+
+
+class UpdateProfilePicRequest(BaseModel):
+    image: str = Field(..., description="Base64 encoded webcam image (e.g. data:image/jpeg;base64,...)")
+    email: Optional[str] = Field(None, description="Optional email to associate picture with")
+
+
+_CASCADE_PATH = Path(__file__).resolve().parent.parent / "data" / "haarcascade_frontalface_default.xml"
+_CASCADE_CLASSIFIER = None
+
+def _get_cascade():
+    global _CASCADE_CLASSIFIER
+    if _CASCADE_CLASSIFIER is None:
+        if _CASCADE_PATH.exists():
+            _CASCADE_CLASSIFIER = cv2.CascadeClassifier(str(_CASCADE_PATH))
+    return _CASCADE_CLASSIFIER
+
+
+def process_webcam_face_opencv(image_b64: str) -> tuple[str, bool, dict]:
+    """
+    Uses OpenCV to:
+    1. Decode base64 image data.
+    2. Detect face bounding box via Haar Cascades.
+    3. Crop smart bounding square with proportional head padding (or centered square if no face detected).
+    4. Normalize and resize to standard 256x256 avatar dimension.
+    5. Enhance contrast and illumination using CLAHE (Contrast Limited Adaptive Histogram Equalization).
+    6. Return optimized JPEG base64 string and metadata.
+    """
+    header, sep, encoded = image_b64.partition(",")
+    raw_data = base64.b64decode(encoded if sep else header)
+    nparr = np.frombuffer(raw_data, np.uint8)
+    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    if img is None:
+        raise HTTPException(status_code=400, detail="Invalid image data received from webcam.")
+
+    h, w = img.shape[:2]
+    cascade = _get_cascade()
+    face_detected = False
+    bbox_meta = {}
+
+    if cascade and not cascade.empty():
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        faces = cascade.detectMultiScale(
+            gray,
+            scaleFactor=1.1,
+            minNeighbors=4,
+            minSize=(50, 50),
+        )
+        if len(faces) > 0:
+            # Select most prominent face (largest area)
+            fx, fy, fw, fh = max(faces, key=lambda f: f[2] * f[3])
+            face_detected = True
+            bbox_meta = {"x": int(fx), "y": int(fy), "w": int(fw), "h": int(fh)}
+
+            # Apply smart proportional margin around face
+            pad_x = int(fw * 0.35)
+            pad_y = int(fh * 0.45)
+            cx, cy = fx + fw // 2, fy + fh // 2
+            side = max(fw + pad_x * 2, fh + pad_y * 2)
+
+            x1 = max(0, cx - side // 2)
+            y1 = max(0, cy - side // 2)
+            x2 = min(w, x1 + side)
+            y2 = min(h, y1 + side)
+
+            # Ensure square aspect ratio
+            actual_w = x2 - x1
+            actual_h = y2 - y1
+            sq_size = min(actual_w, actual_h)
+            cropped = img[y1 : y1 + sq_size, x1 : x1 + sq_size]
+        else:
+            # Fallback center crop if no face was confidently detected
+            sq_size = min(h, w)
+            cy, cx = h // 2, w // 2
+            cropped = img[
+                cy - sq_size // 2 : cy + sq_size // 2,
+                cx - sq_size // 2 : cx + sq_size // 2,
+            ]
+    else:
+        # Cascade file unavailable - standard square center crop
+        sq_size = min(h, w)
+        cy, cx = h // 2, w // 2
+        cropped = img[
+            cy - sq_size // 2 : cy + sq_size // 2,
+            cx - sq_size // 2 : cx + sq_size // 2,
+        ]
+
+    # Standardize to 256x256 profile dimensions
+    resized = cv2.resize(cropped, (256, 256), interpolation=cv2.INTER_AREA)
+
+    # Enhance visual clarity with CLAHE in Lab color space
+    try:
+        lab = cv2.cvtColor(resized, cv2.COLOR_BGR2LAB)
+        l, a, b = cv2.split(lab)
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        cl = clahe.apply(l)
+        enhanced = cv2.cvtColor(cv2.merge((cl, a, b)), cv2.COLOR_LAB2BGR)
+    except Exception:
+        enhanced = resized
+
+    # Encode to high-quality JPEG
+    success, buffer = cv2.imencode(".jpg", enhanced, [int(cv2.IMWRITE_JPEG_QUALITY), 92])
+    if not success:
+        raise HTTPException(status_code=500, detail="OpenCV failed to encode processed profile avatar.")
+
+    output_b64 = "data:image/jpeg;base64," + base64.b64encode(buffer).decode("utf-8")
+    return output_b64, face_detected, bbox_meta
+
+
+@router.post("/profile-pic")
+async def update_profile_pic(
+    req: UpdateProfilePicRequest,
+    authorization: Optional[str] = Header(default=None),
+):
+    """
+    Processes a captured webcam image using OpenCV:
+    - Runs Haar Cascade facial detection
+    - Performs smart square framing and centering
+    - Standardizes to 256x256 avatar resolution
+    - Enhances contrast and lighting
+    - Persists the avatar in the current session store and returns the optimized image
+    """
+    if not req.image or not req.image.strip():
+        raise HTTPException(status_code=400, detail="Missing webcam image data.")
+
+    # Process image with OpenCV
+    processed_b64, face_detected, bbox = process_webcam_face_opencv(req.image)
+
+    # If Authorization bearer token is provided, update active session
+    token = None
+    if authorization and authorization.strip().startswith("Bearer "):
+        token = authorization.strip().split()[1]
+
+    user_data = None
+    if token and token in _SESSION_STORE:
+        _SESSION_STORE[token]["picture"] = processed_b64
+        _save_sessions()
+        user_data = {
+            "email": _SESSION_STORE[token].get("email"),
+            "name": _SESSION_STORE[token].get("name"),
+            "xRole": _SESSION_STORE[token].get("xRole"),
+            "actor": _SESSION_STORE[token].get("actor"),
+            "picture": processed_b64,
+        }
+
+    return {
+        "success": True,
+        "message": "Face detected & profile avatar updated via OpenCV" if face_detected else "Profile picture updated & framed via OpenCV",
+        "picture": processed_b64,
+        "face_detected": face_detected,
+        "engine": "OpenCV " + cv2.__version__,
+        "user": user_data,
+    }
+

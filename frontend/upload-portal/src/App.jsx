@@ -9,6 +9,7 @@ import GisParcels from "./components/GisParcels";
 import AuditTrailView from "./components/AuditTrailView";
 import LoginPage from "./components/LoginPage";
 import PublicVerifyPage from "./components/PublicVerifyPage";
+import ProfileCaptureModal from "./components/ProfileCaptureModal";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
@@ -21,6 +22,8 @@ export default function App() {
       return null;
     }
   });
+
+  const [showCaptureModal, setShowCaptureModal] = useState(false);
 
   const [activeTab, setActiveTab] = useState(() => {
     try {
@@ -40,12 +43,22 @@ export default function App() {
 
   const handleLogin = (userSession) => {
     setUser(userSession);
+    // After login, take user to capture image if picture not already present
+    if (!userSession?.picture) {
+      setShowCaptureModal(true);
+    }
   };
 
   const handleLogout = () => {
     localStorage.removeItem("vasudha_auth");
     localStorage.removeItem("vasudha_token");
     setUser(null);
+    setShowCaptureModal(false);
+  };
+
+  const handlePhotoCaptured = (pictureUrl) => {
+    setUser((prev) => (prev ? { ...prev, picture: pictureUrl } : prev));
+    setShowCaptureModal(false);
   };
 
   const loadDashboardData = () => {
@@ -130,6 +143,7 @@ export default function App() {
           pendingCount={stats?.pending_review_count || 0}
           user={user}
           onLogout={handleLogout}
+          onUpdatePhoto={() => setShowCaptureModal(true)}
         />
 
         {/* Dynamic Page View */}
@@ -165,7 +179,6 @@ export default function App() {
           {activeTab === "verification_desk" && (
             <VerificationDesk
               apiBase={API_BASE}
-              user={user}
               selectedRecordId={selectedRecordId}
               setSelectedRecordId={setSelectedRecordId}
               onRecordUpdated={loadDashboardData}
@@ -177,8 +190,6 @@ export default function App() {
             <LandRecords
               apiBase={API_BASE}
               user={user}
-              stats={stats}
-              selectedRecordId={selectedRecordId}
               setActiveTab={setActiveTab}
               setSelectedRecordId={setSelectedRecordId}
             />
@@ -204,6 +215,16 @@ export default function App() {
           )}
         </main>
       </div>
+
+      {/* Live OpenCV Profile Image Capture Modal */}
+      {showCaptureModal && (
+        <ProfileCaptureModal
+          user={user}
+          apiBase={API_BASE}
+          onComplete={handlePhotoCaptured}
+          onSkip={() => setShowCaptureModal(false)}
+        />
+      )}
     </div>
   );
 }
