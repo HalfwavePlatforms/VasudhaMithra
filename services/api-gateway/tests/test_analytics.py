@@ -5,10 +5,64 @@ from fastapi.testclient import TestClient
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
+import uuid
+from datetime import datetime, timezone
+
 from main import app
 from database import SessionLocal
+from models.db_models import Record, RecordField, ValidationResult
 
 client = TestClient(app)
+
+
+@pytest.fixture(scope="module", autouse=True)
+def setup_analytics_records():
+    db = SessionLocal()
+    try:
+        count = db.query(Record).count()
+        if count == 0:
+            rec1 = Record(
+                id=uuid.uuid4(),
+                original_filename="sample_rtc_mandya.pdf",
+                status="validated",
+                language="kn",
+                document_type="Record of Rights",
+                uploaded_at=datetime.now(timezone.utc),
+            )
+            rec2 = Record(
+                id=uuid.uuid4(),
+                original_filename="sample_khasra_bhopal.pdf",
+                status="pending_review",
+                language="hi",
+                document_type="Khasra",
+                uploaded_at=datetime.now(timezone.utc),
+            )
+            db.add_all([rec1, rec2])
+            db.flush()
+
+            fields = [
+                RecordField(id=uuid.uuid4(), record_id=rec1.id, field_name="survey_number", field_value="101/A", confidence=0.95, extraction_source="rule_based"),
+                RecordField(id=uuid.uuid4(), record_id=rec1.id, field_name="owner_name", field_value="Kumar Swamy", confidence=0.91, extraction_source="rule_based"),
+                RecordField(id=uuid.uuid4(), record_id=rec1.id, field_name="district", field_value="Mandya", confidence=0.98, extraction_source="rule_based"),
+                RecordField(id=uuid.uuid4(), record_id=rec1.id, field_name="plot_area", field_value="2.5 Acres", confidence=0.89, extraction_source="rule_based"),
+
+                RecordField(id=uuid.uuid4(), record_id=rec2.id, field_name="survey_number", field_value="42/1", confidence=0.75, extraction_source="rule_based"),
+                RecordField(id=uuid.uuid4(), record_id=rec2.id, field_name="owner_name", field_value="Rajesh Sharma", confidence=0.82, extraction_source="rule_based"),
+                RecordField(id=uuid.uuid4(), record_id=rec2.id, field_name="district", field_value="Bhopal", confidence=0.90, extraction_source="rule_based"),
+            ]
+            db.add_all(fields)
+
+            val = ValidationResult(
+                id=uuid.uuid4(),
+                record_id=rec2.id,
+                rule="AREA_DISCREPANCY",
+                passed=False,
+                details="Document area exceeds GIS area by 6.2%",
+            )
+            db.add(val)
+            db.commit()
+    finally:
+        db.close()
 
 
 def test_throughput_real_data_and_range():
