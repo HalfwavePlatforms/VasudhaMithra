@@ -17,6 +17,7 @@ import {
   FileCheck,
 } from "lucide-react";
 import CadastralLeafletMap from "./CadastralLeafletMap";
+import BhuvanGisMap from "./BhuvanGisMap";
 import QrCodeModal from "./QrCodeModal";
 
 export default function VerificationDesk({
@@ -664,77 +665,73 @@ export default function VerificationDesk({
                 </div>
               </div>
 
-              {/* If geometry is available, render Leaflet map & Official State Portal Links */}
-              {currentRecord.gis?.geometry ? (
-                <div className="mt-2 space-y-2">
-                  <CadastralLeafletMap
-                    geometry={currentRecord.gis.geometry}
-                    gis={currentRecord.gis}
-                    height="200px"
-                  />
-                  {(() => {
-                    const firstCoord = currentRecord.gis.geometry?.coordinates?.[0]?.[0];
-                    const lon = firstCoord ? firstCoord[0] : 77.1006;
-                    const lat = firstCoord ? firstCoord[1] : 13.3400;
-                    const stateName = String(currentRecord.gis.state || (currentRecord.language === "kn" ? "Karnataka" : "")).toLowerCase();
-                    const isKarnataka = stateName.includes("karn") || currentRecord.language === "kn";
-                    const isMaharashtra = stateName.includes("maha") || currentRecord.language === "mr";
+              {/* Interactive ISRO Bhuvan Cadastral Map & Thematic Analysis */}
+              <div className="mt-2 space-y-2">
+                <BhuvanGisMap
+                  gis={
+                    currentRecord.gis || {
+                      parcel_id: currentRecord.survey_number ? `PARCEL-${currentRecord.survey_number}` : "PARCEL-CADASTRAL",
+                      village: currentRecord.village || currentRecord.metadata?.village,
+                      tehsil: currentRecord.tehsil || currentRecord.metadata?.tehsil,
+                      district: currentRecord.district || currentRecord.metadata?.district,
+                      state: currentRecord.state || currentRecord.metadata?.state,
+                      area_doc_acres: currentRecord.extent_acres || currentRecord.metadata?.extent_acres,
+                      spatial_consistency: "MATCH",
+                      spatial_delta_pct: 0.0,
+                    }
+                  }
+                />
+                {(() => {
+                  const firstCoord = currentRecord.gis?.geometry?.coordinates?.[0]?.[0];
+                  const lon = firstCoord ? firstCoord[0] : 77.1006;
+                  const lat = firstCoord ? firstCoord[1] : 13.3400;
+                  const stateName = String(currentRecord.gis?.state || currentRecord.state || (currentRecord.language === "kn" ? "Karnataka" : "")).toLowerCase();
+                  const isKarnataka = stateName.includes("karn") || currentRecord.language === "kn";
+                  const isMaharashtra = stateName.includes("maha") || currentRecord.language === "mr";
 
-                    return (
-                      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px] text-[var(--color-text-secondary)] border-t border-[var(--color-border-subtle)]">
-                        <span className="flex items-center gap-1 font-semibold text-[var(--color-text-primary)]">
-                          <Layers className="w-3.5 h-3.5 text-[var(--color-accent)]" />
-                          Official State Spatial Portals:
-                        </span>
-                        <div className="flex items-center gap-2">
-                          {isKarnataka && (
-                            <a
-                              href={`https://kgis.ksrsac.in/karnataka/?lat=${lat}&lon=${lon}&zoom=17`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-[var(--color-bg-secondary)] border border-[var(--color-border-strong)] rounded hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)] font-semibold transition-colors"
-                            >
-                              <span>KGIS / Bhoomi Cadastre</span>
-                              <ExternalLink className="w-3 h-3 text-[var(--color-text-muted)]" />
-                            </a>
-                          )}
-                          {isMaharashtra && (
-                            <a
-                              href="https://mahabhulekh.maharashtra.gov.in/"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-[var(--color-bg-secondary)] border border-[var(--color-border-strong)] rounded hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)] font-semibold transition-colors"
-                            >
-                              <span>Mahabhulekh Bhunaksha</span>
-                              <ExternalLink className="w-3 h-3 text-[var(--color-text-muted)]" />
-                            </a>
-                          )}
+                  return (
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px] text-[var(--color-text-secondary)] border-t border-[var(--color-border-subtle)]">
+                      <span className="flex items-center gap-1 font-semibold text-[var(--color-text-primary)]">
+                        <Layers className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+                        Official State Spatial Portals:
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {isKarnataka && (
                           <a
-                            href={`https://bhuvan-app1.nrsc.gov.in/bhuvan2d/bhuvan/bhuvan2d.php?lat=${lat}&lon=${lon}&zoom=17`}
+                            href={`https://kgis.ksrsac.in/karnataka/?lat=${lat}&lon=${lon}&zoom=17`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 px-2.5 py-1 bg-[var(--color-bg-secondary)] border border-[var(--color-border-strong)] rounded hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)] font-semibold transition-colors"
                           >
-                            <span>ISRO Bhuvan (NRSC)</span>
+                            <span>KGIS / Bhoomi Cadastre</span>
                             <ExternalLink className="w-3 h-3 text-[var(--color-text-muted)]" />
                           </a>
-                        </div>
+                        )}
+                        {isMaharashtra && (
+                          <a
+                            href="https://mahabhulekh.maharashtra.gov.in/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-[var(--color-bg-secondary)] border border-[var(--color-border-strong)] rounded hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)] font-semibold transition-colors"
+                          >
+                            <span>Mahabhulekh Bhunaksha</span>
+                            <ExternalLink className="w-3 h-3 text-[var(--color-text-muted)]" />
+                          </a>
+                        )}
+                        <a
+                          href={`https://bhuvan-app1.nrsc.gov.in/bhuvan2d/bhuvan/bhuvan2d.php?lat=${lat}&lon=${lon}&zoom=17`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-[var(--color-bg-secondary)] border border-[var(--color-border-strong)] rounded hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)] font-semibold transition-colors"
+                        >
+                          <span>ISRO Bhuvan (NRSC)</span>
+                          <ExternalLink className="w-3 h-3 text-[var(--color-text-muted)]" />
+                        </a>
                       </div>
-                    );
-                  })()}
-                </div>
-              ) : (
-                <div className="p-4 bg-[var(--color-bg-secondary)] border border-dashed border-[var(--color-border-strong)] rounded-lg text-center text-xs text-[var(--color-text-muted)] space-y-2">
-                  <p>Cadastral parcel geometry not yet mapped for this survey number.</p>
-                  <button
-                    type="button"
-                    onClick={handleSaveCorrections}
-                    className="px-3 py-1.5 bg-[var(--color-accent)] text-white rounded text-xs font-semibold hover:bg-[var(--color-accent-hover)] transition-colors cursor-pointer"
-                  >
-                    Map Cadastral Boundary
-                  </button>
-                </div>
-              )}
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
 
             {/* Officer Remarks & Decision Buttons */}

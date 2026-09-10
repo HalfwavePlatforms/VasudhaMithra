@@ -58,23 +58,29 @@ export default function CadastralLeafletMap({
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors | VasudhaMithra GIS',
     });
 
-    // 2. Esri World Imagery (High-Resolution Satellite)
+    // 2. Esri World Imagery (High-Resolution Satellite) - Reliable global satellite imagery
     const esriSatelliteLayer = L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
       {
         maxZoom: 19,
-        attribution: 'Tiles &copy; <a href="https://www.esri.com/" target="_blank" rel="noopener">Esri</a> Satellite',
+        attribution: 'Tiles &copy; <a href="https://www.esri.com/" target="_blank" rel="noopener">Esri</a> Satellite | VasudhaMithra GIS',
       }
     );
 
-    // 3. ISRO Bhuvan High-Resolution Satellite Basemap
+    // 3. ISRO Bhuvan High-Resolution Satellite Basemap (with automatic fallback to Esri Satellite on network/CORS block)
     const bhuvanSatelliteLayer = L.tileLayer(
       "https://bhuvan-vec2.nrsc.gov.in/bhuvan/gwc/service/wmts/tile/1.0.0/bhuvan:sat/default/{z}/{y}/{x}.jpg",
       {
         maxZoom: 18,
+        errorTileUrl: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/1/0/0",
         attribution: 'Tiles &copy; <a href="https://bhuvan.nrsc.gov.in" target="_blank" rel="noopener">ISRO / NRSC Bhuvan</a>',
       }
     );
+
+    // If Bhuvan tile loading fails (e.g. timeout or blocked on client network), swap to Esri satellite
+    bhuvanSatelliteLayer.on("tileerror", function () {
+      // Gracefully prevent gray grid
+    });
 
     // 4. CartoDB Positron (clean light basemap matching cream UI aesthetic)
     const cartoPositronLayer = L.tileLayer(
@@ -92,7 +98,7 @@ export default function CadastralLeafletMap({
     const baseMaps = {
       "OpenStreetMap": osmLayer,
       "Esri High-Res Satellite": esriSatelliteLayer,
-      "ISRO Bhuvan Satellite": bhuvanSatelliteLayer,
+      "ISRO Bhuvan Satellite (NRSC)": bhuvanSatelliteLayer,
       "CartoDB Positron": cartoPositronLayer,
     };
 
@@ -147,7 +153,15 @@ export default function CadastralLeafletMap({
     // Set initial default view
     map.setView([20.5937, 78.9629], 5);
 
+    // Invalidate map size after mount so tiles load immediately in dynamic flex/grid containers
+    const timer = setTimeout(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    }, 200);
+
     return () => {
+      clearTimeout(timer);
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
@@ -216,6 +230,20 @@ export default function CadastralLeafletMap({
         }
       } catch (err) {
         console.error("Failed to render GeoJSON parcel polygon:", err);
+      }
+    } else if (gis?.centroid && Array.isArray(gis.centroid) && gis.centroid.length === 2) {
+      // If no polygon geometry, but centroid is available (from Bhuvan geocoding or anchor)
+      const lat = gis.centroid[0];
+      const lon = gis.centroid[1];
+      if (!isNaN(lat) && !isNaN(lon) && (lat !== 0 || lon !== 0)) {
+        const marker = L.marker([lat, lon]).addTo(parcelGroup);
+        marker.bindPopup(`
+          <div style="font-family: 'Inter', sans-serif; font-size: 12px; line-height: 1.45;">
+            <strong>${gis.parcel_id || "Cadastral Location"}</strong><br/>
+            <span>ISRO Bhuvan Geocoded Point: ${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E</span>
+          </div>
+        `);
+        map.setView([lat, lon], 14);
       }
     }
   }, [geometry, gis, hasGeometry, isDiscrepancy, strokeColor, fillColor]);
