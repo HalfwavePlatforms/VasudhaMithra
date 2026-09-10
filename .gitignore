@@ -49,4 +49,5 @@ data/lgd/*.7z
 !data/lgd/seed_lgd_villages.csv
 services/gis-service/src/data/lgd_index.db
 !services/gis-service/src/data/lgd_index.seed.db
+SIH_PPT_COMPLETE_PROJECT_DETAILS.txt
 
