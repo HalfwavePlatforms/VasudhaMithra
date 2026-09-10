@@ -773,29 +773,8 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
           </p>
         </div>
 
-        {/* Live Stats & Status Footer */}
+        {/* Status Footer */}
         <div className="relative z-10 pt-6">
-          <div className="grid grid-cols-3 gap-6 mb-8">
-            <div>
-              <div className="font-serif text-2xl sm:text-3xl font-semibold text-white">12.4K</div>
-              <div className="text-[11px] text-white/60 mt-1 max-w-[110px] leading-tight">
-                Records digitized this month
-              </div>
-            </div>
-            <div>
-              <div className="font-serif text-2xl sm:text-3xl font-semibold text-white">93.7%</div>
-              <div className="text-[11px] text-white/60 mt-1 max-w-[110px] leading-tight">
-                Verified field accuracy
-              </div>
-            </div>
-            <div>
-              <div className="font-serif text-2xl sm:text-3xl font-semibold text-white">31</div>
-              <div className="text-[11px] text-white/60 mt-1 max-w-[110px] leading-tight">
-                Districts connected
-              </div>
-            </div>
-          </div>
-
           {/* Status Chip */}
           <div className="inline-flex items-center gap-3 bg-white/5 border border-white/12 rounded-xl px-4 py-3 backdrop-blur-xs">
             <span className="w-2.5 h-2.5 rounded-full bg-[var(--color-success)] animate-pulse" />
