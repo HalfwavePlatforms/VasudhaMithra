@@ -735,8 +735,26 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
           </div>
         </div>
 
+        {/* Citizen Voice Assistant & Support Links */}
+        <div className="mt-8 p-3.5 bg-emerald-500/10 border border-emerald-500/25 rounded-xl flex items-center justify-between">
+          <div className="text-xs">
+            <span className="font-semibold text-emerald-800 dark:text-emerald-300 block">
+              Citizen Land Query • ನಾಗರಿಕ ಧ್ವನಿ ಸಹಾಯಕ
+            </span>
+            <span className="text-[11px] text-gray-500">
+              Speak questions about your survey number without login
+            </span>
+          </div>
+          <a
+            href="/ask"
+            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-colors shrink-0"
+          >
+            <span>🎙️ Ask by Voice</span>
+          </a>
+        </div>
+
         {/* Footer Link */}
-        <div className="text-xs text-[var(--color-text-muted)] mt-12 pt-6 border-t border-[var(--color-border)]/60">
+        <div className="text-xs text-[var(--color-text-muted)] mt-6 pt-4 border-t border-[var(--color-border)]/60">
           Need help signing in?{" "}
           <a href="#support" className="text-[var(--color-text-primary)] font-semibold underline hover:opacity-80">
             Contact technical support

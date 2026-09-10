@@ -9,7 +9,8 @@ import {
   Layers,
   BarChart2,
   ShieldCheck,
-  CheckCircle2
+  CheckCircle2,
+  Mic
 } from "lucide-react";
 
 export default function Sidebar({
@@ -69,6 +70,19 @@ export default function Sidebar({
         },
       ],
     },
+    {
+      group: "PUBLIC SERVICES",
+      items: [
+        {
+          id: "citizen_voice",
+          label: "Citizen Voice Query",
+          icon: Mic,
+          href: "/ask",
+          badge: "Live",
+          badgeColor: "bg-emerald-500 text-white",
+        },
+      ],
+    },
   ];
 
   return (
@@ -109,6 +123,10 @@ export default function Sidebar({
                   <button
                     key={item.id}
                     onClick={() => {
+                      if (item.href) {
+                        window.location.href = item.href;
+                        return;
+                      }
                       if (!isComingSoon) setActiveTab(item.id);
                     }}
                     disabled={isComingSoon}

@@ -9,6 +9,7 @@ import GisParcels from "./components/GisParcels";
 import AuditTrailView from "./components/AuditTrailView";
 import LoginPage from "./components/LoginPage";
 import PublicVerifyPage from "./components/PublicVerifyPage";
+import CitizenVoiceQueryPage from "./components/CitizenVoiceQueryPage";
 import ProfileCaptureModal from "./components/ProfileCaptureModal";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
@@ -103,6 +104,14 @@ export default function App() {
       loadDashboardData();
     }
   }, [activeTab, user]);
+
+  // Standalone Citizen Voice Query route (/ask or /voice)
+  const isVoiceQueryRoute =
+    typeof window !== "undefined" &&
+    (window.location.pathname.startsWith("/ask") || window.location.pathname.startsWith("/voice"));
+  if (isVoiceQueryRoute) {
+    return <CitizenVoiceQueryPage apiBase={API_BASE} />;
+  }
 
   // Public read-only verification route for citizens, banks & buyers (no login required)
   const isVerifyRoute = typeof window !== "undefined" && window.location.pathname.startsWith("/verify");
