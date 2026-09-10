@@ -61,7 +61,6 @@ export default function Sidebar({
           id: "analytics",
           label: "Analytics",
           icon: BarChart2,
-          tag: "Coming soon",
         },
         {
           id: "audit_trail",

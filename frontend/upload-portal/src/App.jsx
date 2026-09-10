@@ -7,6 +7,7 @@ import VerificationDesk from "./components/VerificationDesk";
 import LandRecords from "./components/LandRecords";
 import GisParcels from "./components/GisParcels";
 import AuditTrailView from "./components/AuditTrailView";
+import AnalyticsView from "./components/AnalyticsView";
 import LoginPage from "./components/LoginPage";
 import PublicVerifyPage from "./components/PublicVerifyPage";
 import CitizenVoiceQueryPage from "./components/CitizenVoiceQueryPage";
@@ -31,7 +32,7 @@ export default function App() {
     try {
       const params = new URLSearchParams(window.location.search);
       const tab = params.get("tab");
-      if (tab && ["command_centre", "document_intake", "verification_desk", "land_records", "gis_parcels", "audit_trail"].includes(tab)) {
+      if (tab && ["command_centre", "document_intake", "verification_desk", "land_records", "gis_parcels", "audit_trail", "analytics"].includes(tab)) {
         return tab;
       }
     } catch {}
@@ -146,6 +147,7 @@ export default function App() {
     land_records: "Land records",
     gis_parcels: "GIS & parcels",
     audit_trail: "Audit trail",
+    analytics: "Analytics & precision",
   };
 
   return (
@@ -239,6 +241,10 @@ export default function App() {
               setSelectedRecordId={setSelectedRecordId}
               selectedRecordId={selectedRecordId}
             />
+          )}
+
+          {activeTab === "analytics" && (
+            <AnalyticsView apiBase={API_BASE} />
           )}
         </main>
       </div>
