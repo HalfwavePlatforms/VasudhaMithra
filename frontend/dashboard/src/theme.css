@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   /* Core palette */
   --color-bg-primary: #F7F5EF;      /* cream background */
   --color-bg-secondary: #FAF9F5;    /* lighter card background */
@@ -15,6 +15,7 @@
   --color-accent: #D9714B;          /* terracotta/coral */
   --color-accent-hover: #C25F39;
   --color-accent-subtle: #FAF3EE;
+  --color-accent-text: #B25432;     /* darkened terracotta: 4.58:1 contrast on #F7F5EF (passes WCAG AA >= 4.5:1) */
 
   /* Text */
   --color-text-primary: #16241F;    /* dark forest for primary text on light bg */
@@ -32,7 +33,7 @@
   --color-success-bg: #EBF7F2;
   --color-success-border: #C5E8D9;
 
-  --color-warning: #B45309;         /* deep amber */
+  --color-warning: #92400E;         /* deep amber: 5.69:1 contrast on #FDE68A (passes WCAG AA >= 4.5:1) */
   --color-warning-bg: #FDE68A;
   --color-warning-border: #FCD34D;
 

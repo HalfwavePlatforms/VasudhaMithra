@@ -194,7 +194,7 @@ export default function App() {
 
               <a
                 href="http://localhost:3000"
-                style={{ textDecoration: "none", fontSize: 12, fontWeight: "bold", color: "var(--color-accent)" }}
+                style={{ textDecoration: "none", fontSize: 12, fontWeight: "bold", color: "var(--color-accent-text)" }}
               >
                 Open verification desk →
               </a>
@@ -237,7 +237,7 @@ export default function App() {
               <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 32, fontWeight: "bold", color: "var(--color-text-primary)", marginTop: 12 }}>
                 {discrepancyCount}
               </div>
-              <div style={{ fontSize: 12, color: discrepancyCount > 0 ? "var(--color-accent)" : "var(--color-success)", fontWeight: 500, marginTop: 4 }}>
+              <div style={{ fontSize: 12, color: discrepancyCount > 0 ? "var(--color-accent-text)" : "var(--color-success)", fontWeight: 500, marginTop: 4 }}>
                 {discrepancyCount > 0 ? "Flagged for parcel survey" : "All boundaries consistent"}
               </div>
             </div>

@@ -270,7 +270,7 @@ export default function AuditTrailView({
                       <td className="py-3 px-4 font-semibold text-[var(--color-text-primary)]">
                         {log.actor || "System"}
                       </td>
-                      <td className="py-3 px-4 font-mono text-[11px] text-[var(--color-accent)]">
+                      <td className="py-3 px-4 font-mono text-[11px] text-[var(--color-accent-text)]">
                         {log.record_id ? (
                           <div className="flex items-center gap-2">
                             <button

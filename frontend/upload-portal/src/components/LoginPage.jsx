@@ -622,7 +622,7 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
                     {smsInfo?.masked_phone || `+91 ••••• ••${phone.slice(-4)}`}
                   </b>{" "}
                   and <span className="text-[var(--color-text-primary)]">{email}</span>. It expires in{" "}
-                  <span className="font-mono text-[var(--color-accent)] font-semibold">{formatExpiryTime(expiryTimer)}</span>.
+                  <span className="font-mono text-[var(--color-accent-text)] font-semibold">{formatExpiryTime(expiryTimer)}</span>.
                 </p>
 
                 {/* TextBee SMS Gateway Status Card with Instant Backup Code */}
@@ -665,7 +665,7 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
                     </p>
                     <div className="pt-1 flex items-center justify-between text-xs bg-[var(--color-bg-secondary)] p-2 rounded border border-[var(--color-warning-border)]">
                       <span className="font-semibold text-[var(--color-text-primary)]">Verification Code:</span>
-                      <code className="font-mono bg-[var(--color-bg-secondary)] px-2.5 py-0.5 rounded border border-[var(--color-border)] font-bold text-sm text-[var(--color-accent)] tracking-widest">
+                      <code className="font-mono bg-[var(--color-bg-secondary)] px-2.5 py-0.5 rounded border border-[var(--color-border)] font-bold text-sm text-[var(--color-accent-text)] tracking-widest">
                         {demoOtpCode}
                       </code>
                     </div>
@@ -702,7 +702,7 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
                     onClick={handleResendCode}
                     disabled={!canResend}
                     className={`font-semibold transition-all ${
-                      canResend ? "text-[var(--color-accent)] hover:underline cursor-pointer" : "text-[var(--color-text-muted)] cursor-not-allowed"
+                      canResend ? "text-[var(--color-accent-text)] hover:underline cursor-pointer" : "text-[var(--color-text-muted)] cursor-not-allowed"
                     }`}
                   >
                     {canResend ? "Resend SMS code" : `Resend SMS in ${resendTimer}s`}

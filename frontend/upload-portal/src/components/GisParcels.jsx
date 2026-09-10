@@ -277,7 +277,7 @@ export default function GisParcels({
                       {selectedParcel.village ? `· ${selectedParcel.village}` : ""}
                     </span>
                   </div>
-                  <span className="text-[11px] font-mono text-[var(--color-accent)] font-medium shrink-0 ml-1.5">
+                  <span className="text-[11px] font-mono text-[var(--color-accent-text)] font-medium shrink-0 ml-1.5">
                     {selectedParcel.area_acres || parcelDetail?.area_gis || "—"} ac
                   </span>
                 </div>
@@ -325,7 +325,7 @@ export default function GisParcels({
                       <button
                         type="button"
                         onClick={handleCustomSearchSubmit}
-                        className="text-xs font-semibold text-[var(--color-accent)] hover:underline"
+                        className="text-xs font-semibold text-[var(--color-accent-text)] hover:underline"
                       >
                         Search survey "{comboboxSearch}" directly &rarr;
                       </button>

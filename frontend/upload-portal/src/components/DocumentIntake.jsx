@@ -232,7 +232,7 @@ export default function DocumentIntake({
                 <div className="space-y-1">
                   <div className="text-sm font-semibold text-[var(--color-text-primary)]">
                     Drop your scanned deed or ledger here, or{" "}
-                    <span className="text-[var(--color-accent)] underline">browse</span>
+                    <span className="text-[var(--color-accent-text)] underline">browse</span>
                   </div>
                   <div className="text-xs text-[var(--color-text-muted)]">
                     Supports PDF, PNG, JPG, TIFF up to 25MB
@@ -299,7 +299,7 @@ export default function DocumentIntake({
                     <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--color-accent)]" />
                     {pipelineStage || "Processing pipeline..."}
                   </span>
-                  <span className="font-mono font-bold text-[var(--color-accent)]">{uploadProgress}%</span>
+                  <span className="font-mono font-bold text-[var(--color-accent-text)]">{uploadProgress}%</span>
                 </div>
                 <div className="w-full bg-[var(--color-bg-tertiary)] rounded-full h-2 overflow-hidden">
                   <div

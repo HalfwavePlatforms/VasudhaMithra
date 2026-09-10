@@ -264,7 +264,7 @@ export default function ProfileCaptureModal({
         {!capturedImage ? (
           <>
             <div className="flex items-center gap-3">
-              <label className="text-xs text-[var(--color-accent)] hover:underline cursor-pointer font-semibold">
+              <label className="text-xs text-[var(--color-accent-text)] hover:underline cursor-pointer font-semibold">
                 Upload Photo File
                 <input
                   type="file"

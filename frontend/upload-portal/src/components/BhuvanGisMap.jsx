@@ -282,7 +282,7 @@ export default function BhuvanGisMap({ gis }) {
           <div style={{ display: "flex", gap: "14px", fontSize: "11px" }}>
             <div>
               <span style={{ color: "var(--color-text-muted)", display: "block", fontSize: "10px" }}>BHUVAN VID</span>
-              <strong style={{ fontFamily: "monospace", color: "var(--color-accent)" }}>{bhuvanCensus.bhuvan_village_id || bhuvanCensus.vid || "—"}</strong>
+              <strong style={{ fontFamily: "monospace", color: "var(--color-accent-text)" }}>{bhuvanCensus.bhuvan_village_id || bhuvanCensus.vid || "—"}</strong>
             </div>
             {bhuvanCensus.total_population !== undefined && (
               <div>
@@ -310,7 +310,7 @@ export default function BhuvanGisMap({ gis }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px", marginBottom: "16px", backgroundColor: isDiscrepancy ? "var(--color-error-bg)" : "var(--color-bg-primary)", padding: "14px", borderRadius: "8px", border: isDiscrepancy ? "1px solid var(--color-error-border)" : "1px solid var(--color-border-subtle)" }}>
         <div>
           <span style={{ fontSize: "10px", fontWeight: 700, color: "var(--color-text-muted)", textTransform: "uppercase", display: "block" }}>PARCEL ID</span>
-          <strong style={{ fontSize: "13px", fontFamily: "monospace", color: "var(--color-accent)" }}>{currentGis.parcel_id || "PARCEL-CADASTRAL"}</strong>
+          <strong style={{ fontSize: "13px", fontFamily: "monospace", color: "var(--color-accent-text)" }}>{currentGis.parcel_id || "PARCEL-CADASTRAL"}</strong>
         </div>
         <div>
           <span style={{ fontSize: "10px", fontWeight: 700, color: "var(--color-text-muted)", textTransform: "uppercase", display: "block" }}>DEED STATED AREA</span>

@@ -90,7 +90,7 @@ export default function CommandCentre({
           </div>
           <button
             onClick={() => setActiveTab("verification_desk")}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors self-end sm:self-auto cursor-pointer"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-[var(--color-accent-text)] hover:text-[var(--color-accent-hover)] transition-colors self-end sm:self-auto cursor-pointer"
           >
             Open verification desk
             <ArrowRight className="w-3.5 h-3.5" />
@@ -203,7 +203,7 @@ export default function CommandCentre({
             <div className="text-3xl font-serif font-bold text-[var(--color-text-primary)]">
               {discrepancyCount}
             </div>
-            <div className="text-xs text-[var(--color-accent)] font-medium mt-1">
+            <div className="text-xs text-[var(--color-accent-text)] font-medium mt-1">
               Deed vs Cadastral GIS
             </div>
           </div>
@@ -258,7 +258,7 @@ export default function CommandCentre({
             </div>
             <button
               onClick={() => setActiveTab("audit_trail")}
-              className="text-xs font-bold text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] inline-flex items-center gap-1 cursor-pointer"
+              className="text-xs font-bold text-[var(--color-accent-text)] hover:text-[var(--color-accent-hover)] inline-flex items-center gap-1 cursor-pointer"
             >
               View all
               <ChevronRight className="w-3.5 h-3.5" />
@@ -389,7 +389,7 @@ export default function CommandCentre({
           <div className="mt-6 pt-4 border-t border-[var(--color-border-subtle)] text-right">
             <button
               onClick={() => setActiveTab("land_records")}
-              className="text-xs font-bold text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] inline-flex items-center gap-1 cursor-pointer"
+              className="text-xs font-bold text-[var(--color-accent-text)] hover:text-[var(--color-accent-hover)] inline-flex items-center gap-1 cursor-pointer"
             >
               View master table
               <ArrowRight className="w-3 h-3" />

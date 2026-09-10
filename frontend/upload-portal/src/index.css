@@ -72,6 +72,7 @@
   --color-accent: #D9714B;
   --color-accent-hover: #C25F39;
   --color-accent-subtle: #FAF3EE;
+  --color-accent-text: #B25432;
 
   --color-text-primary: #16241F;
   --color-text-secondary: #4A5568;
@@ -86,7 +87,7 @@
   --color-success-bg: #EBF7F2;
   --color-success-border: #C5E8D9;
 
-  --color-warning: #B45309;
+  --color-warning: #92400E;
   --color-warning-bg: #FDE68A;
   --color-warning-border: #FCD34D;
 
