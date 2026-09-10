@@ -57,7 +57,7 @@ def setup_analytics_records():
                 record_id=rec2.id,
                 rule="AREA_DISCREPANCY",
                 passed=False,
-                details="Document area exceeds GIS area by 6.2%",
+                message="Document area exceeds GIS area by 6.2%",
             )
             db.add(val)
             db.commit()
