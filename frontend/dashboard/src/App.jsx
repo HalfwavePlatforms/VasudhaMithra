@@ -164,7 +164,7 @@ export default function App() {
 
           {/* Heading */}
           <div style={{ marginBottom: 28 }}>
-            <span style={{ fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: "1px", color: "var(--color-accent)" }}>
+            <span style={{ fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: "1px", color: "var(--color-label-muted)" }}>
               DIGITIZATION OVERVIEW
             </span>
             <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 32, fontWeight: "bold", color: "var(--color-text-primary)", marginTop: 4 }}>
@@ -262,7 +262,7 @@ export default function App() {
           <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 24 }}>
             {/* Recent Activity */}
             <div style={{ backgroundColor: "var(--color-bg-secondary)", border: "1px solid var(--color-border)", borderRadius: 12, padding: 24 }}>
-              <div style={{ fontSize: 10, fontWeight: "bold", textTransform: "uppercase", color: "var(--color-accent)", letterSpacing: "0.5px" }}>
+              <div style={{ fontSize: 10, fontWeight: "bold", textTransform: "uppercase", color: "var(--color-label-muted)", letterSpacing: "0.5px" }}>
                 LATEST ACTIVITY
               </div>
               <h3 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 18, fontWeight: "bold", color: "var(--color-text-primary)", marginTop: 2, marginBottom: 16 }}>
@@ -296,7 +296,7 @@ export default function App() {
 
             {/* Coverage */}
             <div style={{ backgroundColor: "var(--color-bg-secondary)", border: "1px solid var(--color-border)", borderRadius: 12, padding: 24 }}>
-              <div style={{ fontSize: 10, fontWeight: "bold", textTransform: "uppercase", color: "var(--color-accent)", letterSpacing: "0.5px" }}>
+              <div style={{ fontSize: 10, fontWeight: "bold", textTransform: "uppercase", color: "var(--color-label-muted)", letterSpacing: "0.5px" }}>
                 COVERAGE
               </div>
               <h3 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 18, fontWeight: "bold", color: "var(--color-text-primary)", marginTop: 2, marginBottom: 16 }}>

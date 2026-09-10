@@ -144,7 +144,7 @@ export default function LandRecords({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-accent)]">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-label-muted)]">
             MASTER REPOSITORY
           </span>
           <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[var(--color-text-primary)] tracking-tight mt-1">

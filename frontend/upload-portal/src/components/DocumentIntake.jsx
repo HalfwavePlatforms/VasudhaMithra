@@ -178,7 +178,7 @@ export default function DocumentIntake({
     <div className="space-y-8 pb-16 max-w-4xl mx-auto">
       {/* Page Header */}
       <div>
-        <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-accent)]">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-label-muted)]">
           DOCUMENT INGESTION
         </span>
         <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[var(--color-text-primary)] tracking-tight mt-1">

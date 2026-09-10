@@ -43,7 +43,7 @@ export default function CommandCentre({
       {/* Top Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-accent)]">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-label-muted)]">
             DIGITIZATION OVERVIEW
           </span>
           <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[var(--color-text-primary)] tracking-tight mt-1">
@@ -249,7 +249,7 @@ export default function CommandCentre({
         <div className="lg:col-span-2 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl p-6 shadow-xs">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-accent)]">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-label-muted)]">
                 LATEST ACTIVITY
               </span>
               <h3 className="text-lg font-serif font-bold text-[var(--color-text-primary)]">
@@ -328,7 +328,7 @@ export default function CommandCentre({
         {/* Right Column (1/3): Coverage & District Progress */}
         <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl p-6 shadow-xs flex flex-col justify-between">
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-accent)]">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-label-muted)]">
               COVERAGE
             </span>
             <h3 className="text-lg font-serif font-bold text-[var(--color-text-primary)] mb-4">

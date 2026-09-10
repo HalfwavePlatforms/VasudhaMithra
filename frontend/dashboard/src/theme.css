@@ -22,6 +22,8 @@
   --color-text-secondary: #4A5568;
   --color-text-muted: #737167;
   --color-text-light: #F7F5EF;
+  --color-label-muted: #8A8578;     /* warm charcoal/slate for section eyebrow labels */
+  --color-role-tag: #4A5568;        /* cool slate for user role tag */
 
   /* Borders */
   --color-border: #E6E3DB;          /* card/divider border */

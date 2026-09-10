@@ -112,7 +112,7 @@ export default function TopBar({
               <span className="text-xs font-semibold text-[var(--color-text-primary)] leading-none truncate max-w-[130px]">
                 {user?.actor || user?.email?.split("@")[0] || "Authorized Officer"}
               </span>
-              <span className="text-[10px] text-[var(--color-accent)] font-medium leading-none mt-1">
+              <span className="text-[10px] text-[var(--color-role-tag)] font-medium leading-none mt-1">
                 {getRoleDisplay()}
               </span>
             </div>

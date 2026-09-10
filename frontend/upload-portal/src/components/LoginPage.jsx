@@ -446,7 +446,7 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
           <div className="max-w-md w-full">
             {step === "email" ? (
               <form onSubmit={handleSendCode}>
-                <div className="text-[11px] font-bold tracking-widest text-[var(--color-accent)] uppercase mb-3">
+                <div className="text-[11px] font-bold tracking-widest text-[var(--color-label-muted)] uppercase mb-3">
                   UNIFIED RECORDS CONSOLE
                 </div>
                 <h1 className="font-serif font-bold text-3xl sm:text-4xl text-[var(--color-text-primary)] leading-tight mb-3">
@@ -610,7 +610,7 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
             ) : (
               /* STEP 2: OTP Verification */
               <form onSubmit={handleVerifyOtp}>
-                <div className="text-[11px] font-bold tracking-widest text-[var(--color-accent)] uppercase mb-3">
+                <div className="text-[11px] font-bold tracking-widest text-[var(--color-label-muted)] uppercase mb-3">
                   VERIFY YOUR IDENTITY
                 </div>
                 <h1 className="font-serif font-bold text-2xl sm:text-3xl text-[var(--color-text-primary)] leading-tight mb-2">

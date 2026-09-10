@@ -114,7 +114,7 @@ export default function AuditTrailView({
     <div className="space-y-6 pb-16 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-accent)]">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-label-muted)]">
             GOVERNANCE & COMPLIANCE
           </span>
           <div className="flex flex-wrap items-center gap-3 mt-1">
