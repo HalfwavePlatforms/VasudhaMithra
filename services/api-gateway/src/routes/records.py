@@ -17,6 +17,14 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models.db_models import Record, RecordField, ValidationResult, AuditLog, CorrectionLog
 from services.lrms_integration import lrms_adapter
+from services.verification_signer import generate_verification_token
+
+
+def _ensure_verification_token(record: Record):
+    if not record.verification_token:
+        token = generate_verification_token(record.id)
+        record.verification_token = token
+        record.verification_url = f"/verify/{record.id}?token={token}"
 
 
 from dotenv import load_dotenv
@@ -516,6 +524,8 @@ async def upload_record(
         # Force pending_review if any field is ai_assisted or if there are review flags/violations
         has_issues = bool(has_ai_field or extraction_data.get("needs_review") or violations or record.spatial_consistency == "DISCREPANCY")
         record.status = "pending_review" if has_issues else "validated"
+        if record.status == "validated":
+            _ensure_verification_token(record)
         if has_ai_field and not record.reviewer_notes:
             record.reviewer_notes = "AI-assisted field extraction — pending human verification."
         record.risk_level = "HIGH" if record.spatial_consistency == "DISCREPANCY" or len(violations) > 1 else ("MEDIUM" if has_issues else "LOW")
@@ -602,11 +612,10 @@ def get_record(record_id: uuid.UUID, db: Session = Depends(get_db)):
     return _serialize(record)
 
 
-@router.get("/{record_id}/audit/verify")
-def verify_audit_trail(record_id: uuid.UUID, db: Session = Depends(get_db)):
+def verify_audit_trail_internal(record_id: uuid.UUID, db: Session) -> dict:
     record = db.query(Record).filter(Record.id == record_id).first()
     if not record:
-        raise HTTPException(status_code=404, detail="Record not found")
+        return {"valid": False, "verified_entries": 0, "broken_at": None, "reason": "Record not found"}
 
     entries = (
         db.query(AuditLog)
@@ -662,6 +671,14 @@ def verify_audit_trail(record_id: uuid.UUID, db: Session = Depends(get_db)):
     if legacy_count > 0:
         result["note"] = f"legacy entries present ({legacy_count}), hash chain verified for {verified_count} entries"
     return result
+
+
+@router.get("/{record_id}/audit/verify")
+def verify_audit_trail(record_id: uuid.UUID, db: Session = Depends(get_db)):
+    record = db.query(Record).filter(Record.id == record_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Record not found")
+    return verify_audit_trail_internal(record_id, db)
 
 
 @router.get("")
@@ -768,12 +785,15 @@ def correct_record(
     if decision == "APPROVED":
         record.status = "validated"
         record.risk_level = "LOW"
+        _ensure_verification_token(record)
     elif decision == "REJECTED":
         record.status = "rejected"
         record.risk_level = "HIGH"
     else:
         record.status = "validated" if not violations else "pending_review"
         record.risk_level = "LOW" if not violations else "MEDIUM"
+        if record.status == "validated":
+            _ensure_verification_token(record)
 
     db.commit()
     _log(db, record.id, "status_updated", actor=actor, details={"status": record.status, "violations": len(violations)})
@@ -808,6 +828,7 @@ def review_record(
     if decision == "APPROVED":
         record.status = "validated"
         record.risk_level = "LOW"
+        _ensure_verification_token(record)
     elif decision == "REJECTED":
         record.status = "rejected"
         record.risk_level = "HIGH"
@@ -876,6 +897,46 @@ def get_lrms_status(record_id: uuid.UUID, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Record not found")
 
     return lrms_adapter.check_sync_status(record_id)
+
+
+@router.post("/{record_id}/generate-qr")
+def generate_record_qr(
+    record_id: uuid.UUID,
+    auth: dict = Depends(require_role(["tahsildar", "officer", "admin", "surveyor"])),
+    db: Session = Depends(get_db),
+):
+    """
+    Generates or retrieves the signed verification QR token and URL for a land record.
+    Logs QR code generation to the tamper-evident audit trail.
+    """
+    record = db.query(Record).filter(Record.id == record_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Record not found")
+
+    _ensure_verification_token(record)
+    db.commit()
+    db.refresh(record)
+
+    actor = auth.get("actor", "Revenue Officer")
+    _log(
+        db=db,
+        record_id=record.id,
+        action="qr_verification_generated",
+        actor=actor,
+        details={
+            "token": record.verification_token,
+            "verification_url": record.verification_url,
+            "status": record.status,
+        },
+    )
+
+    return {
+        "success": True,
+        "record_id": str(record.id),
+        "status": record.status,
+        "verification_token": record.verification_token,
+        "verification_url": record.verification_url,
+    }
 
 
 @router.get("/{record_id}/document")
@@ -991,6 +1052,8 @@ def _serialize(record: Record) -> dict:
             "reviewed_by": record.reviewed_by,
             "reviewed_at": record.reviewed_at.isoformat() if record.reviewed_at else None,
         },
+        "verification_token": record.verification_token,
+        "verification_url": record.verification_url,
     }
 
 

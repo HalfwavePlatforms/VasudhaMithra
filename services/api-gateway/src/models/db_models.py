@@ -35,6 +35,10 @@ class Record(Base):
     reviewed_by = Column(String)
     reviewed_at = Column(DateTime(timezone=True))
 
+    # Public Verification & QR Code
+    verification_token = Column(String, nullable=True)
+    verification_url = Column(String, nullable=True)
+
     fields = relationship("RecordField", back_populates="record", cascade="all, delete-orphan")
     validations = relationship("ValidationResult", back_populates="record", cascade="all, delete-orphan")
 

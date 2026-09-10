@@ -13,8 +13,10 @@ import {
   CheckCircle2,
   XCircle,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  QrCode,
 } from "lucide-react";
+import QrCodeModal from "./QrCodeModal";
 
 export default function LandRecords({
   apiBase,
@@ -30,6 +32,37 @@ export default function LandRecords({
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
+  const [qrModalRecord, setQrModalRecord] = useState(null);
+
+  const handleOpenQr = async (r) => {
+    if (r.verification_token && r.verification_url) {
+      setQrModalRecord(r);
+      return;
+    }
+    try {
+      const token = localStorage.getItem("vasudha_token");
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      else headers["X-Role"] = "officer";
+
+      const res = await fetch(`${apiBase}/records/${r.record_id}/generate-qr`, {
+        method: "POST",
+        headers,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setQrModalRecord({
+          ...r,
+          verification_token: data.verification_token,
+          verification_url: data.verification_url,
+        });
+      } else {
+        setQrModalRecord(r);
+      }
+    } catch {
+      setQrModalRecord(r);
+    }
+  };
 
   const fetchRecords = async (page = 1, status = "all") => {
     setLoading(true);

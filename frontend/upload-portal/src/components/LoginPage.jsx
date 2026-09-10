@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { Loader2 } from "lucide-react";
 
 const ALLOWED_DOMAIN_PATTERN = /@([a-z0-9-]+\.)*gov\.in$/i;
 
@@ -33,6 +34,14 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
   const [phoneError, setPhoneError] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [step, setStep] = useState("email"); // "email" | "otp"
+
+  // Google OAuth state
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [googleError, setGoogleError] = useState("");
+
+  const googleClientId =
+    import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+    "1066607013329-e2tgnvopaiuqvfqd31sdc63r4j7cbch8.apps.googleusercontent.com";
 
   // TextBee SMS and OTP state
   const [smsInfo, setSmsInfo] = useState(null);
@@ -83,6 +92,107 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
     }
     return () => clearInterval(interval);
   }, [step, expiryTimer]);
+
+  const verifyGoogleToken = async (tokenPayload) => {
+    setIsGoogleLoading(true);
+    setGoogleError("");
+    try {
+      const resp = await fetch(`${resolvedApiBase}/auth/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token: tokenPayload,
+          credential: tokenPayload,
+          role: selectedRole,
+        }),
+      });
+
+      const data = await resp.json();
+      if (!resp.ok) {
+        throw new Error(data.detail || "Google authentication failed on server.");
+      }
+
+      const userSession = data.user;
+      localStorage.setItem("vasudha_auth", JSON.stringify(userSession));
+      if (data.token) {
+        localStorage.setItem("vasudha_token", data.token);
+      }
+      if (onLoginSuccess) {
+        onLoginSuccess(userSession);
+      }
+    } catch (err) {
+      console.error("Google Auth error:", err);
+      setGoogleError(err.message || "Failed to sign in with Google.");
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
+  const triggerGoogleAuth = () => {
+    try {
+      if (window.google?.accounts?.oauth2) {
+        const client = window.google.accounts.oauth2.initTokenClient({
+          client_id: googleClientId,
+          scope: "openid email profile",
+          callback: async (tokenResponse) => {
+            if (tokenResponse.error) {
+              setIsGoogleLoading(false);
+              setGoogleError(`Google sign-in was cancelled or failed: ${tokenResponse.error}`);
+              return;
+            }
+            if (tokenResponse.access_token) {
+              await verifyGoogleToken(tokenResponse.access_token);
+            }
+          },
+          error_callback: () => {
+            setIsGoogleLoading(false);
+            setGoogleError("Google Sign-In popup was closed or blocked. Please allow popups.");
+          },
+        });
+        client.requestAccessToken({ prompt: "select_account" });
+        return;
+      }
+
+      if (window.google?.accounts?.id) {
+        window.google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: async (res) => {
+            if (res.credential) {
+              await verifyGoogleToken(res.credential);
+            }
+          },
+        });
+        window.google.accounts.id.prompt();
+        return;
+      }
+
+      throw new Error("Google Identity Services script not ready.");
+    } catch (err) {
+      console.error("Google auth init error:", err);
+      setIsGoogleLoading(false);
+      setGoogleError(err.message || "Could not launch Google authentication.");
+    }
+  };
+
+  const handleGoogleLogin = () => {
+    setIsGoogleLoading(true);
+    setGoogleError("");
+
+    if (!window.google?.accounts) {
+      const script = document.createElement("script");
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      script.defer = true;
+      script.onload = () => triggerGoogleAuth();
+      script.onerror = () => {
+        setIsGoogleLoading(false);
+        setGoogleError("Unable to load Google Sign-In SDK. Please check your internet connection.");
+      };
+      document.head.appendChild(script);
+    } else {
+      triggerGoogleAuth();
+    }
+  };
 
   const validateEmail = (val) => {
     const trimmed = val.trim();
@@ -461,17 +571,35 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
                 {/* Google SSO Button */}
                 <button
                   type="button"
-                  onClick={() => alert("Google SSO domain restriction is configured for @department.gov.in accounts.")}
-                  className="w-full h-12 border border-[var(--color-border)] bg-[var(--color-bg-secondary)] hover:bg-[var(--color-accent-subtle)] rounded-lg text-sm font-medium text-[var(--color-text-primary)] flex items-center justify-center gap-2.5 transition-all shadow-2xs cursor-pointer"
+                  onClick={handleGoogleLogin}
+                  disabled={isGoogleLoading}
+                  className="w-full h-12 border border-[var(--color-border)] bg-[var(--color-bg-secondary)] hover:bg-[var(--color-accent-subtle)] rounded-lg text-sm font-medium text-[var(--color-text-primary)] flex items-center justify-center gap-2.5 transition-all shadow-2xs cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <svg width="18" height="18" viewBox="0 0 48 48">
-                    <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.1 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"/>
-                    <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.9 18.9 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.1 29.5 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/>
-                    <path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.5-5.2l-6.2-5.2C29.4 35.4 26.8 36 24 36c-5.3 0-9.7-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/>
-                    <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.7l6.2 5.2C40.8 36 44 30.6 44 24c0-1.3-.1-2.7-.4-3.5z"/>
-                  </svg>
-                  <span>Continue with Google</span>
+                  {isGoogleLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-[var(--color-accent)]" />
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 48 48">
+                      <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.1 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"/>
+                      <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.9 18.9 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.1 29.5 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/>
+                      <path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.5-5.2l-6.2-5.2C29.4 35.4 26.8 36 24 36c-5.3 0-9.7-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/>
+                      <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.7l6.2 5.2C40.8 36 44 30.6 44 24c0-1.3-.1-2.7-.4-3.5z"/>
+                    </svg>
+                  )}
+                  <span>{isGoogleLoading ? "Connecting with Google…" : "Continue with Google"}</span>
                 </button>
+
+                {googleError && (
+                  <div className="mt-3 p-3 rounded-lg bg-[var(--color-accent-subtle)] border border-[var(--color-error)] text-[var(--color-error)] text-xs font-medium flex items-center justify-between">
+                    <span>{googleError}</span>
+                    <button
+                      type="button"
+                      onClick={() => setGoogleError("")}
+                      className="ml-2 font-bold cursor-pointer hover:opacity-75"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
 
                 {/* Trust Microcopy */}
                 <div className="flex items-center justify-center gap-1.5 text-xs text-[var(--color-text-muted)] mt-6">

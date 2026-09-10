@@ -8,6 +8,7 @@ import LandRecords from "./components/LandRecords";
 import GisParcels from "./components/GisParcels";
 import AuditTrailView from "./components/AuditTrailView";
 import LoginPage from "./components/LoginPage";
+import PublicVerifyPage from "./components/PublicVerifyPage";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
@@ -88,6 +89,12 @@ export default function App() {
       loadDashboardData();
     }
   }, [activeTab, user]);
+
+  // Public read-only verification route for citizens, banks & buyers (no login required)
+  const isVerifyRoute = typeof window !== "undefined" && window.location.pathname.startsWith("/verify");
+  if (isVerifyRoute) {
+    return <PublicVerifyPage apiBase={API_BASE} />;
+  }
 
   if (!user) {
     return <LoginPage onLoginSuccess={handleLogin} apiBase={API_BASE} />;

@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from database import engine
 from models.db_models import Base
-from routes import records, dashboard, auth
+from routes import records, dashboard, auth, public_verify
 
 app = FastAPI(title="API Gateway")
 
@@ -35,6 +35,7 @@ app.add_middleware(
 app.include_router(records.router)
 app.include_router(dashboard.router)
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
+app.include_router(public_verify.router, prefix="/public", tags=["public-verify"])
 
 import os
 import httpx

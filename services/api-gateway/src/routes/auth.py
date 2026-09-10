@@ -6,6 +6,7 @@ import secrets
 import time
 from pathlib import Path
 from typing import Dict, Any, Optional
+import httpx
 from fastapi import APIRouter, HTTPException, Depends, Header
 from pydantic import BaseModel, Field
 
@@ -328,6 +329,121 @@ async def verify_login_otp(req: VerifyOtpRequest):
     return {
         "success": True,
         "message": "Authentication successful.",
+        "token": token,
+        "user": user_session,
+    }
+
+
+class GoogleLoginRequest(BaseModel):
+    token: Optional[str] = Field(None, description="Google OAuth access token or ID token")
+    credential: Optional[str] = Field(None, description="Google GSI credential (ID token)")
+    role: str = Field(default="revenue", description="Selected login role")
+
+
+@router.post("/google")
+async def google_login(req: GoogleLoginRequest):
+    """
+    Validates Google OAuth ID token or access token via Google's APIs,
+    verifies user identity, and issues a standard Vasudha authenticated session.
+    """
+    raw_token = req.credential or req.token
+    if not raw_token or not raw_token.strip():
+        raise HTTPException(status_code=400, detail="Missing Google authentication token.")
+
+    token_clean = raw_token.strip()
+    user_info = None
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        # 1. First attempt: verify as ID Token via Google's tokeninfo endpoint
+        try:
+            resp = await client.get(f"https://oauth2.googleapis.com/tokeninfo?id_token={token_clean}")
+            if resp.status_code == 200:
+                data = resp.json()
+                if "email" in data:
+                    user_info = data
+        except Exception as e:
+            logger.warning(f"Error checking Google id_token: {e}")
+
+        # 2. Second attempt: verify as Access Token via Google's userinfo endpoint
+        if not user_info:
+            try:
+                resp = await client.get(
+                    "https://www.googleapis.com/oauth2/v3/userinfo",
+                    headers={"Authorization": f"Bearer {token_clean}"}
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if "email" in data:
+                        user_info = data
+            except Exception as e:
+                logger.warning(f"Error checking Google access_token: {e}")
+
+    if not user_info or "email" not in user_info:
+        raise HTTPException(
+            status_code=401,
+            detail="Google authentication failed or token is invalid/expired."
+        )
+
+    email = user_info["email"].strip().lower()
+    name = user_info.get("name") or email.split("@")[0].replace(".", " ").title()
+    picture = user_info.get("picture")
+
+    # Optional audience check if GOOGLE_CLIENT_ID is set and aud is present
+    google_client_id = os.getenv("GOOGLE_CLIENT_ID")
+    if google_client_id and "aud" in user_info:
+        if user_info["aud"] != google_client_id:
+            logger.warning(f"Google token aud {user_info.get('aud')} does not match configured {google_client_id}")
+
+    role_info = ROLE_MAP.get(req.role, ROLE_MAP["revenue"])
+
+    # Domain restriction check:
+    # For citizen/verifier role: any valid Google account is accepted.
+    # For revenue/survey/admin: official email should end with .gov.in,
+    # BUT in DEBUG_MODE or for development testing, we allow Google accounts smoothly.
+    is_gov = bool(ALLOWED_DOMAIN_PATTERN.search(email))
+    debug_mode = os.getenv("DEBUG_MODE", "false").lower().strip() == "true"
+
+    if req.role not in ("citizen", "verifier") and not is_gov and not debug_mode:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Google account {email} is not an official @gov.in address. Please sign in with your official government Google account, or select 'Citizen' role."
+        )
+
+    actor_label = f"{name} ({role_info['defaultActor']})"
+    if not is_gov and req.role not in ("citizen", "verifier"):
+        actor_label = f"{name} ({role_info['defaultActor']} - SSO)"
+
+    user_session = {
+        "email": email,
+        "name": name,
+        "picture": picture,
+        "phone": "",
+        "roleKey": req.role,
+        "xRole": role_info["xRole"],
+        "actor": actor_label,
+        "authProvider": "google",
+        "loggedInAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+
+    token = f"vasudha_bearer_{secrets.token_hex(20)}"
+    now = time.time()
+    _SESSION_STORE[token] = {
+        "email": user_session["email"],
+        "name": name,
+        "phone": "",
+        "xRole": user_session["xRole"],
+        "actor": user_session["actor"],
+        "authProvider": "google",
+        "issued_at": now,
+        "expires_at": now + SESSION_EXPIRY_SECONDS,
+    }
+    _save_sessions()
+
+    logger.info(f"Google SSO login successful: {email} as {role_info['xRole']}")
+
+    return {
+        "success": True,
+        "message": f"Signed in successfully as {name}",
         "token": token,
         "user": user_session,
     }
