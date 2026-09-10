@@ -39,6 +39,9 @@ class Record(Base):
     verification_token = Column(String, nullable=True)
     verification_url = Column(String, nullable=True)
 
+    # Local Government Directory (LGD)
+    village_lgd_code = Column(String, nullable=True)
+
     fields = relationship("RecordField", back_populates="record", cascade="all, delete-orphan")
     validations = relationship("ValidationResult", back_populates="record", cascade="all, delete-orphan")
 

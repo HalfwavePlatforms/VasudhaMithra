@@ -488,8 +488,37 @@ export default function VerificationDesk({
                 </div>
               </div>
 
+              {/* Official Govt. Location Code (LGD) */}
+              <div className="mt-3 pt-2.5 border-t border-[var(--color-border-subtle)] flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+                  <span className="font-semibold text-[var(--color-text-secondary)]">Official Govt. Location Code (LGD):</span>
+                  {currentRecord.village_lgd_code ? (
+                    <a
+                      href="https://lgdirectory.gov.in/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 font-mono font-bold text-[var(--color-accent)] bg-[var(--color-accent-subtle)] hover:bg-[var(--color-accent-subtle)]/80 px-2 py-0.5 rounded border border-[var(--color-border)] cursor-pointer transition-colors"
+                      title="Verify official location in Local Government Directory (MoPR)"
+                    >
+                      <span>LGD {currentRecord.village_lgd_code}</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  ) : (
+                    <span className="text-[11px] text-[var(--color-text-muted)] italic px-2 py-0.5 rounded bg-[var(--color-bg-primary)] border border-[var(--color-border-subtle)]">
+                      Pending canonicalization
+                    </span>
+                  )}
+                </div>
+                {currentRecord.village_lgd_code && (
+                  <span className="text-[10px] text-[var(--color-text-muted)]">
+                    Standardised via Local Government Directory
+                  </span>
+                )}
+              </div>
+
               {/* REAL Validation Issues List from validators.py */}
-              <div className="mt-4 pt-3 border-t border-[var(--color-border-subtle)]">
+              <div className="mt-3 pt-3 border-t border-[var(--color-border-subtle)]">
                 <div className="text-xs font-bold text-[var(--color-text-primary)] mb-2 flex items-center gap-1.5">
                   <ShieldCheck className="w-3.5 h-3.5 text-[var(--color-accent)]" />
                   Validation Rules & Consistency Audit:

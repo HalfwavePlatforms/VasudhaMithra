@@ -213,6 +213,34 @@ export default function RecordDetail({ recordId, onBack }) {
             </div>
           </div>
         </div>
+
+        {/* Official Govt. Location Code (LGD) */}
+        <div style={{ marginTop: "14px", paddingTop: "12px", borderTop: "1px solid var(--color-border-subtle)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px", fontSize: "12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ fontWeight: 600, color: "var(--color-text-secondary)" }}>Official Govt. Location Code (LGD):</span>
+            {record.village_lgd_code ? (
+              <a
+                href="https://lgdirectory.gov.in/"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ fontFamily: "monospace", fontWeight: 700, color: "var(--color-accent)", backgroundColor: "var(--color-accent-subtle)", padding: "3px 10px", borderRadius: "6px", border: "1px solid var(--color-border)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                title="Verify official location in Local Government Directory (MoPR)"
+              >
+                <span>LGD {record.village_lgd_code}</span>
+                <span style={{ fontSize: "11px" }}>↗</span>
+              </a>
+            ) : (
+              <span style={{ fontSize: "11px", color: "var(--color-text-muted)", fontStyle: "italic", backgroundColor: "var(--color-bg-primary)", padding: "2px 8px", borderRadius: "4px", border: "1px solid var(--color-border-subtle)" }}>
+                Pending canonicalization
+              </span>
+            )}
+          </div>
+          {record.village_lgd_code && (
+            <span style={{ fontSize: "11px", color: "var(--color-text-muted)" }}>
+              Standardised via Local Government Directory
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Main Split Layout Grid */}

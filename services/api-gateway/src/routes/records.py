@@ -246,6 +246,11 @@ def _evaluate_and_attach_gis(db: Session, record: Record, fields: Optional[dict]
         record.gis_geojson = geom_val
         record.geom = geom_val
 
+        meta = gis_data.get("metadata") or {}
+        lgd_code = meta.get("village_lgd_code")
+        if lgd_code:
+            record.village_lgd_code = str(lgd_code)
+
         if doc_acres and record.area_gis_acres:
             delta_pct = abs(doc_acres - record.area_gis_acres) / record.area_gis_acres * 100.0
             record.spatial_delta_pct = round(delta_pct, 2)
@@ -257,6 +262,26 @@ def _evaluate_and_attach_gis(db: Session, record: Record, fields: Optional[dict]
         db.commit()
         return True
     else:
+        # If GIS lookup didn't succeed, attempt direct LGD resolution for village
+        if not record.village_lgd_code and fields.get("village"):
+            try:
+                with httpx.Client(timeout=4.0) as client:
+                    lgd_resp = client.get(
+                        f"{GIS_SERVICE_URL}/gis/resolve-lgd",
+                        params={
+                            "village": fields.get("village") or "",
+                            "tehsil": fields.get("tehsil") or "",
+                            "district": fields.get("district") or "",
+                            "state": record.state or "",
+                        },
+                    )
+                    if lgd_resp.status_code == 200:
+                        match_info = lgd_resp.json().get("match")
+                        if match_info and match_info.get("village_lgd_code"):
+                            record.village_lgd_code = str(match_info["village_lgd_code"])
+            except Exception as e:
+                logger.debug(f"Direct LGD resolution error: {e}")
+
         if not record.spatial_consistency or record.spatial_consistency == "NOT_EVALUATED":
             record.spatial_consistency = "NOT_EVALUATED"
             db.commit()
@@ -1115,6 +1140,7 @@ def _serialize(record: Record) -> dict:
             "spatial_consistency": record.spatial_consistency or "NOT_EVALUATED",
             "spatial_delta_pct": record.spatial_delta_pct,
             "geometry": record.gis_geojson or record.geom,
+            "village_lgd_code": record.village_lgd_code,
         } if (record.parcel_id or record.gis_geojson or record.geom) else None,
         "review": {
             "reviewer_notes": record.reviewer_notes,
@@ -1123,6 +1149,7 @@ def _serialize(record: Record) -> dict:
         },
         "verification_token": record.verification_token,
         "verification_url": record.verification_url,
+        "village_lgd_code": record.village_lgd_code,
     }
 
 

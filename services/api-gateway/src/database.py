@@ -53,6 +53,9 @@ try:
                 if "verification_url" not in rec_cols:
                     conn.execute(text("ALTER TABLE records ADD COLUMN verification_url VARCHAR"))
                     conn.commit()
+                if "village_lgd_code" not in rec_cols:
+                    conn.execute(text("ALTER TABLE records ADD COLUMN village_lgd_code VARCHAR"))
+                    conn.commit()
             else:
                 conn.execute(text("ALTER TABLE record_fields ADD COLUMN IF NOT EXISTS extraction_source VARCHAR DEFAULT 'rule_based'"))
                 conn.execute(text("ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS prev_hash VARCHAR"))
@@ -60,6 +63,7 @@ try:
                 conn.execute(text("ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS hash_input_ts VARCHAR"))
                 conn.execute(text("ALTER TABLE records ADD COLUMN IF NOT EXISTS verification_token VARCHAR"))
                 conn.execute(text("ALTER TABLE records ADD COLUMN IF NOT EXISTS verification_url VARCHAR"))
+                conn.execute(text("ALTER TABLE records ADD COLUMN IF NOT EXISTS village_lgd_code VARCHAR"))
                 conn.commit()
         except Exception as mig_err:
             logger.debug("Column migration check: %s", mig_err)
