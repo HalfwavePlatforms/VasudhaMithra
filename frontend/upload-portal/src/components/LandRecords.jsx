@@ -15,6 +15,7 @@ import {
   Loader2,
   RefreshCw,
   QrCode,
+  FileCheck,
 } from "lucide-react";
 import QrCodeModal from "./QrCodeModal";
 
@@ -361,6 +362,25 @@ export default function LandRecords({
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1">
+                          {/* Download Digital Certificate (Active for validated, disabled otherwise) */}
+                          {isValidated ? (
+                            <a
+                              href={`${apiBase}/records/${r.record_id}/certificate`}
+                              download
+                              className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-success)] hover:bg-[var(--color-success-bg)] rounded-lg transition-colors cursor-pointer"
+                              title="Download Official Digital Land Record Certificate (PDF)"
+                            >
+                              <FileCheck className="w-4 h-4" />
+                            </a>
+                          ) : (
+                            <span
+                              className="p-1.5 text-[var(--color-text-muted)]/30 rounded-lg cursor-not-allowed inline-block"
+                              title="Certificate available only after record validation"
+                            >
+                              <FileCheck className="w-4 h-4" />
+                            </span>
+                          )}
+
                           <button
                             onClick={() => handleOpenQr(r)}
                             className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-subtle)] rounded-lg transition-colors cursor-pointer"

@@ -145,3 +145,21 @@
 .cadastral-leaflet-map-wrapper .leaflet-control-attribution a:hover {
   text-decoration: underline !important;
 }
+
+/* Tile layer artifact prevention: remove any outline, border, or seam artifacts */
+.cadastral-leaflet-map-wrapper .leaflet-tile-pane,
+.cadastral-leaflet-map-wrapper .leaflet-tile-container,
+.cadastral-leaflet-map-wrapper .leaflet-tile {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.cadastral-leaflet-map-wrapper img.leaflet-tile {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  max-width: none !important;
+  image-rendering: auto;
+}
+

@@ -20,7 +20,6 @@ export default function CadastralLeafletMap({
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const parcelLayerGroupRef = useRef(null);
-  const surveyMeshGroupRef = useRef(null);
   const layerControlRef = useRef(null);
 
   const hasGeometry = Boolean(
@@ -102,10 +101,6 @@ export default function CadastralLeafletMap({
     parcelLayerGroup.addTo(map);
     parcelLayerGroupRef.current = parcelLayerGroup;
 
-    const surveyMeshGroup = L.layerGroup();
-    surveyMeshGroup.addTo(map);
-    surveyMeshGroupRef.current = surveyMeshGroup;
-
     // Server-side resilient proxy for government WMS layers (bypasses browser CORS & mixed-content blocks)
     const proxyBase = import.meta.env?.VITE_API_BASE || "http://127.0.0.1:8000";
     const bhuvanTarget = encodeURIComponent("https://bhuvan-panchayat3.nrsc.gov.in/bhuvan/wms");
@@ -137,7 +132,6 @@ export default function CadastralLeafletMap({
 
     const overlayMaps = {
       "Extracted Parcel Boundary": parcelLayerGroup,
-      "Cadastral Survey Grid": surveyMeshGroup,
       "ISRO Bhuvan Cadastral (WMS)": bhuvanCadastralWMS,
       "Karnataka KGIS / Bhoomi (WMS)": kgisCadastralWMS,
     };
@@ -165,12 +159,10 @@ export default function CadastralLeafletMap({
   useEffect(() => {
     const map = mapInstanceRef.current;
     const parcelGroup = parcelLayerGroupRef.current;
-    const meshGroup = surveyMeshGroupRef.current;
     if (!map || !parcelGroup) return;
 
     // Clear previous geometry from overlay groups
     parcelGroup.clearLayers();
-    if (meshGroup) meshGroup.clearLayers();
 
     if (hasGeometry) {
       try {
@@ -216,40 +208,6 @@ export default function CadastralLeafletMap({
 
         // Add to the toggleable parcelLayerGroup
         geoJsonLayer.addTo(parcelGroup);
-
-        // Synthesize surrounding cadastral mesh plots for visual context
-        if (meshGroup && geometry.type === "Polygon" && Array.isArray(geometry.coordinates[0])) {
-          const ring = geometry.coordinates[0];
-          let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-          ring.forEach(([x, y]) => {
-            if (x < minX) minX = x;
-            if (x > maxX) maxX = x;
-            if (y < minY) minY = y;
-            if (y > maxY) maxY = y;
-          });
-          const dx = (maxX - minX);
-          const dy = (maxY - minY);
-
-          const sn = String(gis?.parcel_id || "").replace("PARCEL-", "").replace("-CAD", "").replace("-OSM", "");
-          const neighbors = [
-            { label: `${sn}/N`, bounds: [[maxY, minX], [maxY + dy, maxX]] },
-            { label: `${sn}/S`, bounds: [[minY - dy, minX], [minY, maxX]] },
-            { label: `${sn}/E`, bounds: [[minY, maxX], [maxY, maxX + dx]] },
-            { label: `${sn}/W`, bounds: [[minY, minX - dx], [maxY, minX]] },
-          ];
-
-          neighbors.forEach((nb) => {
-            const rect = L.rectangle(nb.bounds, {
-              color: "#8FA396",
-              weight: 1.2,
-              dashArray: "4, 4",
-              fillColor: "#F7F5EF",
-              fillOpacity: 0.2,
-            });
-            rect.bindTooltip(`Plot ${nb.label}`, { permanent: false, direction: "center" });
-            rect.addTo(meshGroup);
-          });
-        }
 
         // Fit map bounds to parcel boundary
         const bounds = geoJsonLayer.getBounds();

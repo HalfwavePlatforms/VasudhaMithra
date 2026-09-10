@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import {
   QrCode,
@@ -8,7 +8,8 @@ import {
   Check,
   Download,
   ShieldCheck,
-  CheckCircle2
+  CheckCircle2,
+  FileCheck,
 } from "lucide-react";
 
 export default function QrCodeModal({ record, onClose }) {
@@ -120,6 +121,18 @@ export default function QrCodeModal({ record, onClose }) {
             </button>
           </div>
         </div>
+
+        {/* Digital Certificate Download Option */}
+        {record.status === "validated" && (
+          <a
+            href={`http://localhost:8000/records/${record.record_id || record.id}/certificate`}
+            download
+            className="w-full py-2.5 px-4 bg-[var(--color-success-bg)] hover:bg-[var(--color-success-bg)]/80 text-[var(--color-success)] border border-[var(--color-success-border)] rounded-lg text-xs font-semibold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-2xs"
+          >
+            <FileCheck className="w-4 h-4" />
+            <span>Download Official Digital Certificate (PDF)</span>
+          </a>
+        )}
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2 pt-2 border-t border-[var(--color-border-subtle)]">

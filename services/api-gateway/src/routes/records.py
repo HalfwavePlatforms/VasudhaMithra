@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Optional
 import httpx
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, Header
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -18,6 +18,7 @@ from database import get_db
 from models.db_models import Record, RecordField, ValidationResult, AuditLog, CorrectionLog
 from services.lrms_integration import lrms_adapter
 from services.verification_signer import generate_verification_token
+from services.certificate_generator import build_certificate_pdf
 
 
 def _ensure_verification_token(record: Record):
@@ -987,6 +988,74 @@ def download_record(record_id: str, db: Session = Depends(get_db)):
         path=str(target_file),
         filename=record.original_filename or target_file.name,
         media_type=media_type,
+    )
+
+
+@router.get("/{record_id}/certificate")
+def get_record_certificate(
+    record_id: uuid.UUID,
+    db: Session = Depends(get_db),
+):
+    """
+    Generates and downloads the official Digital Land Record Certificate PDF for a validated record.
+    Enforces validation prerequisite: records with status != 'validated' return 400 Bad Request.
+    Combines extracted fields, real cryptographic audit hash-chain verification,
+    cadastral GIS geometry plot, and HMAC signed QR verification code.
+    """
+    record = db.query(Record).filter(Record.id == record_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Land record not found")
+
+    # STEP 2 Requirement: Only allow generation for status="validated" records
+    if record.status != "validated":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Certificate generation is only permitted for validated land records. Current record status is '{record.status}'.",
+        )
+
+    # Re-evaluate / attach GIS geometry if not already on record
+    if not record.gis_geojson or record.spatial_consistency in (None, "NOT_EVALUATED"):
+        _evaluate_and_attach_gis(db, record)
+        db.refresh(record)
+
+    # Ensure verification token & URL exist
+    _ensure_verification_token(record)
+    db.commit()
+    db.refresh(record)
+
+    # Call real internal audit trail verifier for honesty check
+    audit_status = verify_audit_trail_internal(record.id, db)
+
+    # Construct public QR URL
+    frontend_base = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    qr_url = f"{frontend_base}{record.verification_url}"
+
+    # Serialize record data
+    record_serialized = _serialize(record)
+
+    # Build the official PDF
+    pdf_bytes = build_certificate_pdf(
+        record_data=record_serialized,
+        audit_status=audit_status,
+        gis_geometry=record.gis_geojson or record.geom,
+        qr_url=qr_url,
+    )
+
+    survey_no = (
+        record_serialized.get("fields", {}).get("survey_number")
+        or record_serialized.get("fields", {}).get("khasra_number")
+        or str(record.id)[:8]
+    ).replace("/", "_").replace(" ", "_")
+    filename = f"VasudhaMithra_Certificate_{survey_no}.pdf"
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Certificate-Status": "validated",
+            "X-Audit-Valid": str(audit_status.get("valid", False)).lower(),
+        },
     )
 
 
