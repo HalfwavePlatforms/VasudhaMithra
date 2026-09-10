@@ -21,6 +21,7 @@ from services.certificate_generator import (
     build_certificate_pdf,
     build_regional_certificate_pdf,
 )
+from services.lrms_integration import lrms_adapter
 
 
 def _ensure_verification_token(record: Record):
