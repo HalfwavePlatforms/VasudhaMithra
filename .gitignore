@@ -42,5 +42,11 @@ Thumbs.db
 .idea/
 land_records.db
 ocr_build_log.txt
-land_records.db
-ocr_build_log.txt
+
+# LGD large datasets and generated indexes
+data/lgd/*.csv
+data/lgd/*.7z
+!data/lgd/seed_lgd_villages.csv
+services/gis-service/src/data/lgd_index.db
+!services/gis-service/src/data/lgd_index.seed.db
+
