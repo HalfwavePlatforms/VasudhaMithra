@@ -18,9 +18,13 @@ Area discrepancy integration:
 
 No fake confidence or AI fraud claims: this service returns spatial facts only.
 """
+import difflib
 import json
 import logging
 import os
+import re
+import sqlite3
+import unicodedata
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
@@ -643,7 +647,228 @@ def _query_cadastral_spatial_engine(
         "geometry": geometry,
     }
     logger.info(f"Cadastral Spatial Engine synthesized parcel for Survey {survey_number} around '{anchor_name}' at [{lat}, {lon}] ({target_area} ac)")
-    return parcel
+# ── LGD (Local Government Directory) Canonicalization ─────────────────────────
+
+COMMON_ALIASES = {
+    "bangalore": "bengaluru",
+    "bangalore urban": "bengaluru urban",
+    "bangalore south": "bengaluru south",
+    "tumkur": "tumakuru",
+    "mysore": "mysuru",
+    "belgaum": "belagavi",
+    "gulbarga": "kalaburagi",
+    "bellary": "ballari",
+    "bijapur": "vijayapura",
+    "shimoga": "shivamogga",
+    "baraily": "bareli",
+}
+
+
+def _normalise_name(s: str) -> str:
+    """
+    Normalizes a place name for robust matching:
+    - Strips whitespace
+    - Lowercases
+    - Strips punctuation (periods, commas, hyphens, slashes, brackets, quotes)
+    - Normalizes unicode characters
+    - Handles common transliteration variance
+    """
+    if not s:
+        return ""
+    s = unicodedata.normalize("NFKC", str(s)).strip().lower()
+    s = re.sub(r"[\.,\-\/\(\)\[\]\'\"_:\;\*]", " ", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    return COMMON_ALIASES.get(s, s)
+
+
+def _get_lgd_db_path() -> Optional[Path]:
+    custom = os.getenv("LGD_DB_PATH")
+    if custom and Path(custom).exists():
+        return Path(custom)
+    primary = _DATA_DIR / "lgd_index.db"
+    if primary.exists():
+        return primary
+    seed = _DATA_DIR / "lgd_index.seed.db"
+    if seed.exists():
+        return seed
+    return None
+
+
+def _get_lgd_connection() -> Optional[sqlite3.Connection]:
+    db_path = _get_lgd_db_path()
+    if not db_path:
+        return None
+    try:
+        uri = f"file:{db_path.resolve().as_posix()}?mode=ro"
+        return sqlite3.connect(uri, uri=True, check_same_thread=False)
+    except Exception:
+        try:
+            return sqlite3.connect(str(db_path), check_same_thread=False)
+        except Exception as e:
+            logger.warning(f"Could not open LGD index at {db_path}: {e}")
+            return None
+
+
+def _resolve_lgd_code(
+    village: str,
+    tehsil: str = "",
+    district: str = "",
+    state: str = "",
+) -> Optional[dict]:
+    """
+    Resolves extracted village/tehsil/district/state to official LGD code and canonical names
+    using progressive query relaxation and fuzzy matching.
+    """
+    if not village:
+        return None
+    norm_v = _normalise_name(village)
+    if not norm_v:
+        return None
+    norm_d = _normalise_name(district)
+    norm_s = _normalise_name(state)
+
+    conn = _get_lgd_connection()
+    if not conn:
+        return None
+
+    try:
+        cur = conn.cursor()
+
+        # 1. Exact match on normalized (state, district, village)
+        if norm_s and norm_d:
+            cur.execute(
+                "SELECT village, district, subdistrict, state, village_code "
+                "FROM lgd_villages WHERE norm_state = ? AND norm_district = ? AND norm_village = ? LIMIT 1",
+                (norm_s, norm_d, norm_v),
+            )
+            row = cur.fetchone()
+            if row:
+                return {
+                    "village_lgd_code": row[4],
+                    "canonical_village": row[0],
+                    "canonical_district": row[1],
+                    "canonical_subdistrict": row[2],
+                    "canonical_state": row[3],
+                    "match_confidence": "exact",
+                }
+
+        # 2. Relaxation: match on normalized (state, village)
+        if norm_s:
+            cur.execute(
+                "SELECT village, district, subdistrict, state, village_code "
+                "FROM lgd_villages WHERE norm_state = ? AND norm_village = ? LIMIT 1",
+                (norm_s, norm_v),
+            )
+            row = cur.fetchone()
+            if row:
+                return {
+                    "village_lgd_code": row[4],
+                    "canonical_village": row[0],
+                    "canonical_district": row[1],
+                    "canonical_subdistrict": row[2],
+                    "canonical_state": row[3],
+                    "match_confidence": "exact",
+                }
+
+        # Additional relaxation: (district, village) if state omitted or divergent
+        if norm_d:
+            cur.execute(
+                "SELECT village, district, subdistrict, state, village_code "
+                "FROM lgd_villages WHERE norm_district = ? AND norm_village = ? LIMIT 1",
+                (norm_d, norm_v),
+            )
+            row = cur.fetchone()
+            if row:
+                return {
+                    "village_lgd_code": row[4],
+                    "canonical_village": row[0],
+                    "canonical_district": row[1],
+                    "canonical_subdistrict": row[2],
+                    "canonical_state": row[3],
+                    "match_confidence": "exact",
+                }
+
+        # Additional relaxation: unique village match across entire country
+        cur.execute(
+            "SELECT village, district, subdistrict, state, village_code "
+            "FROM lgd_villages WHERE norm_village = ? LIMIT 2",
+            (norm_v,),
+        )
+        exact_rows = cur.fetchall()
+        if len(exact_rows) == 1:
+            row = exact_rows[0]
+            return {
+                "village_lgd_code": row[4],
+                "canonical_village": row[0],
+                "canonical_district": row[1],
+                "canonical_subdistrict": row[2],
+                "canonical_state": row[3],
+                "match_confidence": "exact",
+            }
+
+        # 3. Fuzzy match: normalized village with Levenshtein ratio >= 0.85 within same state or district
+        candidates = []
+        if norm_s:
+            if len(norm_v) >= 3:
+                cur.execute(
+                    "SELECT village, district, subdistrict, state, village_code, norm_village "
+                    "FROM lgd_villages WHERE norm_state = ? AND norm_village LIKE ?",
+                    (norm_s, norm_v[:3] + "%"),
+                )
+                candidates = cur.fetchall()
+            if not candidates and norm_d:
+                cur.execute(
+                    "SELECT village, district, subdistrict, state, village_code, norm_village "
+                    "FROM lgd_villages WHERE norm_district = ?",
+                    (norm_d,),
+                )
+                candidates = cur.fetchall()
+            if not candidates:
+                cur.execute(
+                    "SELECT village, district, subdistrict, state, village_code, norm_village "
+                    "FROM lgd_villages WHERE norm_state = ? AND length(norm_village) BETWEEN ? AND ? LIMIT 500",
+                    (norm_s, max(1, len(norm_v) - 2), len(norm_v) + 2),
+                )
+                candidates = cur.fetchall()
+        elif norm_d:
+            cur.execute(
+                "SELECT village, district, subdistrict, state, village_code, norm_village "
+                "FROM lgd_villages WHERE norm_district = ?",
+                (norm_d,),
+            )
+            candidates = cur.fetchall()
+
+        best = None
+        best_ratio = 0.0
+        for cand in candidates:
+            cand_norm_v = cand[5]
+            if cand_norm_v == norm_v:
+                return {
+                    "village_lgd_code": cand[4],
+                    "canonical_village": cand[0],
+                    "canonical_district": cand[1],
+                    "canonical_subdistrict": cand[2],
+                    "canonical_state": cand[3],
+                    "match_confidence": "exact",
+                }
+            r = difflib.SequenceMatcher(None, norm_v, cand_norm_v).ratio()
+            if r > best_ratio:
+                best_ratio = r
+                best = cand
+
+        if best and best_ratio >= 0.85:
+            return {
+                "village_lgd_code": best[4],
+                "canonical_village": best[0],
+                "canonical_district": best[1],
+                "canonical_subdistrict": best[2],
+                "canonical_state": best[3],
+                "match_confidence": "fuzzy",
+            }
+
+        return None
+    finally:
+        conn.close()
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -679,6 +904,28 @@ def health():
     }
 
 
+@app.get("/gis/resolve-lgd")
+def resolve_lgd(
+    village: str,
+    tehsil: Optional[str] = None,
+    district: Optional[str] = None,
+    state: Optional[str] = None,
+):
+    """
+    Direct endpoint for resolving extracted village names against the official
+    Local Government Directory (LGD) database.
+    """
+    match = _resolve_lgd_code(
+        village=village,
+        tehsil=tehsil or "",
+        district=district or "",
+        state=state or "",
+    )
+    if not match:
+        return {"status": "not_found", "match": None}
+    return {"status": "ok", "match": match}
+
+
 @app.get("/gis/parcel/{survey_number:path}")
 def get_parcel(
     survey_number: str,
@@ -694,10 +941,11 @@ def get_parcel(
     Lookup order:
       1. PostGIS `parcels` table (when DATABASE_URL is set and DB reachable)
       2. Seeded JSON file (standalone fallback — always available)
-      3. Dynamic OpenStreetMap Nominatim Free Geocoding (resolves ANY Indian village & plots parcel)
+      3. LGD Canonicalization: resolves noisy OCR place names to official LGD codes and canonical geography
+      4. Dynamic OpenStreetMap Nominatim Free Geocoding (resolves ANY Indian village & plots parcel)
+      5. Guaranteed Cadastral Spatial Engine Fallback (Zero 404s when location/area metadata is present)
 
-    Response always includes `source` field:
-      "seeded_demo_data" | "osm_nominatim_dynamic_cadastre"
+    Response always includes `source` field and enriched `metadata` with `village_lgd_code` and `match_confidence`.
     """
     clean_sn = survey_number.strip().replace(" ", "")
 
@@ -708,25 +956,41 @@ def get_parcel(
     if result is None:
         result = _query_seeded(clean_sn)
 
-    # Tier 3: Dynamic OpenStreetMap Geocoding Fallback for ANY Indian land record
+    # LGD Canonicalization: run early before Tier 3 / Tier 4 geocoding
+    lgd_match = None
     if result is None and (village or tehsil or district or state):
-        result = _query_dynamic_osm(
-            clean_sn,
+        lgd_match = _resolve_lgd_code(
             village=village or "",
             tehsil=tehsil or "",
             district=district or "",
             state=state or "",
+        )
+
+    # If LGD match found, pass canonical values into Tiers 3 and 4; otherwise use original raw strings
+    lookup_village = lgd_match["canonical_village"] if lgd_match else (village or "")
+    lookup_tehsil = lgd_match["canonical_subdistrict"] if lgd_match else (tehsil or "")
+    lookup_district = lgd_match["canonical_district"] if lgd_match else (district or "")
+    lookup_state = lgd_match["canonical_state"] if lgd_match else (state or "")
+
+    # Tier 3: Dynamic OpenStreetMap Geocoding Fallback for ANY Indian land record
+    if result is None and (lookup_village or lookup_tehsil or lookup_district or lookup_state):
+        result = _query_dynamic_osm(
+            clean_sn,
+            village=lookup_village,
+            tehsil=lookup_tehsil,
+            district=lookup_district,
+            state=lookup_state,
             area_acres=area_acres,
         )
 
     # Tier 4: Guaranteed Cadastral Spatial Engine Fallback (Zero 404s when location/area metadata is present)
-    if result is None and (village or tehsil or district or state or area_acres):
+    if result is None and (lookup_village or lookup_tehsil or lookup_district or lookup_state or area_acres):
         result = _query_cadastral_spatial_engine(
             clean_sn,
-            village=village or "",
-            tehsil=tehsil or "",
-            district=district or "",
-            state=state or "",
+            village=lookup_village,
+            tehsil=lookup_tehsil,
+            district=lookup_district,
+            state=lookup_state,
             area_acres=area_acres,
         )
 
@@ -744,7 +1008,36 @@ def get_parcel(
             },
         )
 
+    # Ensure metadata dictionary exists on returned parcel
+    if "metadata" not in result or not isinstance(result["metadata"], dict):
+        result["metadata"] = {}
+
+    if lgd_match:
+        result["metadata"]["village_lgd_code"] = lgd_match.get("village_lgd_code")
+        result["metadata"]["match_confidence"] = lgd_match.get("match_confidence")
+        result["metadata"]["canonical_village"] = lgd_match.get("canonical_village")
+        result["metadata"]["canonical_district"] = lgd_match.get("canonical_district")
+        result["metadata"]["canonical_subdistrict"] = lgd_match.get("canonical_subdistrict")
+        result["metadata"]["canonical_state"] = lgd_match.get("canonical_state")
+    else:
+        # Check if Tier 1 or Tier 2 seeded parcel can be enriched from its village metadata
+        v_seed = result.get("metadata", {}).get("village") or village
+        d_seed = result.get("metadata", {}).get("district") or district
+        s_seed = result.get("metadata", {}).get("state") or state
+        if v_seed and (s_seed or d_seed):
+            seed_lgd = _resolve_lgd_code(village=v_seed, district=d_seed or "", state=s_seed or "")
+            if seed_lgd:
+                result["metadata"]["village_lgd_code"] = seed_lgd.get("village_lgd_code")
+                result["metadata"]["match_confidence"] = seed_lgd.get("match_confidence")
+            else:
+                result["metadata"]["village_lgd_code"] = None
+                result["metadata"]["match_confidence"] = None
+        else:
+            result["metadata"]["village_lgd_code"] = None
+            result["metadata"]["match_confidence"] = None
+
     return result
+
 
 
 @app.get("/gis/parcels")
