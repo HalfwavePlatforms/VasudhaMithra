@@ -167,9 +167,9 @@ export default function App() {
             <span style={{ fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: "1px", color: "var(--color-label-muted)" }}>
               DIGITIZATION OVERVIEW
             </span>
-            <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 32, fontWeight: "bold", color: "var(--color-text-primary)", marginTop: 4 }}>
+            <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 32, fontWeight: "bold", color: "var(--color-text-primary)", marginTop: 4, letterSpacing: "-0.02em" }}>
               Good morning, Deepak.
-            </h2>
+            </h1>
             <p style={{ fontSize: 14, color: "var(--color-text-muted)", marginTop: 4 }}>
               Here's what needs attention across your land record operations today.
             </p>

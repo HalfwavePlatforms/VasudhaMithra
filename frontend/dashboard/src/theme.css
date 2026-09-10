@@ -1,3 +1,14 @@
+/**
+ * VasudhaMithra Design System Tokens & Theme Variables
+ *
+ * NOTE: This file is mirrored across:
+ *   - frontend/upload-portal/src/theme.css
+ *   - frontend/dashboard/src/theme.css
+ *
+ * Both files must remain strictly synchronized.
+ * Verify sync with: python scripts/check_theme_sync.py
+ */
+
 :root {
   /* Core palette */
   --color-bg-primary: #F7F5EF;      /* cream background */
@@ -24,6 +35,10 @@
   --color-text-light: #F7F5EF;
   --color-label-muted: #8A8578;     /* warm charcoal/slate for section eyebrow labels */
   --color-role-tag: #4A5568;        /* cool slate for user role tag */
+
+  /* Typography */
+  --font-serif: 'Playfair Display', Georgia, Cambria, serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
 
   /* Borders */
   --color-border: #E6E3DB;          /* card/divider border */
