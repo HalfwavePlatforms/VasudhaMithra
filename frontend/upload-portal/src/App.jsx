@@ -171,6 +171,7 @@ export default function App() {
               auditLogs={auditLogs}
               loading={loading}
               setActiveTab={setActiveTab}
+              user={user}
               onExport={() => {
                 window.print();
               }}

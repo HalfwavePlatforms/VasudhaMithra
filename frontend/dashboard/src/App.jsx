@@ -33,6 +33,13 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 17) return "Good afternoon";
+    return "Good evening";
+  };
+
   const totalProcessed = stats?.total_processed || 0;
   const pendingCount = stats?.pending_review_count || 0;
   const accuracyPct = stats?.avg_extraction_accuracy
@@ -168,7 +175,7 @@ export default function App() {
               DIGITIZATION OVERVIEW
             </span>
             <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 32, fontWeight: "bold", color: "var(--color-text-primary)", marginTop: 4, letterSpacing: "-0.02em" }}>
-              Good morning, Deepak.
+              {getGreeting()}, Deepak.
             </h1>
             <p style={{ fontSize: 14, color: "var(--color-text-muted)", marginTop: 4 }}>
               Here's what needs attention across your land record operations today.

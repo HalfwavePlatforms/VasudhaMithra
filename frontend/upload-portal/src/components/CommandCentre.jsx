@@ -19,6 +19,7 @@ export default function CommandCentre({
   loading,
   setActiveTab,
   onExport,
+  user,
 }) {
   if (loading && !stats) {
     return (
@@ -27,6 +28,20 @@ export default function CommandCentre({
       </div>
     );
   }
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 17) return "Good afternoon";
+    return "Good evening";
+  };
+
+  const rawName =
+    user?.name?.split(" ")[0] ||
+    user?.actor?.split(" ")[0] ||
+    (user?.email ? user.email.split("@")[0].split(".")[0] : null) ||
+    "Deepak";
+  const firstName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
 
   const totalProcessed = stats?.total_processed || 0;
   const pendingCount = stats?.pending_review_count || 0;
@@ -47,7 +62,7 @@ export default function CommandCentre({
             DIGITIZATION OVERVIEW
           </span>
           <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[var(--color-text-primary)] tracking-tight mt-1">
-            Good morning, Deepak.
+            {getGreeting()}, {firstName}.
           </h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-1 font-normal">
             Here's what needs attention across your land record operations today.
