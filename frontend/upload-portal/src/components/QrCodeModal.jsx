@@ -17,8 +17,8 @@ export default function QrCodeModal({ record, onClose }) {
   if (!record) return null;
 
   const origin = window.location.origin;
-  const verificationPath = record.verification_url || /verify/?token=;
-  const fullVerificationUrl = ${origin};
+  const verificationPath = record.verification_url || `/verify/${record.record_id || record.id}?token=${record.verification_token || ""}`;
+  const fullVerificationUrl = `${origin}${verificationPath}`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(fullVerificationUrl);
@@ -44,7 +44,7 @@ export default function QrCodeModal({ record, onClose }) {
 
       const pngFile = canvas.toDataURL("image/png");
       const downloadLink = document.createElement("a");
-      downloadLink.download = QR_Verify_.png;
+      downloadLink.download = `QR_Verify_${record.fields?.survey_number || record.record_id || "record"}.png`;
       downloadLink.href = pngFile;
       downloadLink.click();
     };

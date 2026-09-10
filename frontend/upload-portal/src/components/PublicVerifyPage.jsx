@@ -48,11 +48,11 @@ export default function PublicVerifyPage({ apiBase }) {
     setLoading(true);
     setError(null);
 
-    fetch(${resolvedApiBase}/public/verify/?token=)
+    fetch(`${resolvedApiBase}/public/verify/${recordId}?token=${encodeURIComponent(token)}`)
       .then(async (res) => {
         const body = await res.json().catch(() => ({}));
         if (!res.ok) {
-          throw new Error(body.detail || Verification failed with HTTP );
+          throw new Error(body.detail || `Verification failed with HTTP ${res.status}`);
         }
         return body;
       })
@@ -215,7 +215,11 @@ export default function PublicVerifyPage({ apiBase }) {
                     {data.document_type || "Land Record"}
                   </span>
                   <span
-                    className={px-3 py-1 rounded-full text-xs font-semibold capitalize }
+                    className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${
+                      data.validation_status === "validated"
+                        ? "bg-[var(--color-success-bg)] text-[var(--color-success)] border border-[var(--color-success-border)]"
+                        : "bg-[var(--color-warning-bg)] text-[var(--color-warning)] border border-[var(--color-warning-border)]"
+                    }`}
                   >
                     ● {data.validation_status}
                   </span>

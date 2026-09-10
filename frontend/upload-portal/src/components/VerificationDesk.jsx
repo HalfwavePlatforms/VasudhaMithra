@@ -12,9 +12,11 @@ import {
   MapPin,
   ExternalLink,
   ChevronDown,
-  Loader2
+  Loader2,
+  QrCode,
 } from "lucide-react";
 import CadastralLeafletMap from "./CadastralLeafletMap";
+import QrCodeModal from "./QrCodeModal";
 
 export default function VerificationDesk({
   apiBase,
@@ -33,6 +35,35 @@ export default function VerificationDesk({
   const [activeDocView, setActiveDocView] = useState("image"); // "image" | "raw_ocr"
   const [imageError, setImageError] = useState(false);
   const [notification, setNotification] = useState(null);
+  const [showQrModal, setShowQrModal] = useState(false);
+
+  const handleOpenQr = async () => {
+    if (!currentRecord) return;
+    if (currentRecord.verification_token && currentRecord.verification_url) {
+      setShowQrModal(true);
+      return;
+    }
+    try {
+      const token = localStorage.getItem("vasudha_token");
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      else headers["X-Role"] = "officer";
+
+      const res = await fetch(`${apiBase}/records/${currentRecord.record_id}/generate-qr`, {
+        method: "POST",
+        headers,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCurrentRecord((prev) => ({
+          ...prev,
+          verification_token: data.verification_token,
+          verification_url: data.verification_url,
+        }));
+      }
+    } catch {}
+    setShowQrModal(true);
+  };
 
   // 1. Fetch pending review records
   const fetchPendingRecords = async () => {
@@ -421,6 +452,17 @@ export default function VerificationDesk({
                   >
                     {currentRecord.risk_level || "MEDIUM"}
                   </span>
+
+                  {/* Public QR Verification Button */}
+                  <button
+                    type="button"
+                    onClick={handleOpenQr}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 bg-[var(--color-bg-primary)] border border-[var(--color-border-strong)] hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)] rounded-full text-xs font-semibold transition-colors cursor-pointer"
+                    title="Generate / View Public Verification QR Code"
+                  >
+                    <QrCode className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+                    <span>QR Verification</span>
+                  </button>
                 </div>
               </div>
 
@@ -692,6 +734,14 @@ export default function VerificationDesk({
             </div>
           </div>
         </div>
+      )}
+
+      {/* QR Code Verification Modal */}
+      {showQrModal && currentRecord && (
+        <QrCodeModal
+          record={currentRecord}
+          onClose={() => setShowQrModal(false)}
+        />
       )}
     </div>
   );

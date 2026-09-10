@@ -360,16 +360,25 @@ export default function LandRecords({
                         )}
                       </td>
                       <td className="py-3.5 px-4 text-right">
-                        <button
-                          onClick={() => {
-                            if (setSelectedRecordId) setSelectedRecordId(r.record_id);
-                            if (setActiveTab) setActiveTab("verification_desk");
-                          }}
-                          className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-subtle)] rounded-lg transition-colors cursor-pointer"
-                          title="Inspect in Verification Desk"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => handleOpenQr(r)}
+                            className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-subtle)] rounded-lg transition-colors cursor-pointer"
+                            title="Generate / View Public Verification QR Code"
+                          >
+                            <QrCode className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (setSelectedRecordId) setSelectedRecordId(r.record_id);
+                              if (setActiveTab) setActiveTab("verification_desk");
+                            }}
+                            className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-subtle)] rounded-lg transition-colors cursor-pointer"
+                            title="Inspect in Verification Desk"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -407,6 +416,14 @@ export default function LandRecords({
           </div>
         </div>
       </div>
+
+      {/* QR Code Verification Modal */}
+      {qrModalRecord && (
+        <QrCodeModal
+          record={qrModalRecord}
+          onClose={() => setQrModalRecord(null)}
+        />
+      )}
     </div>
   );
 }
