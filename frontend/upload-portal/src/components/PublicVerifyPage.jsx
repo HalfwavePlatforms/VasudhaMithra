@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ShieldCheck,
   ShieldAlert,
@@ -83,8 +83,8 @@ export default function PublicVerifyPage({ apiBase }) {
       <header className="border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)] py-4 px-6 sticky top-0 z-20 shadow-2xs">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-[var(--color-sidebar-bg)] flex items-center justify-center text-white font-serif font-bold text-lg shadow-xs">
-              🏛
+            <div className="w-10 h-10 rounded-lg bg-white p-1 flex items-center justify-center shadow-xs border border-[var(--color-border-subtle)]">
+              <img src="/logo-transparent.png" alt="VasudhaMithra" className="w-full h-full object-contain" />
             </div>
             <div>
               <div className="text-[10px] uppercase tracking-widest font-bold text-[var(--color-accent)] flex items-center gap-1.5">

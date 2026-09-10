@@ -14,8 +14,8 @@ export const Footer: React.FC<FooterProps> = ({ onBookDemo }) => {
           {/* Brand Info */}
           <div className="md:col-span-2 space-y-4">
             <a href="#" className="flex items-center gap-2.5">
-              <div className="w-7 h-7 bg-[#000000] rounded-[6px] flex items-center justify-center relative overflow-hidden">
-                <div className="w-3.5 h-3.5 border-t-2 border-r-2 border-[#f69251] transform rotate-45 translate-y-[1px] -translate-x-[1px]"></div>
+              <div className="w-8 h-8 rounded-lg bg-white p-1 border border-black/5 flex items-center justify-center shadow-xs">
+                <img src="/logo-transparent.png" alt="VasudhaMithra" className="w-full h-full object-contain" />
               </div>
               <span className="font-display-light text-xl font-normal text-[#000000] flex items-center gap-1">
                 VasudhaMithra

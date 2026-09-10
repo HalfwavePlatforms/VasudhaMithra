@@ -56,9 +56,8 @@ export default function App() {
         {/* Logo */}
         <div style={{ padding: "20px", borderBottom: "1px solid var(--color-sidebar-border)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ position: "relative", width: 32, height: 32 }}>
-              <div style={{ position: "absolute", top: 0, left: 0, width: 20, height: 20, backgroundColor: "var(--color-info)", borderRadius: 4 }} />
-              <div style={{ position: "absolute", bottom: 0, right: 0, width: 20, height: 20, backgroundColor: "var(--color-accent)", borderRadius: 4, opacity: 0.9 }} />
+            <div style={{ position: "relative", width: 34, height: 34, borderRadius: 8, backgroundColor: "#FFFFFF", padding: 3, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.2)" }}>
+              <img src="/logo-transparent.png" alt="VasudhaMithra" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
             </div>
             <div>
               <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 18, fontWeight: "bold", color: "#FFFFFF", lineHeight: 1.2 }}>

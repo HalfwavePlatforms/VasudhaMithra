@@ -89,10 +89,9 @@ export default function Sidebar({
       {/* Brand Header */}
       <div className="p-5 border-b border-[var(--color-sidebar-border)]">
         <div className="flex items-center gap-3">
-          {/* Overlapping Squares Logo */}
-          <div className="relative w-8 h-8 flex-shrink-0">
-            <div className="absolute top-0 left-0 w-5 h-5 bg-[var(--color-info)] rounded-[4px]" />
-            <div className="absolute bottom-0 right-0 w-5 h-5 bg-[var(--color-accent)] rounded-[4px] opacity-90 shadow-sm" />
+          {/* Brand Logo */}
+          <div className="relative w-9 h-9 flex-shrink-0 rounded-xl bg-white p-1 shadow-md ring-1 ring-white/20 flex items-center justify-center">
+            <img src="/logo-transparent.png" alt="VasudhaMithra" className="w-full h-full object-contain" />
           </div>
           <div>
             <h1 className="text-white text-lg font-serif font-bold tracking-tight leading-tight">

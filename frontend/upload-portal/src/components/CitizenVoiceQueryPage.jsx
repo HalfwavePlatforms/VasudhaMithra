@@ -270,8 +270,8 @@ export default function CitizenVoiceQueryPage({ apiBase }) {
       {/* Top Banner */}
       <header className="border-b border-[#1F293D] bg-[#0E1525]/90 backdrop-blur sticky top-0 z-30 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
-            <Building2 className="w-5 h-5" />
+          <div className="w-10 h-10 rounded-xl bg-white p-1.5 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+            <img src="/logo-transparent.png" alt="VasudhaMithra" className="w-full h-full object-contain" />
           </div>
           <div>
             <h1 className="text-base font-bold text-white tracking-wide">

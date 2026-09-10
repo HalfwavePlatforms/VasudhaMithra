@@ -430,9 +430,8 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
         <div>
           {/* Logo Row */}
           <div className="flex items-center gap-3 mb-10">
-            <div className="relative w-9 h-9">
-              <span className="absolute w-5 h-5 bg-[var(--color-accent)] rounded-xs top-0 left-2.5" />
-              <span className="absolute w-5 h-5 bg-[var(--color-info)] rounded-xs bottom-0 left-0" />
+            <div className="relative w-10 h-10 rounded-xl bg-white p-1 shadow-xs border border-[var(--color-border)] flex items-center justify-center">
+              <img src="/logo-transparent.png" alt="VasudhaMithra" className="w-full h-full object-contain" />
             </div>
             <div className="leading-tight">
               <div className="font-serif font-bold text-xl tracking-tight text-[var(--color-text-primary)]">
