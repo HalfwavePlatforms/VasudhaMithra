@@ -309,7 +309,11 @@ def test_correction_feedback_learning_loop():
             from unittest.mock import patch, MagicMock
             mock_resp = MagicMock()
             mock_resp.status_code = 404
-            with patch("httpx.Client.get", return_value=mock_resp):
+            mock_c = MagicMock()
+            mock_c.get.return_value = mock_resp
+            mock_c.__enter__.return_value = mock_c
+            mock_c.__exit__.return_value = False
+            with patch("routes.records.httpx.Client", return_value=mock_c):
                 corr_resp = client.patch(
                     f"/records/{rec_id}/fields",
                     headers={"X-Role": "tahsildar"},
@@ -511,8 +515,12 @@ def test_gis_spatial_auto_heal_and_consistency():
                 "coordinates": [[[76.95, 13.32], [76.96, 13.32], [76.96, 13.33], [76.95, 13.33], [76.95, 13.32]]]
             }
         }
+        mock_client_instance = MagicMock()
+        mock_client_instance.get.return_value = mock_gis_resp
+        mock_client_instance.__enter__.return_value = mock_client_instance
+        mock_client_instance.__exit__.return_value = False
 
-        with patch("httpx.Client.get", return_value=mock_gis_resp):
+        with patch("routes.records.httpx.Client", return_value=mock_client_instance):
             # 1. GET /records/{id} should auto-heal and return populated GIS
             resp = client.get(f"/records/{rec_id}")
             assert resp.status_code == 200
