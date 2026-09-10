@@ -24,6 +24,7 @@ export default function App() {
   });
 
   const [showCaptureModal, setShowCaptureModal] = useState(false);
+  const [pendingFaceCheck, setPendingFaceCheck] = useState(false);
 
   const [activeTab, setActiveTab] = useState(() => {
     try {
@@ -43,10 +44,8 @@ export default function App() {
 
   const handleLogin = (userSession) => {
     setUser(userSession);
-    // After login, take user to capture image if picture not already present
-    if (!userSession?.picture) {
-      setShowCaptureModal(true);
-    }
+    // After person logs in, immediately take them to the face check page
+    setPendingFaceCheck(true);
   };
 
   const handleLogout = () => {
@@ -54,11 +53,13 @@ export default function App() {
     localStorage.removeItem("vasudha_token");
     setUser(null);
     setShowCaptureModal(false);
+    setPendingFaceCheck(false);
   };
 
   const handlePhotoCaptured = (pictureUrl) => {
     setUser((prev) => (prev ? { ...prev, picture: pictureUrl } : prev));
     setShowCaptureModal(false);
+    setPendingFaceCheck(false);
   };
 
   const loadDashboardData = () => {
@@ -111,6 +112,22 @@ export default function App() {
 
   if (!user) {
     return <LoginPage onLoginSuccess={handleLogin} apiBase={API_BASE} />;
+  }
+
+  // Mandatory Biometric Face Check page directly after login
+  if (pendingFaceCheck) {
+    return (
+      <ProfileCaptureModal
+        user={user}
+        apiBase={API_BASE}
+        isFullPage={true}
+        onComplete={(pictureUrl) => {
+          handlePhotoCaptured(pictureUrl);
+          setPendingFaceCheck(false);
+        }}
+        onSkip={() => setPendingFaceCheck(false)}
+      />
+    );
   }
 
   const pageTitles = {
