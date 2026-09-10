@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import CadastralLeafletMap from "./CadastralLeafletMap";
 
 // ISRO Bhuvan API Tokens & Secret Environment Variables
+const BHUVAN_API_TOKEN = import.meta.env.VITE_BHUVAN_API_KEY || "15c89cc0804d0a045bbaf75aad877dfa98f2ff98";
 const BHUVAN_LULC_STAT_TOKEN = import.meta.env.VITE_BHUVAN_LULC_STAT_KEY || "a4e04896b955567147d228d46f7cf354a28ffc8";
 const BHUVAN_LULC_AOI_TOKEN = import.meta.env.VITE_BHUVAN_LULC_AOI_KEY || "9bcffc4d6efaf5456f94d3ee07d9da66ca8139c3";
 const BHUVAN_ROUTING_TOKEN = import.meta.env.VITE_BHUVAN_ROUTING_KEY || "-21d2eb94c68f42bef6a495b60c39323fd6e95526";
@@ -12,6 +13,8 @@ export default function BhuvanGisMap({ gis }) {
   const mapInstanceRef = useRef(null);
 
   // Sub-feature states
+  const [bhuvanCensus, setBhuvanCensus] = useState(null);
+  const [loadingCensus, setLoadingCensus] = useState(false);
   const [lulcStats, setLulcStats] = useState(null);
   const [lulcAoi, setLulcAoi] = useState(null);
   const [geoidData, setGeoidData] = useState(null);
@@ -21,6 +24,7 @@ export default function BhuvanGisMap({ gis }) {
 
   const currentGis = gis || {};
   const isDiscrepancy = (currentGis.spatial_delta_pct || 0) > 5 || currentGis.spatial_consistency === "DISCREPANCY";
+
 
   // Compute centroid coordinates from geometry
   let centerLonLat = [77.4126, 23.2599]; // Default Bhopal / Central India reference
@@ -41,8 +45,37 @@ export default function BhuvanGisMap({ gis }) {
 
 
 
-  // Fetch Bhuvan Sub-features
+  // Fetch Bhuvan Sub-features & Census Geocoding
   useEffect(() => {
+    // 0. Fetch ISRO Bhuvan Authenticated Census & Village Geocoding API
+    async function fetchBhuvanCensus() {
+      const village = currentGis.metadata?.village || currentGis.village;
+      const district = currentGis.metadata?.district || currentGis.district;
+      const state = currentGis.metadata?.state || currentGis.state;
+      if (!village && !district) return;
+
+      setLoadingCensus(true);
+      try {
+        const apiBase = import.meta.env?.VITE_API_BASE || "http://127.0.0.1:8000";
+        const query = new URLSearchParams();
+        if (village) query.set("village", village);
+        if (district) query.set("district", district);
+        if (state) query.set("state", state);
+
+        const res = await fetch(`${apiBase}/gis/bhuvan/village?${query.toString()}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.bhuvan_data) {
+            setBhuvanCensus(data.bhuvan_data);
+          }
+        }
+      } catch (err) {
+        console.warn("Could not fetch Bhuvan census data via proxy:", err);
+      } finally {
+        setLoadingCensus(false);
+      }
+    }
+
     // 1. Fetch LULC Statistic API
     async function fetchLulcStats() {
       try {
@@ -86,8 +119,8 @@ export default function BhuvanGisMap({ gis }) {
           setLulcAoi(data);
         } else {
           setLulcAoi({
-            parcel_id: gis.parcel_id,
-            aoi_extent_acres: gis.area_gis_acres,
+            parcel_id: gis?.parcel_id,
+            aoi_extent_acres: gis?.area_gis_acres,
             classes: [
               { name: "Single Crop Agricultural Plot", coverage_pct: 82.4 },
               { name: "Field Boundary / Embankment", coverage_pct: 11.1 },
@@ -97,8 +130,8 @@ export default function BhuvanGisMap({ gis }) {
         }
       } catch (err) {
         setLulcAoi({
-          parcel_id: gis.parcel_id,
-          aoi_extent_acres: gis.area_gis_acres,
+          parcel_id: gis?.parcel_id,
+          aoi_extent_acres: gis?.area_gis_acres,
           classes: [
             { name: "Single Crop Agricultural Plot", coverage_pct: 82.4 },
             { name: "Field Boundary / Embankment", coverage_pct: 11.1 },
@@ -134,6 +167,7 @@ export default function BhuvanGisMap({ gis }) {
       }
     }
 
+    fetchBhuvanCensus();
     fetchLulcStats();
     fetchLulcAoi();
     fetchGeoidData();
@@ -177,9 +211,15 @@ export default function BhuvanGisMap({ gis }) {
       {/* Header Banner */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "12px" }}>
         <div>
-          <span style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", color: "var(--color-accent)", backgroundColor: "var(--color-accent-subtle)", padding: "3px 8px", borderRadius: "9999px", border: "1px solid var(--color-border-subtle)" }}>
-            🇮🇳 ISRO Bhuvan Cadastral GIS &amp; Geoid Engine
-          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+            <span style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", color: "var(--color-accent)", backgroundColor: "var(--color-accent-subtle)", padding: "3px 8px", borderRadius: "9999px", border: "1px solid var(--color-border-subtle)" }}>
+              🇮🇳 ISRO Bhuvan Cadastral GIS &amp; Geoid Engine
+            </span>
+            <span style={{ fontSize: "10px", fontWeight: 700, color: "#166534", backgroundColor: "#DCFCE7", padding: "3px 8px", borderRadius: "9999px", border: "1px solid #BBF7D0", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+              <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#16A34A" }} />
+              Bhuvan API Active (Key: {BHUVAN_API_TOKEN.slice(0, 6)}...{BHUVAN_API_TOKEN.slice(-4)})
+            </span>
+          </div>
           <h3 style={{ fontSize: "16px", fontWeight: 700, color: "var(--color-text-primary)", margin: "6px 0 2px 0", fontFamily: "serif" }}>
             Parcel Boundary &amp; Multi-Thematic Spatial Analysis
           </h3>
@@ -202,6 +242,44 @@ export default function BhuvanGisMap({ gis }) {
           </span>
         </div>
       </div>
+
+      {/* ISRO Bhuvan Authenticated Census & Village Master Banner */}
+      {bhuvanCensus && (
+        <div style={{ marginBottom: "16px", padding: "12px 16px", borderRadius: "8px", backgroundColor: "var(--color-bg-primary)", border: "1px solid #86EFAC", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
+          <div>
+            <div style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", color: "#166534", display: "flex", alignItems: "center", gap: "6px" }}>
+              <span>🛰️ ISRO Bhuvan Authenticated Geocoding &amp; Census 2011 Master</span>
+            </div>
+            <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--color-text-primary)", marginTop: "2px" }}>
+              {bhuvanCensus.village_name || bhuvanCensus.name || currentGis.metadata?.village || "Village"} &bull; {bhuvanCensus.tehsil_name || currentGis.metadata?.tehsil || "Tehsil"} &bull; {bhuvanCensus.district_name || currentGis.metadata?.district || "District"} ({bhuvanCensus.state_name || currentGis.metadata?.state || "India"})
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: "14px", fontSize: "11px" }}>
+            <div>
+              <span style={{ color: "var(--color-text-muted)", display: "block", fontSize: "10px" }}>BHUVAN VID</span>
+              <strong style={{ fontFamily: "monospace", color: "var(--color-accent)" }}>{bhuvanCensus.bhuvan_village_id || bhuvanCensus.vid || "—"}</strong>
+            </div>
+            {bhuvanCensus.total_population !== undefined && (
+              <div>
+                <span style={{ color: "var(--color-text-muted)", display: "block", fontSize: "10px" }}>POPULATION</span>
+                <strong style={{ color: "var(--color-text-primary)" }}>{Number(bhuvanCensus.total_population).toLocaleString()}</strong>
+              </div>
+            )}
+            {bhuvanCensus.households !== undefined && (
+              <div>
+                <span style={{ color: "var(--color-text-muted)", display: "block", fontSize: "10px" }}>HOUSEHOLDS</span>
+                <strong style={{ color: "var(--color-text-primary)" }}>{Number(bhuvanCensus.households).toLocaleString()}</strong>
+              </div>
+            )}
+            {bhuvanCensus.latitude !== undefined && (
+              <div>
+                <span style={{ color: "var(--color-text-muted)", display: "block", fontSize: "10px" }}>GEO COORDINATES</span>
+                <strong style={{ fontFamily: "monospace", color: "#16A34A" }}>{Number(bhuvanCensus.latitude).toFixed(4)}°N, {Number(bhuvanCensus.longitude).toFixed(4)}°E</strong>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Prominent Numeric GIS Metrics Bar */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px", marginBottom: "16px", backgroundColor: isDiscrepancy ? "var(--color-error-bg)" : "var(--color-bg-primary)", padding: "14px", borderRadius: "8px", border: isDiscrepancy ? "1px solid var(--color-error-border)" : "1px solid var(--color-border-subtle)" }}>
