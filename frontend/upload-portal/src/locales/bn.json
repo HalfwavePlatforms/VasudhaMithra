@@ -45,7 +45,8 @@
     "notificationsTitle": "সিস্টেম বিজ্ঞপ্তি",
     "markAllRead": "সব পড়া হয়েছে চিহ্নিত করুন",
     "noNotifications": "নতুন কোনো বিজ্ঞপ্তি নেই",
-    "selectLanguage": "ভাষা নির্বাচন করুন"
+    "selectLanguage": "ভাষা নির্বাচন করুন",
+    "admin": "উচ্চপদস্থ আধিকারিক / প্রশাসক"
   },
   "sidebar": {
     "appName": "বসুধামিত্র",

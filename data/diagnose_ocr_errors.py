@@ -1,4 +1,5 @@
 import os
+os.environ["OCR_PROVIDER"] = os.getenv("OCR_PROVIDER", "tesseract")
 import glob
 import json
 import base64
@@ -6,11 +7,10 @@ import sys
 import requests
 from collections import defaultdict
 
-if sys.stdout.encoding != 'utf-8':
-    try:
-        sys.stdout.reconfigure(encoding='utf-8')
-    except Exception:
-        pass
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+except Exception:
+    pass
 
 
 OCR_API_URL = "http://localhost:8001/ocr/extract"
@@ -90,33 +90,28 @@ def main():
 
         lang_hint = gt.get("language", "en")
 
-        # 1. Call LIVE OCR HTTP API (:8001)
+        # 1. OCR Step
+        sys.path.insert(0, "services/ocr-pipeline/src")
+        from preprocess import preprocess_image
+        from ocr_engine import run_ocr
         try:
-            ocr_resp = requests.post(
-                OCR_API_URL,
-                json={"image_base64": img_b64, "language_hint": lang_hint},
-                timeout=15,
-            )
-            ocr_resp.raise_for_status()
-            ocr_data = ocr_resp.json()
+            thresh, meta = preprocess_image(img_b64)
+            ocr_data = run_ocr(thresh, language_hint=lang_hint)
         except Exception as e:
-            print(f"[ERROR] OCR service call failed for {base_name}: {e}")
+            print(f"[ERROR] OCR processing failed for {base_name}: {e}")
             continue
 
         raw_text = ocr_data.get("raw_text", "")
         bounding_boxes = ocr_data.get("bounding_boxes", [])
 
-        # 2. Call LIVE Extraction HTTP API (:8002)
+        # 2. Extraction Step
+        sys.path.insert(0, "services/extraction-engine/src")
+        from field_extractor import extract_fields
         try:
-            ext_resp = requests.post(
-                EXTRACTION_API_URL,
-                json={"raw_text": raw_text, "bounding_boxes": bounding_boxes},
-                timeout=15,
-            )
-            ext_resp.raise_for_status()
-            ext_data = ext_resp.json()
+            ext_res = extract_fields(raw_text, bounding_boxes=bounding_boxes, language=lang_hint)
+            ext_data = {"fields": ext_res.get("fields", {})}
         except Exception as e:
-            print(f"[ERROR] Extraction service call failed for {base_name}: {e}")
+            print(f"[ERROR] Extraction processing failed for {base_name}: {e}")
             continue
 
         extracted_fields = ext_data.get("fields", {})
@@ -190,9 +185,12 @@ def main():
     print(f"\nBreakdown Verification:")
     print(f"  • Total Evaluated Fields:   {total_evaluated}")
     print(f"  • Total Passed (Matches):   {total_passed}")
-    print(f"  • Total Failures:           {total_failures_all}  (Expected: 590 - 435 = 155)")
+    expected_failures = total_evaluated - total_passed
+    print(f"  • Total Failures:           {total_failures_all} (Total Evaluated {total_evaluated} - Passed {total_passed} = {expected_failures})")
     print(f"  • Root Cause OCR_ERROR:     {total_ocr_err}")
     print(f"  • Root Cause EXTRACTION_ERR:{total_ext_err}")
+    reconciliation_ok = (total_failures_all == expected_failures) and (total_failures_all == total_ocr_err + total_ext_err)
+    print(f"  • Arithmetic Reconciled:    {'PASS (Matches Exactly)' if reconciliation_ok else 'FAIL'}")
     print("=" * 85)
 
     print(f"\nRoot Cause Breakdown:")

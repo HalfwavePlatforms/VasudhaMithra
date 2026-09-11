@@ -94,8 +94,8 @@ Identifies document categories based on header token proximity:
 ## 6. Dataset Structure & Benchmarking
 
 ### Dataset Layout
-- `data/sample-documents/`: 49+ multilingual synthetic documents covering all 7 supported languages (`en`, `hi`, `kn`, `mr`, `bn`, `ta`, `te`).
-- `data/ground-truth/`: 59 matching ground-truth JSON label files per image for objective accuracy evaluation.
+- `data/sample-documents/`: 96 sample document image assets (88 official ground-truth evaluation documents covering all 7 supported Indic languages (`en`, `hi`, `kn`, `mr`, `bn`, `ta`, `te`), plus 8 render/benchmark test artifacts).
+- `data/ground-truth/`: 88 verified ground-truth JSON annotation files matching evaluation documents.
 - `data/edge-cases/`: 5 challenging test documents:
   1. `edge_01_rotated_18deg.png`: Severely skewed document (18°)
   2. `edge_02_low_contrast_faded.png`: Low contrast/faded ink
@@ -107,19 +107,19 @@ Identifies document categories based on header token proximity:
 
 ### Benchmark Results (data/evaluate_accuracy.py)
 Following bicubic resolution upscaling ($1.5\times$) and `--psm 6` tabular segmentation mode:
-- **Total Fields Evaluated**: 590 fields across 59 ground-truth documents
-- **Overall Recognition Match**: **435/590 (73.7%)**
-- **Average Optical Confidence**: **77.1%**
+- **Total Fields Evaluated**: 620 fields across 88 ground-truth documents
+- **Overall Recognition Match**: **472/620 (76.1%)**
+- **Average Optical Confidence**: **71.0%**
 - **Key Field Accuracies**:
-  - `plot_area`: **98.3%**
-  - `khata_number`: **96.6%**
-  - `khasra_number`: **94.9%**
-  - `survey_number`: **89.8%**
-  - `owner_name`: **83.1%**
-  - `tehsil`: **72.9%**
-  - `district`: **66.1%**
-  - `land_classification`: **61.0%**
-  - `village`: **59.3%**
+  - `plot_area`: **94.9%** (56/59)
+  - `khasra_number`: **93.2%** (55/59)
+  - `khata_number`: **93.2%** (55/59)
+  - `owner_name`: **86.5%** (64/74)
+  - `survey_number`: **81.1%** (60/74)
+  - `tehsil`: **72.9%** (43/59)
+  - `district`: **64.4%** (38/59)
+  - `land_classification`: **61.0%** (36/59)
+  - `village`: **59.3%** (35/59)
 
 
 ---

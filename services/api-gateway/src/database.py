@@ -33,37 +33,43 @@ except Exception as e:
 
 try:
     Base.metadata.create_all(bind=engine)
-    # Check and add extraction_source column to record_fields if missing
+    # Check and add missing columns safely without unnecessary DDL locks
     with engine.connect() as conn:
         try:
-            from sqlalchemy import text
-            if DATABASE_URL.startswith("sqlite"):
-                cols = [r[1] for r in conn.execute(text("PRAGMA table_info(record_fields)")).fetchall()]
-                if "extraction_source" not in cols:
+            from sqlalchemy import text, inspect as sa_inspect
+            insp = sa_inspect(conn)
+            
+            # Check record_fields columns
+            rf_cols = [c["name"] for c in insp.get_columns("record_fields")]
+            if "extraction_source" not in rf_cols:
+                if DATABASE_URL.startswith("sqlite"):
                     conn.execute(text("ALTER TABLE record_fields ADD COLUMN extraction_source VARCHAR DEFAULT 'rule_based'"))
-                    conn.commit()
-                audit_cols = [r[1] for r in conn.execute(text("PRAGMA table_info(audit_log)")).fetchall()]
-                if "hash_input_ts" not in audit_cols:
-                    conn.execute(text("ALTER TABLE audit_log ADD COLUMN hash_input_ts VARCHAR"))
-                    conn.commit()
-                rec_cols = [r[1] for r in conn.execute(text("PRAGMA table_info(records)")).fetchall()]
-                if "verification_token" not in rec_cols:
-                    conn.execute(text("ALTER TABLE records ADD COLUMN verification_token VARCHAR"))
-                    conn.commit()
-                if "verification_url" not in rec_cols:
-                    conn.execute(text("ALTER TABLE records ADD COLUMN verification_url VARCHAR"))
-                    conn.commit()
-                if "village_lgd_code" not in rec_cols:
-                    conn.execute(text("ALTER TABLE records ADD COLUMN village_lgd_code VARCHAR"))
-                    conn.commit()
-            else:
-                conn.execute(text("ALTER TABLE record_fields ADD COLUMN IF NOT EXISTS extraction_source VARCHAR DEFAULT 'rule_based'"))
-                conn.execute(text("ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS prev_hash VARCHAR"))
-                conn.execute(text("ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS curr_hash VARCHAR"))
-                conn.execute(text("ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS hash_input_ts VARCHAR"))
-                conn.execute(text("ALTER TABLE records ADD COLUMN IF NOT EXISTS verification_token VARCHAR"))
-                conn.execute(text("ALTER TABLE records ADD COLUMN IF NOT EXISTS verification_url VARCHAR"))
-                conn.execute(text("ALTER TABLE records ADD COLUMN IF NOT EXISTS village_lgd_code VARCHAR"))
+                else:
+                    conn.execute(text("ALTER TABLE record_fields ADD COLUMN IF NOT EXISTS extraction_source VARCHAR DEFAULT 'rule_based'"))
+                conn.commit()
+
+            # Check audit_log columns
+            audit_cols = [c["name"] for c in insp.get_columns("audit_log")]
+            if "prev_hash" not in audit_cols:
+                conn.execute(text("ALTER TABLE audit_log ADD COLUMN prev_hash VARCHAR"))
+                conn.commit()
+            if "curr_hash" not in audit_cols:
+                conn.execute(text("ALTER TABLE audit_log ADD COLUMN curr_hash VARCHAR"))
+                conn.commit()
+            if "hash_input_ts" not in audit_cols:
+                conn.execute(text("ALTER TABLE audit_log ADD COLUMN hash_input_ts VARCHAR"))
+                conn.commit()
+
+            # Check records columns
+            rec_cols = [c["name"] for c in insp.get_columns("records")]
+            if "verification_token" not in rec_cols:
+                conn.execute(text("ALTER TABLE records ADD COLUMN verification_token VARCHAR"))
+                conn.commit()
+            if "verification_url" not in rec_cols:
+                conn.execute(text("ALTER TABLE records ADD COLUMN verification_url VARCHAR"))
+                conn.commit()
+            if "village_lgd_code" not in rec_cols:
+                conn.execute(text("ALTER TABLE records ADD COLUMN village_lgd_code VARCHAR"))
                 conn.commit()
         except Exception as mig_err:
             logger.debug("Column migration check: %s", mig_err)

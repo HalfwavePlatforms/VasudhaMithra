@@ -45,7 +45,8 @@
     "notificationsTitle": "प्रणाली सूचना",
     "markAllRead": "सर्व वाचलेले म्हणून चिन्हांकित करा",
     "noNotifications": "नवीन सूचना नाहीत",
-    "selectLanguage": "भाषा निवडा"
+    "selectLanguage": "भाषा निवडा",
+    "admin": "वरिष्ठ अधिकारी / प्रशासक"
   },
   "sidebar": {
     "appName": "वसुधामित्र",

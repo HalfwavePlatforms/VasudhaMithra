@@ -1,0 +1,115 @@
+================================================================================
+VASUDHAMITHRA PS 26018 — END-TO-END WORKFLOW INTEGRATION WALKTHROUGH
+================================================================================
+
+[STEP 0] Baseline Command Centre Stats (GET /dashboard/stats)
+Status Code: 200
+Total Processed: 119
+Verified Count: 21
+Pending Review Count: 68
+Field Accuracy: 80.7%
+Spatial Discrepancies: 2
+
+[STEP 1] Document Intake Upload (POST /records/upload)
+Uploading real document: data/sample-documents/doc_kn_01.png (75584 bytes)
+Upload Status Code: 200
+Upload Response:
+{
+  "record_id": "6aafb910-6469-4509-9bb7-ce504b2d0eb2",
+  "status": "pending_review",
+  "risk_level": "HIGH",
+  "spatial_consistency": "NOT_EVALUATED"
+}
+
+===> HANDOFF CONFIRMED: record_id = 6aafb910-6469-4509-9bb7-ce504b2d0eb2
+Pipeline initial status: pending_review, Risk: HIGH
+
+[STEP 2 & 3] Verification Desk Ingestion (GET /records/6aafb910-6469-4509-9bb7-ce504b2d0eb2)
+Status Code: 200
+Document Type: Mutation Extract (Form XII)
+Overall OCR Confidence: 74.3%
+
+Extracted Fields & Real Confidences:
+  - survey_number       : 936/5                          [Conf: 80.0%]
+  - khasra_number       : None                           [Conf: Unverified]
+  - khata_number        : 527                            [Conf: 96.0%]
+  - owner_name          : ಬಸವರಾಜ ಹೆಗಡೆ. ವೌಸ್             [Conf: 89.0%]
+  - plot_area           : None                           [Conf: Unverified]
+  - village             : None                           [Conf: Unverified]
+  - tehsil              : ಮಂಡ್‌ಯ. ಜ್‌ೌಲ್‌ಲೆ: ಶೌವಮೆಸ್‌ಗ: ಭೂ ವರ್‌ಗೇಕರಣ: ಕೃಷ್‌ (ನೇರಾವರ್‌) [Conf: 55.7%]
+  - district            : None                           [Conf: Unverified]
+  - land_classification : None                           [Conf: Unverified]
+  - mutation_number     : None                           [Conf: Unverified]
+  - registration_info   : None                           [Conf: Unverified]
+  - ownership_type      : None                           [Conf: Unverified]
+
+Real Validation Violations: [{'field': 'survey_number', 'rule': 'duplicate', 'message': "Duplicate detected: survey_number '936/5' matches prior record d1cda548-cabc-45ec-9669-ff0729ebff8c"}, {'field': 'khata_number', 'rule': 'duplicate', 'message': "Duplicate detected: khata_number '527' matches prior record 0725f5f4-8628-4468-aa8d-7cb436b2eb92"}]
+GIS Spatial Consistency Check:
+  - Initial Status: Unmatched (survey number unverified on intake; pending human desk input)
+
+[STEP 4] Human Verification: Correct Field & Approve (PATCH /records/6aafb910-6469-4509-9bb7-ce504b2d0eb2)
+PATCH Status Code: 200
+New Status: validated
+New Risk Level: LOW
+Updated Owner: Basavaraja Hegde
+Updated Survey: 145/2
+Updated GIS Consistency: MATCH
+Matched Cadastral Parcel: PARCEL-145-2
+GIS Area: 2.47 ac (Document Area: 2.47 ac)
+Review Notes Recorded: Verified against survey registry. Reconciled boundary with cadastral record.
+Reviewed By: tahsildar
+
+[STEP 5] Audit Trail Event Verification (GET /dashboard/audit-trail?limit=6)
+Audit Trail Total Events: 6
+Found 6 audit events for record 6aafb910-6469-4509-9bb7-ce504b2d0eb2:
+  - [status_updated] by 'tahsildar' at 2026-09-11T22:33:02.245933+05:30 -> Details: {'status': 'validated', 'violations': 2}
+  - [human_reviewed] by 'tahsildar' at 2026-09-11T22:33:02.081524+05:30 -> Details: {'fields_corrected': ['survey_number', 'khasra_number', 'khata_number', 'owner_name', 'plot_area', 'village', 'tehsil', 'district', 'land_classification', 'mutation_number', 'registration_info', 'ownership_type'], 'notes': 'Verified against survey registry. Reconciled boundary with cadastral record.', 'decision': 'APPROVED'}
+  - [extracted_and_validated] by 'System' at 2026-09-11T22:33:01.942862+05:30 -> Details: {'status': 'pending_review', 'spatial_consistency': 'NOT_EVALUATED'}
+  - [gis_lookup_failed] by 'GIS Service' at 2026-09-11T22:33:01.925007+05:30 -> Details: {'survey_number': '936/5'}
+  - [ocr_completed] by 'OCR Engine' at 2026-09-11T22:33:00.445728+05:30 -> Details: {'confidence': 0.7428, 'doc_type': 'Mutation Extract (Form XII)', 'language': 'kn'}
+  - [uploaded] by 'Officer (demo)' at 2026-09-11T22:32:57.666030+05:30 -> Details: {'filename': 'doc_kn_01.png', 'language': 'kn', 'file_path': 'storage/6aafb910-6469-4509-9bb7-ce504b2d0eb2.png'}
+
+[STEP 6] Land Records Master Table (GET /records?page=1&limit=10)
+Total Master Records: 120
+✓ Record 6aafb910-6469-4509-9bb7-ce504b2d0eb2 found in Land Records Master Table:
+  Survey: 145/2
+  Owner: Basavaraja Hegde
+  Status: validated (Badge: Validated)
+  Risk: LOW
+
+[STEP 7] Command Centre Metrics Delta (GET /dashboard/stats)
+Total Processed: 119 -> 120 (+1)
+Verified Count:  21 -> 22 (+1)
+Pending Count:   68 -> 68
+
+[STEP 8] Cryptographic Hash-Chain Verification (GET /records/6aafb910-6469-4509-9bb7-ce504b2d0eb2/audit/verify)
+Status Code: 200
+Audit Chain Valid: True
+Verified Entries: 6
+Chain Integrity Status: PASS (Untampered SHA-256 Sequence)
+
+[STEP 9] Official Digital Certificate Generation (GET /records/6aafb910-6469-4509-9bb7-ce504b2d0eb2/certificate)
+Status Code: 200
+Content Type: application/pdf
+Certificate Size: 495205 bytes
+X-Certificate-Status: validated
+X-Audit-Valid: true
+Valid PDF Header: True
+
+[STEP 10] State-Specific Regional Certificate Generation (GET /records/6aafb910-6469-4509-9bb7-ce504b2d0eb2/certificate/regional)
+Status Code: 200
+Content Type: application/pdf
+Regional Certificate Size: 458273 bytes
+X-Regional-State: Karnataka
+
+[STEP 11] Public Citizen QR Code Verification (GET /verify/6aafb910-6469-4509-9bb7-ce504b2d0eb2?token=...)
+Using Verification Token: ab23188a0532a35e3177
+Public Verification Status Code: 200
+Verified Survey Number: 145/2
+Verified Owner Name: Basavaraja Hegde
+Audit Chain Valid: True
+Public PII Redaction: No Aadhaar or internal officer IDs exposed
+
+================================================================================
+ALL 11 STEPS OF THE PS 26018 COMPLETE PIPELINE VERIFIED SUCCESSFULLY!
+================================================================================

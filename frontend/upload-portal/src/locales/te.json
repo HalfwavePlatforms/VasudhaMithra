@@ -45,7 +45,8 @@
     "notificationsTitle": "సిస్టమ్ నోటిఫికేషన్లు",
     "markAllRead": "అన్నీ చదివినట్లు గుర్తించు",
     "noNotifications": "కొత్త నోటిఫికేషన్లు లేవు",
-    "selectLanguage": "భాషను ఎంచుకోండి"
+    "selectLanguage": "భాషను ఎంచుకోండి",
+    "admin": "ఉన్నతాధికారి / నిర్వాహకుడు"
   },
   "sidebar": {
     "appName": "వసుధామైత్ర",

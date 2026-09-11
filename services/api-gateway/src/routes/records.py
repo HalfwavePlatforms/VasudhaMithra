@@ -42,11 +42,7 @@ GIS_SERVICE_URL = os.getenv("GIS_SERVICE_URL", "http://127.0.0.1:8003")
 
 # Persistent Document Storage Path
 BASE_DIR = Path(__file__).resolve().parent
-REPO_ROOT = BASE_DIR
-for p in [BASE_DIR] + list(BASE_DIR.parents):
-    if (p / "storage").exists() or (p / "services").exists():
-        REPO_ROOT = p
-        break
+REPO_ROOT = Path(__file__).resolve().parents[4]
 
 STORAGE_PATH_ENV = os.getenv("STORAGE_PATH")
 if STORAGE_PATH_ENV:
@@ -425,6 +421,27 @@ async def upload_record(
                     continue
 
         if extraction_data is None:
+            # Resilient in-process fallback for local dev/e2e walkthrough runs
+            try:
+                import sys
+                ext_src = str(REPO_ROOT / "services" / "extraction-engine" / "src")
+                if ext_src not in sys.path:
+                    sys.path.insert(0, ext_src)
+                from field_extractor import extract_fields
+                boxes = ocr_data.get("bounding_boxes", [])
+                ext_res = extract_fields(
+                    raw_text=ocr_data["raw_text"],
+                    bounding_boxes=boxes,
+                    document_type=record.document_type,
+                    classification_confidence=classification_conf,
+                    language=record.language,
+                )
+                extraction_data = ext_res
+                logger.info(f"Extraction service fell back to in-process extract_fields successfully for record {record.id}")
+            except Exception as in_proc_err:
+                logger.warning(f"In-process extraction fallback failed: {in_proc_err}")
+
+        if extraction_data is None:
             record.status = "rejected"
             db.commit()
             err_detail = ""
@@ -516,6 +533,7 @@ async def upload_record(
                     extraction_source=src,
                 )
             )
+        db.commit()
 
         # 3. Rule-based Validation + Duplicate Checking
         violations = _validate_and_check_duplicates(db, record.id, extraction_data["fields"])

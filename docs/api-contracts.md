@@ -323,6 +323,35 @@ Response:
 }
 ```
 
+### GET /records/{record_id}/certificate
+Generates and downloads the official bilingual Digital Land Record Certificate PDF for a validated record.
+- Prerequisite: Enforces `record.status == 'validated'` (returns `400 Bad Request` for pending or rejected records).
+- Content: Official Republic of India styling, bilingual typography, GeoJSON cadastral parcel plot, SHA-256 cryptographic audit chain proof, and citizen verification QR code.
+- Headers: `X-Certificate-Status: validated`, `X-Audit-Valid: true | false`.
+
+### GET /records/{record_id}/certificate/regional?state=Karnataka
+Generates and downloads the state-matched bilingual Regional Land Record Certificate PDF with regional script typography (Kannada Bhoomi RTC, Marathi 7/12, Hindi Khasra/Khatauni, Telugu Pahani/1B, Tamil Patta/Chitta, Bengali Porcha).
+- Query params: `state` (optional override).
+- Headers: `X-Certificate-Type: regional-bilingual`, `X-Regional-State: <State>`.
+
+### GET /records/{record_id}/audit/verify
+Public/Internal verification of the cryptographic SHA-256 tamper-evident audit hash-chain.
+Response:
+```json
+{
+  "valid": true,
+  "verified_entries": 4,
+  "broken_at": null
+}
+```
+
+### GET /public/verify/{record_id}?token={hmac_token}
+Citizen public land record verification portal.
+- Security: Protected by HMAC-SHA256 token matching and sliding-window IP rate limiting (30 requests/min).
+- Privacy / PII Discipline: Deliberately excludes sensitive fields (raw OCR text, confidence metrics, reviewer notes, personal contact details, Aadhaar, internal officer IDs).
+- Response: Public verification facts including survey number, owner name, village, district, state, validation status, and audit chain verification status.
+
 ### GET /health
 Response: `{ "status": "ok" }`
+
 

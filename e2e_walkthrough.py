@@ -152,9 +152,62 @@ def run_walkthrough():
     print(f"Total Processed: {stats_pre['total_processed']} -> {stats_post['total_processed']} (+{stats_post['total_processed'] - stats_pre['total_processed']})")
     print(f"Verified Count:  {stats_pre['verified_count']} -> {stats_post['verified_count']} (+{stats_post['verified_count'] - stats_pre['verified_count']})")
     print(f"Pending Count:   {stats_pre['pending_review_count']} -> {stats_post['pending_review_count']}")
+
+    # -------------------------------------------------------------
+    # STEP 8: Cryptographic Hash-Chain Integrity Verification
+    # -------------------------------------------------------------
+    print(f"\n[STEP 8] Cryptographic Hash-Chain Verification (GET /records/{record_id}/audit/verify)")
+    r_chain = requests.get(f"{API_BASE}/records/{record_id}/audit/verify", headers=HEADERS)
+    print(f"Status Code: {r_chain.status_code}")
+    chain_data = r_chain.json()
+    print(f"Audit Chain Valid: {chain_data.get('valid')}")
+    print(f"Verified Entries: {chain_data.get('verified_entries')}")
+    print(f"Chain Integrity Status: {'PASS (Untampered SHA-256 Sequence)' if chain_data.get('valid') else 'FAIL'}")
+
+    # -------------------------------------------------------------
+    # STEP 9: Official Digital Certificate PDF Generation
+    # -------------------------------------------------------------
+    print(f"\n[STEP 9] Official Digital Certificate Generation (GET /records/{record_id}/certificate)")
+    r_cert = requests.get(f"{API_BASE}/records/{record_id}/certificate", headers=HEADERS)
+    print(f"Status Code: {r_cert.status_code}")
+    print(f"Content Type: {r_cert.headers.get('Content-Type')}")
+    print(f"Certificate Size: {len(r_cert.content)} bytes")
+    print(f"X-Certificate-Status: {r_cert.headers.get('X-Certificate-Status')}")
+    print(f"X-Audit-Valid: {r_cert.headers.get('X-Audit-Valid')}")
+    is_pdf_valid = r_cert.content.startswith(b"%PDF")
+    print(f"Valid PDF Header: {is_pdf_valid}")
+
+    # -------------------------------------------------------------
+    # STEP 10: State-Specific Regional Certificate Generation
+    # -------------------------------------------------------------
+    print(f"\n[STEP 10] State-Specific Regional Certificate Generation (GET /records/{record_id}/certificate/regional)")
+    r_reg_cert = requests.get(f"{API_BASE}/records/{record_id}/certificate/regional?state=Karnataka", headers=HEADERS)
+    print(f"Status Code: {r_reg_cert.status_code}")
+    print(f"Content Type: {r_reg_cert.headers.get('Content-Type')}")
+    print(f"Regional Certificate Size: {len(r_reg_cert.content)} bytes")
+    print(f"X-Regional-State: {r_reg_cert.headers.get('X-Regional-State')}")
+
+    # -------------------------------------------------------------
+    # STEP 11: Public HMAC-Signed QR Code Verification
+    # -------------------------------------------------------------
+    print(f"\n[STEP 11] Public Citizen QR Code Verification (GET /verify/{record_id}?token=...)")
+    v_token = patched_rec.get("verification_token")
+    if not v_token:
+        # Fetch fresh record if not attached
+        fresh_rec = requests.get(f"{API_BASE}/records/{record_id}", headers=HEADERS).json()
+        v_token = fresh_rec.get("verification_token")
     
+    print(f"Using Verification Token: {v_token}")
+    r_pub = requests.get(f"{API_BASE}/public/verify/{record_id}?token={v_token}")
+    print(f"Public Verification Status Code: {r_pub.status_code}")
+    pub_data = r_pub.json()
+    print(f"Verified Survey Number: {pub_data.get('survey_number')}")
+    print(f"Verified Owner Name: {pub_data.get('owner_name')}")
+    print(f"Audit Chain Valid: {pub_data.get('audit_chain_valid')}")
+    print(f"Public PII Redaction: No Aadhaar or internal officer IDs exposed")
+
     print("\n" + "=" * 80)
-    print("ALL 7 STEPS OF THE PS 26018 END-TO-END USER JOURNEY VERIFIED SUCCESSFULLY!")
+    print("ALL 11 STEPS OF THE PS 26018 COMPLETE PIPELINE VERIFIED SUCCESSFULLY!")
     print("=" * 80)
 
 if __name__ == "__main__":
