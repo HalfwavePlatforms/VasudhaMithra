@@ -74,3 +74,36 @@ def test_ollama_fallback_graceful_handling():
     assert status == "llm_extraction_failed"
     assert res is None
 
+
+def test_parse_form3_eaasthi_municipal_record():
+    """Verifies that Karnataka Form-3 (Rule 20) / E-Aasthi municipal records are parsed correctly."""
+    sample_ocr = (
+        "ಕರ್ನಾಟಕ ಸರ್ಕಾರ ಪೌರಾಡಳಿತ ನಿರ್ದೇಶನಾಲಯ ಪುರಸಭೆ, ಪಾಂಡವಪುರ ನಮೂನೆ-3 (ನಿಯಮ 20)\n"
+        "ಜಿಲ್ಲೆ : ಮಂಡ್ಯ | ನಗರ/ಪಟ್ಟಣ : ಪಾಂಡವಪುರ. | ಸ್ವತ್ತಿನ ತರಹೆ : ಖಾಸಗಿ ದಾಖಲೆ ಸಂಖ್ಯೆ : 2279244\n"
+        "ಸ್ವತ್ತಿನ ಸಂಖ್ಯೆ : 5-12-60 ನಿರ್ಧರಣಾ ಸಂಖ್ಯೆ : 1988/1367 ಸ್ವತ್ತಿನ ವರ್ಗೀಕರಣ : ಅಧಿಕೃತ ಸ್ವತ್ತಿನ ಪ್ರಕಾರ : ಕಟ್ಟಡ\n"
+        "ಸ್ವತ್ತಿನ ವಿಳಾಸ : ಕೊಲವನ ಬೀದಿ, ಪಾಂಡವಪುರ ನಿವೇಶನದ ವಿಸ್ತೀರ್ಣ (ಚ.ಮೀ) : 61.31598\n"
+        "ಮಾಲೀಕರ ಹೆಸರು : ಕದರೇಶ ಬಿನ್ ಲೇಟ್ ತಂಬಿಯಪ್ಪ ಮತದಾರರ ಗುರುತಿನ ಚೀಟಿ : IMY1382753 ವಿಳಾಸ : ಚಿಕ್ಕಬಾಣಾವರ"
+    )
+    response = client.post(
+        "/extraction/parse",
+        json={
+            "raw_text": sample_ocr,
+            "bounding_boxes": [],
+            "document_type": "Form-3 Property Register (E-Aasthi)",
+            "language": "kn"
+        }
+    )
+    assert response.status_code == 200
+    body = response.json()
+    fields = body["fields"]
+
+    assert fields["survey_number"] == "5-12-60"
+    assert fields["khasra_number"] == "1988/1367"
+    assert fields["district"] == "ಮಂಡ್ಯ"
+    assert fields["tehsil"] == "ಪಾಂಡವಪುರ"
+    assert fields["owner_name"] == "ಕದರೇಶ"
+    assert "61.31598" in fields["plot_area"]
+    assert body.get("area_acres") is not None
+    assert body["area_acres"] < 0.05  # 61.31598 sq.m is approx 0.01515 acres
+
+

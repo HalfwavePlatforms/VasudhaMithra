@@ -320,6 +320,21 @@ def classify_document_details(raw_text: str, bounding_boxes: list[dict] | None =
 
     # 3. Specific Named Legal Documents
     if (
+        ("ನಮೂನೆ-3" in raw_text or "ನಮೂನೆ 3" in raw_text or "ನಮೂನೆ-೩" in raw_text or "form 3" in text_lower or "form-3" in text_lower or "e-aasthi" in text_lower or "e-aasti" in text_lower)
+        and (
+            "ಪೌರಾಡಳಿತ" in raw_text
+            or "ಪುರಸಭೆ" in raw_text
+            or "ನಗರಸಭೆ" in raw_text
+            or "ಸ್ವತ್ತಿನ" in raw_text
+            or "ನಿರ್ಧರಣಾ" in raw_text
+            or "ನಿಯಮ 20" in raw_text
+            or "ನಿಯಮ ೨೦" in raw_text
+            or "rule 20" in text_lower
+            or "ಅಧಿಕೃತ" in raw_text
+        )
+    ):
+        return "Form-3 Property Register (E-Aasthi)", lang, 0.98
+    elif (
         "mutation" in text_lower
         or "नामांतरण" in raw_text
         or "ಮ್ಯುಟೇಶನ್" in raw_text

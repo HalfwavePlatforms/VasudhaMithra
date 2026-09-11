@@ -2,8 +2,15 @@ import React, { useState, useEffect, useRef } from "react";
 import { Loader2 } from "lucide-react";
 
 const ALLOWED_DOMAIN_PATTERN = /@([a-z0-9-]+\.)*gov\.in$/i;
+const ADMIN_EMAILS = ["vasudhamithra@gmail.com"];
 
 const ROLE_CONFIGS = {
+  admin: {
+    label: "Higher official",
+    xRole: "admin",
+    defaultActor: "Chief Registrar",
+    description: "Executive oversight, admin works, mutation approvals, GIS inspection, and platform analytics."
+  },
   revenue: {
     label: "Revenue officer",
     xRole: "officer",
@@ -200,6 +207,7 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
       setEmailError(selectedRole === "citizen" ? "Email address is required." : "Official email address is required.");
       return false;
     }
+    const isWhitelistedAdmin = ADMIN_EMAILS.includes(trimmed.toLowerCase());
     // Citizen login allows any valid email domain (e.g. @gmail.com, @yahoo.com)
     if (selectedRole === "citizen") {
       const standardEmailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -207,9 +215,13 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
         setEmailError("Enter a valid email address (e.g. yourname@gmail.com)");
         return false;
       }
+    } else if (isWhitelistedAdmin) {
+      // Authorized higher official email bypasses .gov.in restriction
+      setEmailError("");
+      return true;
     } else {
       if (!ALLOWED_DOMAIN_PATTERN.test(trimmed)) {
-        setEmailError("Enter an official department email ending in .gov.in (e.g. name@department.gov.in)");
+        setEmailError("Enter an official department email ending in .gov.in (or authorized higher official email)");
         return false;
       }
     }
@@ -393,13 +405,16 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
     } catch (err) {
       // If demo code matches fallback
       if (demoOtpCode && code === demoOtpCode) {
-        const roleObj = ROLE_CONFIGS[selectedRole];
+        const isWhitelistedAdmin = ADMIN_EMAILS.includes(email.trim().toLowerCase());
+        const roleObj = isWhitelistedAdmin ? ROLE_CONFIGS.admin : (ROLE_CONFIGS[selectedRole] || ROLE_CONFIGS.revenue);
         const userSession = {
           email: email.trim(),
           phone: phone.trim(),
-          roleKey: selectedRole,
+          roleKey: isWhitelistedAdmin ? "admin" : selectedRole,
           xRole: roleObj.xRole,
-          actor: `${email.trim().split("@")[0].replace(".", " ").toUpperCase()} (${roleObj.defaultActor})`,
+          actor: isWhitelistedAdmin
+            ? "VASUDHAMITHRA (Chief Registrar - Higher Official)"
+            : `${email.trim().split("@")[0].replace(".", " ").toUpperCase()} (${roleObj.defaultActor})`,
           loggedInAt: new Date().toISOString(),
         };
         const randomHex = Array.from({length: 40}, () => Math.floor(Math.random()*16).toString(16)).join('');
@@ -481,7 +496,11 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
 
                 {/* Email Input */}
                 <label className="block text-xs font-semibold text-[var(--color-text-primary)] mb-2">
-                  {selectedRole === "citizen" ? "Email address (any domain)" : "Official email address"}
+                  {selectedRole === "citizen"
+                    ? "Email address (any domain)"
+                    : selectedRole === "admin"
+                    ? "Higher official email address"
+                    : "Official email address"}
                 </label>
                 <div className="mb-4">
                   <div
@@ -500,7 +519,9 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
                       placeholder={
                         selectedRole === "citizen"
                           ? "yourname@gmail.com (any email)"
-                          : "name@department.gov.in"
+                          : selectedRole === "admin"
+                          ? "vasudhamithra@gmail.com or officer@revenue.gov.in"
+                          : "name@department.gov.in (or vasudhamithra@gmail.com)"
                       }
                       className="w-full bg-transparent border-none outline-none text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)]"
                     />

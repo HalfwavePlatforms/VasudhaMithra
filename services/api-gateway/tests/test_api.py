@@ -539,5 +539,66 @@ def test_gis_spatial_auto_heal_and_consistency():
         db.close()
 
 
+def test_higher_official_vasudhamithra_admin_login():
+    os.environ["DEBUG_MODE"] = "true"
 
+    # 1. Random non-gov email in official role is rejected
+    rej_resp = client.post(
+        "/auth/send-otp",
+        json={"email": "unauthorized_user@gmail.com", "phone": "9876543210", "role": "revenue"},
+    )
+    assert rej_resp.status_code == 400
+    assert "Official email must end with .gov.in" in rej_resp.json()["detail"]
 
+    # 2. Whitelisted higher official email (vasudhamithra@gmail.com) is accepted under admin role
+    send_resp = client.post(
+        "/auth/send-otp",
+        json={"email": "vasudhamithra@gmail.com", "phone": "9876543210", "role": "admin"},
+    )
+    assert send_resp.status_code == 200
+    otp = send_resp.json().get("demo_otp") or send_resp.json().get("backup_otp")
+    assert otp is not None
+
+    # 3. Verify OTP yields admin xRole and Chief Registrar actor
+    verify_resp = client.post(
+        "/auth/verify-otp",
+        json={
+            "email": "vasudhamithra@gmail.com",
+            "phone": "9876543210",
+            "otp": otp,
+            "role": "admin",
+        },
+    )
+    assert verify_resp.status_code == 200
+    data = verify_resp.json()
+    assert data["user"]["xRole"] == "admin"
+    assert data["user"]["roleKey"] == "admin"
+    assert "Chief Registrar" in data["user"]["actor"]
+    admin_token = data["token"]
+
+    # 4. Whitelisted email works even if submitted under 'revenue' tab
+    send_resp_rev = client.post(
+        "/auth/send-otp",
+        json={"email": "VasudhaMithra@gmail.com", "phone": "9876543210", "role": "revenue"},
+    )
+    assert send_resp_rev.status_code == 200
+    otp_rev = send_resp_rev.json().get("demo_otp") or send_resp_rev.json().get("backup_otp")
+    verify_resp_rev = client.post(
+        "/auth/verify-otp",
+        json={
+            "email": "VasudhaMithra@gmail.com",
+            "phone": "9876543210",
+            "otp": otp_rev,
+            "role": "revenue",
+        },
+    )
+    assert verify_resp_rev.status_code == 200
+    assert verify_resp_rev.json()["user"]["xRole"] == "admin"
+
+    # 5. Admin token has superuser access to protected endpoints
+    audit_resp = client.get(
+        "/dashboard/audit-trail",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert audit_resp.status_code == 200
+    assert "audit_logs" in audit_resp.json()

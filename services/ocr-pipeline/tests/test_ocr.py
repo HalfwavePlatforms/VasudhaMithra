@@ -78,3 +78,17 @@ def test_extract_multipage_pdf():
     assert len(data["metadata"]["page_details"]) == 2
 
 
+def test_classify_form3_eaasthi_document():
+    from preprocess import classify_document_details
+    sample_ocr = (
+        "ಕರ್ನಾಟಕ ಸರ್ಕಾರ ಪೌರಾಡಳಿತ ನಿರ್ದೇಶನಾಲಯ ಪುರಸಭೆ, ಪಾಂಡವಪುರ ನಮೂನೆ-3 (ನಿಯಮ 20)\n"
+        "ಜಿಲ್ಲೆ : ಮಂಡ್ಯ | ನಗರ/ಪಟ್ಟಣ : ಪಾಂಡವಪುರ. | ಸ್ವತ್ತಿನ ತರಹೆ : ಖಾಸಗಿ ದಾಖಲೆ ಸಂಖ್ಯೆ : 2279244\n"
+        "ಸ್ವತ್ತಿನ ಸಂಖ್ಯೆ : 5-12-60 ನಿರ್ಧರಣಾ ಸಂಖ್ಯೆ : 1988/1367 ಸ್ವತ್ತಿನ ವರ್ಗೀಕರಣ : ಅಧಿಕೃತ"
+    )
+    doc_type, lang, conf = classify_document_details(sample_ocr)
+    assert doc_type == "Form-3 Property Register (E-Aasthi)"
+    assert lang == "kn"
+    assert conf >= 0.95
+
+
+

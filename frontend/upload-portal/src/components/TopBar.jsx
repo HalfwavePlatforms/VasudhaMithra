@@ -70,6 +70,7 @@ export default function TopBar({
 
   const getRoleDisplay = () => {
     if (!user?.xRole) return t("topbar.officer");
+    if (user.xRole === "admin") return t("topbar.admin", "Higher Official / Administrator");
     if (user.xRole === "officer") return t("topbar.revenueOfficer");
     if (user.xRole === "surveyor") return t("topbar.cadastralSurveyor");
     if (user.xRole === "tahsildar") return t("topbar.tahsildar");

@@ -125,7 +125,18 @@ def get_current_session(authorization: str | None = Header(default=None)) -> Dic
 ALLOWED_DOMAIN_PATTERN = re.compile(r"@([a-z0-9-]+\.)*gov\.in$", re.IGNORECASE)
 INDIAN_PHONE_PATTERN = re.compile(r"^(?:\+91|91|0)?[6-9]\d{9}$")
 
+# Authorized Higher Officials / Administrators whitelisted to access admin works
+ADMIN_EMAILS = {
+    "vasudhamithra@gmail.com",
+    *[e.strip().lower() for e in os.getenv("ADMIN_EMAILS", "").split(",") if e.strip()]
+}
+
 ROLE_MAP = {
+    "admin": {
+        "label": "Higher official / Admin",
+        "xRole": "admin",
+        "defaultActor": "Chief Registrar",
+    },
     "revenue": {
         "label": "Revenue officer",
         "xRole": "officer",
@@ -161,18 +172,13 @@ ROLE_MAP = {
         "xRole": "tahsildar",
         "defaultActor": "Field Verifier",
     },
-    "admin": {
-        "label": "System Administrator",
-        "xRole": "admin",
-        "defaultActor": "Chief Registrar",
-    },
 }
 
 
 class SendOtpRequest(BaseModel):
-    email: str = Field(..., description="Official government email ending in .gov.in")
+    email: str = Field(..., description="Official government email ending in .gov.in or authorized admin email")
     phone: str = Field(..., description="10-digit Indian mobile number")
-    role: str = Field(default="revenue", description="User role (revenue, survey, verifier)")
+    role: str = Field(default="revenue", description="User role (admin, revenue, survey, verifier, citizen)")
 
 
 class VerifyOtpRequest(BaseModel):
@@ -203,15 +209,20 @@ async def send_login_otp(req: SendOtpRequest):
     """
     email_clean = req.email.strip().lower()
     phone_clean = re.sub(r"[\s\-\(\)]", "", req.phone.strip())
+    is_admin = email_clean in ADMIN_EMAILS
 
     # 1. Validate email address
     # For citizen login, allow any valid standard email domain (e.g. @gmail.com, @yahoo.com)
+    # For authorized higher officials / administrators (vasudhamithra@gmail.com), allow full access
     if req.role in ("citizen", "verifier"):
         if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email_clean):
             raise HTTPException(
                 status_code=400,
                 detail="Please enter a valid email address.",
             )
+    elif is_admin:
+        # Whitelisted Higher Official / Admin access
+        pass
     else:
         if not ALLOWED_DOMAIN_PATTERN.search(email_clean):
             raise HTTPException(
@@ -227,8 +238,9 @@ async def send_login_otp(req: SendOtpRequest):
         )
 
     normalized_phone = normalize_phone_e164(phone_clean)
-    role_info = ROLE_MAP.get(req.role, ROLE_MAP["revenue"])
-    actor_label = role_info["defaultActor"]
+    effective_role = "admin" if is_admin else req.role
+    role_info = ROLE_MAP.get(effective_role, ROLE_MAP["revenue"])
+    actor_label = "Chief Registrar (Higher Official)" if is_admin else role_info["defaultActor"]
 
     # 3. Generate secure 6-digit numeric OTP
     otp_code = f"{secrets.randbelow(900000) + 100000}"
@@ -240,8 +252,9 @@ async def send_login_otp(req: SendOtpRequest):
         "expires_at": expires_at,
         "email": email_clean,
         "phone": normalized_phone,
-        "role": req.role,
+        "role": effective_role,
         "role_info": role_info,
+        "is_admin": is_admin,
     }
     _ACTIVE_OTPS[email_clean] = session_data
     _ACTIVE_OTPS[normalized_phone] = session_data
@@ -309,15 +322,26 @@ async def verify_login_otp(req: VerifyOtpRequest):
     _ACTIVE_OTPS.pop(email_clean, None)
     _ACTIVE_OTPS.pop(phone_clean, None)
 
-    role_info = session_data.get("role_info") or ROLE_MAP.get(req.role, ROLE_MAP["revenue"])
-    name_part = email_clean.split("@")[0].replace(".", " ").title()
-    actor_full = f"{name_part} ({role_info['defaultActor']})"
+    is_admin = (email_clean in ADMIN_EMAILS) or session_data.get("is_admin", False)
+
+    if is_admin:
+        role_info = ROLE_MAP["admin"]
+        role_key = "admin"
+        x_role = "admin"
+        name_part = email_clean.split("@")[0].replace(".", " ").title()
+        actor_full = f"{name_part} (Chief Registrar - Higher Official)"
+    else:
+        role_info = session_data.get("role_info") or ROLE_MAP.get(req.role, ROLE_MAP["revenue"])
+        role_key = req.role
+        x_role = role_info["xRole"]
+        name_part = email_clean.split("@")[0].replace(".", " ").title()
+        actor_full = f"{name_part} ({role_info['defaultActor']})"
 
     user_session = {
         "email": email_clean,
         "phone": phone_clean,
-        "roleKey": req.role,
-        "xRole": role_info["xRole"],
+        "roleKey": role_key,
+        "xRole": x_role,
         "actor": actor_full,
         "loggedInAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
@@ -334,7 +358,7 @@ async def verify_login_otp(req: VerifyOtpRequest):
     }
     _save_sessions()
 
-    logger.info(f"User login verified successfully: {email_clean} ({phone_clean}) as {role_info['xRole']}")
+    logger.info(f"User login verified successfully: {email_clean} ({phone_clean}) as {x_role}")
 
     return {
         "success": True,
@@ -404,32 +428,41 @@ async def google_login(req: GoogleLoginRequest):
         if user_info["aud"] != google_client_id:
             logger.warning(f"Google token aud {user_info.get('aud')} does not match configured {google_client_id}")
 
-    role_info = ROLE_MAP.get(req.role, ROLE_MAP["revenue"])
-
     # Domain restriction check:
     # For citizen/verifier role: any valid Google account is accepted.
+    # For authorized higher officials / admins (vasudhamithra@gmail.com): full administrative access.
     # For revenue/survey/admin: official email should end with .gov.in,
     # BUT in DEBUG_MODE or for development testing, we allow Google accounts smoothly.
+    is_admin = email in ADMIN_EMAILS
     is_gov = bool(ALLOWED_DOMAIN_PATTERN.search(email))
     debug_mode = os.getenv("DEBUG_MODE", "false").lower().strip() == "true"
 
-    if req.role not in ("citizen", "verifier") and not is_gov and not debug_mode:
+    if req.role not in ("citizen", "verifier") and not is_gov and not is_admin and not debug_mode:
         raise HTTPException(
             status_code=403,
             detail=f"Google account {email} is not an official @gov.in address. Please sign in with your official government Google account, or select 'Citizen' role."
         )
 
-    actor_label = f"{name} ({role_info['defaultActor']})"
-    if not is_gov and req.role not in ("citizen", "verifier"):
-        actor_label = f"{name} ({role_info['defaultActor']} - SSO)"
+    if is_admin:
+        role_info = ROLE_MAP["admin"]
+        role_key = "admin"
+        x_role = "admin"
+        actor_label = f"{name} (Chief Registrar - Higher Official)"
+    else:
+        role_info = ROLE_MAP.get(req.role, ROLE_MAP["revenue"])
+        role_key = req.role
+        x_role = role_info["xRole"]
+        actor_label = f"{name} ({role_info['defaultActor']})"
+        if not is_gov and req.role not in ("citizen", "verifier"):
+            actor_label = f"{name} ({role_info['defaultActor']} - SSO)"
 
     user_session = {
         "email": email,
         "name": name,
         "picture": picture,
         "phone": "",
-        "roleKey": req.role,
-        "xRole": role_info["xRole"],
+        "roleKey": role_key,
+        "xRole": x_role,
         "actor": actor_label,
         "authProvider": "google",
         "loggedInAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),

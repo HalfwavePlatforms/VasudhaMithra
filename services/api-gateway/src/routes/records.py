@@ -116,7 +116,7 @@ def require_role(allowed_roles: list[str]):
 
         role_lower = role.strip().lower()
         allowed_lower = [r.lower() for r in allowed_roles]
-        if role_lower not in allowed_lower:
+        if role_lower != "admin" and role_lower not in allowed_lower:
             raise HTTPException(
                 status_code=403,
                 detail=f"Forbidden: role '{role_lower}' is not authorized for this endpoint. Required role(s): {', '.join(allowed_roles)}",
