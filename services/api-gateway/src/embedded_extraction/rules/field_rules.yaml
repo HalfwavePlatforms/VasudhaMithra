@@ -1,0 +1,545 @@
+fields:
+  survey_number:
+    pattern: \b[1-9]\d{0,3}([/-]\d+[A-Za-z]*)?\b
+    keywords:
+    - survey no
+    - survey number
+    - s.no
+    - survey
+    - 1. ಸರ್ವೇ ನಂಬರ್‌
+    - 1. ಸರ್ವೇ
+    - 1. ಸರ್ವೆ ನಂಬರ್
+    - 1. ಸರ್ವೆ
+    - 1, ಸರ್ವ ನಂಬರ್‌
+    - 1, ಸರ್ವ
+    - 1. ಸರೀ
+    - ಸರೀ ನಂಬರ್
+    - ಸರೀ
+    - ಸರ್ವೇ ನಂಬರ್
+    - ಸರ್ವೇ ನಂ
+    - ಸರ್ವೇ
+    - ಸರ್ವೆ ನಂಬರ್
+    - ಸರ್ವೆ ನಂ
+    - ಸರ್ವೆ ಸಂಖ್ಯೆ
+    - ಸರ್ವೆ
+    - ಸರ್ವ ನಂಬರ್
+    - ಸರ್ವ ನಂ
+    - ಸರ್ವ
+    - ನಂಬರ್‌
+    - ನಂಬರ್
+    - =e
+    - ಹೋಡಿ =e
+    - ಹೋಡಿ
+    - सर्वे नं
+    - सर्वे नंबर
+    - सर्वे
+    - सर्व्हे नंबर
+    - सर्व्हे नं
+    - सर्व्हे
+    - சர்வே எண்
+    - సర్వే నంబరు
+    - দাগ নম্বর
+    - দাগ নং
+    - দাগ
+    - সার্ভে নম্বর
+    - সার্ভে
+    - સર્વે નંબર
+    - સર્વે નં
+    - സർവേ നമ്പർ
+    - സർവേ
+    - १. सर्व्हे नंबर
+    - १. सर्व्हे
+    - १. भूमापन क्रमांक
+    - १. भूमापन
+    - भूमापन क्रमांक
+    - भूमापन क्र
+    - भूमापन
+    - 1. సర్వే నంబర్
+    - 1. సర్వే నంబరు
+    - సర్వే నంబర్
+    - 1. ಸರ್‌ವೆ ನಂ
+    - 1. ಸರ್‌ವೆ
+    - ಸರ್‌ವೆ ನಂ
+    - ಸರ್‌ವೆ
+    - 1. సర్‌వే నంబరు
+    - 1. సర్‌వే
+    - సర్‌వే నంబరు
+    - సర్‌వే
+    - 1. ಸರ್‌ವೇ
+    - ಸರ್‌ವೇ
+    document_types:
+    - Standard Land Record
+    - Record of Rights / RTC (Pahani)
+    - Sale Deed / Title Deed
+    - Mutation Register Extract
+    - Land Revenue / Tax Receipt
+    - clean_label_value
+    - numbered_box_rtc
+    - legacy_tabular_register
+    required: true
+  khasra_number:
+    pattern: \b[1-9]\d{0,3}([/-]\d+[A-Za-z]*)?\b
+    document_types:
+    - Standard Land Record
+    - Record of Rights / RTC (Pahani)
+    - Sale Deed / Title Deed
+    - Mutation Register Extract
+    - Land Revenue / Tax Receipt
+    - clean_label_value
+    - legacy_tabular_register
+    - numbered_box_rtc
+    keywords:
+    - khasra
+    - khasra no
+    - 2. BAD,
+    - 2. BAD
+    - 2. ಹಿಸ್ಸಾ
+    - BAD,
+    - ಹಿಸ್ಸಾ ನಂ
+    - ಹಿಸ್ಸಾ ಸಂಖ್ಯೆ
+    - ಹಿಸ್ಸಾ
+    - hissa
+    - ಖಸ್ರಾ
+    - खसरा
+    - खसरा नं
+    - खसरा संख्या
+    - गट नंबर
+    - गट नं
+    - गट
+    - கஸ்ரா
+    - ఖస్రా
+    - খসড়া নং
+    - খসড়া
+    required: true
+  khata_number:
+    pattern: \b[1-9]\d{0,3}\b
+    document_types:
+    - Standard Land Record
+    - Record of Rights / RTC (Pahani)
+    - Sale Deed / Title Deed
+    - Mutation Register Extract
+    - Land Revenue / Tax Receipt
+    - clean_label_value
+    - legacy_tabular_register
+    - numbered_box_rtc
+    keywords:
+    - khata
+    - khata no
+    - account no
+    - 000/0000 |
+    - 0000 |
+    - 10. ಖಾತೆ
+    - ಖಾತೆ ನಂ
+    - ಖಾತಾ ನಂ
+    - ಖಾತೆ ಸಂಖ್ಯೆ
+    - ಖಾತಾ ಸಂಖ್ಯೆ
+    - ಖಾತೆ
+    - ಖಾತಾ
+    - खाता
+    - खाता संख्या
+    - खाता नं
+    - खाते क्रमांक
+    - खाते क्र
+    - खाते
+    - காதா
+    - ఖాతా
+    - খতিয়ান নং
+    - খতযান নং
+    - খতিয়ান
+    - খতযান
+    required: true
+  owner_name:
+    pattern: null
+    document_types:
+    - Standard Land Record
+    - Record of Rights / RTC (Pahani)
+    - Sale Deed / Title Deed
+    - Mutation Register Extract
+    - Land Revenue / Tax Receipt
+    - clean_label_value
+    - numbered_box_rtc
+    - legacy_tabular_register
+    window_chars: 250
+    keywords:
+    - owner / khatedar
+    - owner/khatedar
+    - owner
+    - landowner
+    - pattadar
+    - khatedar
+    - name of owner
+    - 10. ಕಟ್ಟೆ ಅಥವ ಸ್ವಾಧೀಂತಿಯ
+    - ಕಟ್ಟೆ ಅಥವ ಸ್ವಾಧೀಂತಿಯ
+    - ಸ್ವಾಧೀಂತಿಯ
+    - ಸ್ವಾಧೀಂತಿ
+    - 9. ಕಬ್ಜೆ ಅಥವಾ ಸ್ವಾಧೀನದಾರರ ಹೆಸರು
+    - ಸ್ವಾಧೀನದಾರರ ಹೆಸರು
+    - ಸ್ವಾಧೀನದಾರರು
+    - ಸ್ವಾಧೀನದಾರ
+    - ಕಬ್ಜೆದಾರರ ಹೆಸರು
+    - ಕಬ್ಜೆದಾರರು
+    - ಕಬ್ಜೆದಾರ
+    - ಖಾತೇದಾರರ ಹೆಸರು
+    - ಖಾತೇದಾರರು
+    - ಖಾತೇದಾರ
+    - ಮಾಲೀಕರ ಹೆಸರು
+    - ಮಾಲೀಕರು
+    - ಮಾಲೀಕ
+    - ಹೆಸರು ತಂದೆಯ ಹೆಸರು
+    - ತಂದೆಯ ಹೆಸರು
+    - ಸ್ಪಾಭೀಕತಿಯ ರೀತಿ
+    - ಸ್ಪಾಭೀಕತಿ
+    - ಸ್ವಾಧೀನತೆಯ ರೀತಿ
+    - ಸ್ವಾಧೀನತೆ
+    - ಸ್ವಾಧೀನ
+    - ಕಬ್ಜೆ
+    - खातेदार का नाम
+    - मालिक
+    - स्वामी
+    - भूमि स्वामी
+    - खातेदार
+    - पट्टादार
+    - खातेदाराचे नाव
+    - मालकाचे नाव
+    - भोगवटादार
+    - ഭൂവുടമ
+    - ഉടമസ്ഥന്റെ പേര്
+    - நில உரிமையாளர்
+    - பட்டாதாரர் பெயர்
+    - భూ యజమాని
+    - పట్టాదారు పేరు
+    - রায়তের নাম
+    - রাযুতরে নাম
+    - মালিকের নাম
+    - জমির মালিক
+    - 'নাম:'
+    - নাম
+    - ખાતેદારનું નામ
+    - જમીન માલિક
+    - 3. ಭೂ ಮಾಲೀಕರ ಹೆಸರು
+    - ಭೂ ಮಾಲೀಕರ ಹೆಸರು
+    - ३. खातेदाराचे नाव
+    - 3. పట్టాదారు పేరు
+    - 3. ಖಾತೇದಾರರ ಹೆಸರು
+    - 3. ಪಟ್‌టాదారు పేరు
+    - పట్‌టాదారు పేరు
+    - పట్‌టాదారు
+    - 3. పట్టాదారు
+    - పట్టాదారు
+    - పట్టాదారు పరు
+    required: true
+  plot_area:
+    pattern: \d+(\.\d+)+|\d+(\.\d+)?\s*(acre|acres|hectare|hectares|guntha|gunthas|sq\.?\s?ft|sq\.?\s?m|gunta|guntas|एकड़|हेक्टेयर|गुंठा|ಎಕರೆ|ಗುಂಟೆ|ಗುಂಟಿ|ಹೆಕ್ಟೇರ್|ஏக்கர்|ఎకరం|একর)
+    document_types:
+    - Standard Land Record
+    - Record of Rights / RTC (Pahani)
+    - Sale Deed / Title Deed
+    - Mutation Register Extract
+    - Land Revenue / Tax Receipt
+    - clean_label_value
+    - legacy_tabular_register
+    - numbered_box_rtc
+    keywords:
+    - plot extent / area
+    - plot extent
+    - plot area
+    - plot
+    - area
+    - extent
+    - total area
+    - land area
+    - ಒಟ್ಟು ವಿಸ್ತೀರ್ಣ
+    - ಒಟ್ಟು ಏಸ್ತೀರ್ಣ
+    - ಒಟ್ಟು ವಸ್ಮೀರ್ಣ
+    - 3. ವಿಸ್ತೀರ್ಣ
+    - ವಿಸ್ತೀರ್ಣ (ಎಕರೆ ಗುಂಟೆ)
+    - ವಿಸ್ತೀರ್ಣ ಎ ಗುಂ
+    - ವಿಸ್ತೀರ್ಣ ಏಕರೆ ಮತ್ತು ಗುಂಟಿಗಳಲ್ಲಿ
+    - ಉಳಿದದ್ದು
+    - ವಿಸ್ತೀರ್ಣ
+    - ಎಕರೆ ಗುಂಟೆ
+    - ಏಕರೆ ಮತ್ತು ಗುಂಟಿಗಳಲ್ಲಿ
+    - क्षेत्रफल (विस्तार)
+    - क्षेत्रफल
+    - भूमि क्षेत्र
+    - क्षेत्र
+    - क्षेत्रफळ
+    - एकूण क्षेत्र
+    - பரப்பளவு
+    - విస్తీర్ణం
+    - জমির পরিমাণ
+    - জমির পরমাণ
+    - পরমাণ
+    - পরিমাণ
+    - ক্ষেত্রফল
+    - વિસ્તાર (ક્ષેત્રફળ)
+    - ક્ષેત્રફળ
+    required: true
+  village:
+    pattern: null
+    document_types:
+    - Standard Land Record
+    - Record of Rights / RTC (Pahani)
+    - Sale Deed / Title Deed
+    - Mutation Register Extract
+    - Land Revenue / Tax Receipt
+    - clean_label_value
+    - legacy_tabular_register
+    - numbered_box_rtc
+    keywords:
+    - village (gram)
+    - 'village:'
+    - village
+    - gram
+    - mauza
+    - 'ಗ್ರಾಮ:'
+    - 'ಗ್ರಾಮ :'
+    - ಗ್ರಾಮ
+    - 'ಹಳ್ಳಿ:'
+    - ಹಳ್ಳಿ
+    - 'गाँव:'
+    - गाँव
+    - 'गांव:'
+    - गांव
+    - 'ग्राम:'
+    - ग्राम
+    - मौज़ा
+    - मौजा
+    - 'गाव:'
+    - गाव
+    - मौजे
+    - 'கிராமம்:'
+    - கிராமம்
+    - 'గ్రామం:'
+    - గ్రామం
+    - 'গ্রাম:'
+    - গ্রাম
+    - 'ગામ:'
+    - ગામ
+    required: false
+  tehsil:
+    pattern: null
+    document_types:
+    - Standard Land Record
+    - Record of Rights / RTC (Pahani)
+    - Sale Deed / Title Deed
+    - Mutation Register Extract
+    - Land Revenue / Tax Receipt
+    - clean_label_value
+    - legacy_tabular_register
+    - numbered_box_rtc
+    keywords:
+    - 'taluk:'
+    - taluk / tehsil
+    - taluk/tehsil
+    - 'tehsil:'
+    - tehsil
+    - taluk
+    - 'taluka:'
+    - taluka
+    - 'mandal:'
+    - mandal
+    - block
+    - 'ತಾಲೂಕು:'
+    - 'ತಾಲ್ಲೂಕು:'
+    - ತಾಲೂಕು '
+    - ತಾಲೂಕು
+    - ತಾಲ್ಲೂಕು
+    - 'ತಾಲ ಕು :'
+    - ತಾಲ ಕು
+    - 'तहसील:'
+    - तहसील
+    - 'तालुका:'
+    - तालुका
+    - मंडल
+    - तह
+    - 'तालुका:'
+    - तालुका
+    - 'வட்டம்:'
+    - வட்டம்
+    - 'తాలూకా:'
+    - తాలూకా
+    - 'మండల్:'
+    - మండల్
+    - 'તાલુકો:'
+    - તાલુકો
+    required: false
+  district:
+    pattern: null
+    document_types:
+    - Standard Land Record
+    - Record of Rights / RTC (Pahani)
+    - Sale Deed / Title Deed
+    - Mutation Register Extract
+    - Land Revenue / Tax Receipt
+    - clean_label_value
+    - legacy_tabular_register
+    - numbered_box_rtc
+    keywords:
+    - district (zilla)
+    - 'district:'
+    - district
+    - dist
+    - zila
+    - ಜಿಲ್ಲಾಧಿಕಾರಿ
+    - 'ಜಿಲ್ಲೆ:'
+    - ಜಿಲ್ಲೆ
+    - 'जिला:'
+    - जिला
+    - ज़िला
+    - जिले
+    - जनपद
+    - 'जिल्हा:'
+    - जिल्हा
+    - 'மாவட்டம்:'
+    - மாவட்டம்
+    - 'జిల్లా:'
+    - జిల్లా
+    - 'জেলা:'
+    - জেলা
+    - 'જિલ્લો:'
+    - જિલ્લો
+    required: false
+  land_classification:
+    pattern: null
+    document_types:
+    - Standard Land Record
+    - Record of Rights / RTC (Pahani)
+    - Sale Deed / Title Deed
+    - Mutation Register Extract
+    - Land Revenue / Tax Receipt
+    - clean_label_value
+    - legacy_tabular_register
+    - numbered_box_rtc
+    window_chars: 120
+    keywords:
+    - land classification
+    - classification
+    - type of land
+    - land type
+    - land use
+    - nature of land
+    - 6. ಪಟ್ಟಾ
+    - 'ಪಟ್ಟಾ:'
+    - ಪಟ್ಟಾ
+    - 5. ಮಣ್ಣಿನ ನಮೂನೆ
+    - 'ಮಣ್ಣಿನ ನಮೂನೆ:'
+    - ಮಣ್ಣಿನ ನಮೂನೆ
+    - ಭೂ ವರ್ಗೀಕರಣ
+    - ಭೂಮಿಯ ವರ್ಗೀಕರಣ
+    - ಭೂ ಬಳಕೆ
+    - भूमि प्रकार
+    - भूमि वर्ग
+    - भूमि का प्रकार
+    - भूमि का वर्ग
+    - खेत का प्रकार
+    - जमिनीचा प्रकार
+    - जमिनीचा वर्ग
+    - நில வகைப்பாடு
+    - భూమి వర్గీకరణ
+    - భూ వినియోగం
+    required: false
+  mutation_number:
+    pattern: (RR\s*\d+\s*)?(?:MR|00|OO|O0|0O)\s*[-/]?[\d@S]+[/–-][\d]+([/–-]\d+)?|(RR\s*\d+\s*)?MR\s*[-/]?\d+[/–-]\d+([/–-]\d+)?|\d{1,6}/\d{4}|(?:MR|00|OO)[-/]?[\d@S]+[/]\d+
+    document_types:
+    - Standard Land Record
+    - Record of Rights / RTC (Pahani)
+    - Sale Deed / Title Deed
+    - Mutation Register Extract
+    - Land Revenue / Tax Receipt
+    - clean_label_value
+    - legacy_tabular_register
+    - numbered_box_rtc
+    keywords:
+    - mutation ref no
+    - mutation ref
+    - mutation
+    - mutation no
+    - mutation number
+    - mr no
+    - mr.
+    - ವಿಶೇಷ MR
+    - MR
+    - ಮ್ಯುಟೇಶನ್ ನಂ
+    - ಮ್ಯುಟೇಶನ್
+    - ಮ್ಯುಟೇಷನ್
+    - ಹಕ್ಕು ಬದಲಾವಣೆ
+    - नामांतरण पंजी क्र
+    - नामांतरण पंजी
+    - नामांतरण
+    - नामांतरण संख्या
+    - दाखिल-खारिज
+    - दाखिल खारिज
+    - फेरफार क्र
+    - फेरफार क्रमांक
+    - ವರ್ಗಾವಣೆ
+    - ಮ್ಯುಟೇಶನ್
+    - உரிமை மாற்றம்
+    - మ్యుటేషన్
+    - মিউটেশন কেস নং
+    - মিউটেশন কসে নং
+    - মডিটশেন কসে নং
+    - মিউটেশন
+    required: false
+  registration_info:
+    pattern: (REG[-/]?\d+[/]\d{4}|\d{3,6}/\d{4})
+    document_types:
+    - Standard Land Record
+    - Record of Rights / RTC (Pahani)
+    - Sale Deed / Title Deed
+    - Mutation Register Extract
+    - Land Revenue / Tax Receipt
+    - clean_label_value
+    - legacy_tabular_register
+    - numbered_box_rtc
+    window_chars: 120
+    keywords:
+    - registration
+    - registration no
+    - deed no
+    - deed number
+    - document no
+    - reg no
+    - reg.
+    - registered
+    - पंजीकरण
+    - पंजीकरण संख्या
+    - पंजीकरण क्रमांक
+    - दस्तावेज़ संख्या
+    - ನೋಂದಣಿ
+    - ನೋಂದಣಿ ಸಂಖ್ಯೆ
+    - பதிவு எண்
+    - నమోదు సంఖ్య
+    required: false
+  ownership_type:
+    pattern: null
+    document_types:
+    - Standard Land Record
+    - Record of Rights / RTC (Pahani)
+    - Sale Deed / Title Deed
+    - Mutation Register Extract
+    - Land Revenue / Tax Receipt
+    - clean_label_value
+    - legacy_tabular_register
+    - numbered_box_rtc
+    window_chars: 120
+    keywords:
+    - ownership
+    - ownership type
+    - tenure
+    - type of ownership
+    - nature of ownership
+    - title type
+    - स्वामित्व प्रकार
+    - स्वामित्व का प्रकार
+    - भूमि स्वत्व
+    - भू-स्वामित्व
+    - ಮಾಲಿಕತ್ವ ಪ್ರಕಾರ
+    - ಒಡೆತನದ ವಿಧ
+    - உரிமை வகை
+    - యాజమాన్యం రకం
+    required: false
+confidence_review_threshold: 0.75
+area_discrepancy_threshold_pct: 5.0
+area_min_acres: 0.001
+area_max_acres: 5000.0

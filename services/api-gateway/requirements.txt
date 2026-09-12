@@ -17,4 +17,7 @@ pillow>=10.0.0
 opencv-python-headless==4.10.0.84
 numpy>=1.24.0
 pypdf>=3.0.0
+pytesseract==0.3.13
+google-cloud-vision>=3.7.0
+pymupdf>=1.24.0
 

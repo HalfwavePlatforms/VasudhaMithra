@@ -13,7 +13,9 @@ from pathlib import Path
 import httpx
 import yaml
 
-RULES_PATH = Path(__file__).parent.parent / "rules" / "field_rules.yaml"
+_local_rules = Path(__file__).parent / "rules" / "field_rules.yaml"
+_parent_rules = Path(__file__).parent.parent / "rules" / "field_rules.yaml"
+RULES_PATH = _local_rules if _local_rules.exists() else _parent_rules
 
 
 _CORRECTION_PATTERNS_CACHE: list[dict] | None = None

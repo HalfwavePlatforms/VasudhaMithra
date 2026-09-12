@@ -1,6 +1,11 @@
 FROM python:3.11-slim
 
-RUN apt-get update && apt-get install -y curl libpq-dev gcc && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y \
+    curl libpq-dev gcc \
+    tesseract-ocr \
+    tesseract-ocr-hin tesseract-ocr-kan tesseract-ocr-mar tesseract-ocr-ben tesseract-ocr-tam tesseract-ocr-tel \
+    libgl1 libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
