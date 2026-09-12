@@ -81,7 +81,7 @@ export default function BhuvanGisMap({ gis }) {
 
       setLoadingCensus(true);
       try {
-        const apiBase = import.meta.env?.VITE_API_BASE || "http://127.0.0.1:8000";
+        const apiBase = import.meta.env?.VITE_API_BASE_URL || import.meta.env?.VITE_API_BASE || "http://127.0.0.1:8000";
         const query = new URLSearchParams();
         if (village) query.set("village", village);
         if (district) query.set("district", district);

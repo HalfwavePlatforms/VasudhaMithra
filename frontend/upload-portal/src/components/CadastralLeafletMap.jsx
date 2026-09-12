@@ -108,7 +108,7 @@ export default function CadastralLeafletMap({
     parcelLayerGroupRef.current = parcelLayerGroup;
 
     // Server-side resilient proxy for government WMS layers (bypasses browser CORS & mixed-content blocks)
-    const proxyBase = import.meta.env?.VITE_API_BASE || "http://127.0.0.1:8000";
+    const proxyBase = import.meta.env?.VITE_API_BASE_URL || import.meta.env?.VITE_API_BASE || "http://127.0.0.1:8000";
     const bhuvanTarget = encodeURIComponent("https://bhuvan-panchayat3.nrsc.gov.in/bhuvan/wms");
     const kgisTarget = encodeURIComponent("https://kgis.ksrsac.in/karnataka/services/Cadastral/MapServer/WMSServer");
 
