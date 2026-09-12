@@ -17,6 +17,8 @@ import ProfileCaptureModal from "./components/ProfileCaptureModal";
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 export default function App() {
+  const { t } = useTranslation();
+
   const [user, setUser] = useState(() => {
     try {
       const stored = localStorage.getItem("vasudha_auth");
@@ -140,8 +142,6 @@ export default function App() {
       />
     );
   }
-
-  const { t } = useTranslation();
 
   const pageTitles = {
     command_centre: t("sidebar.commandCentre"),
