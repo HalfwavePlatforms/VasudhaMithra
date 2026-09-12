@@ -14,7 +14,9 @@ from models.db_models import Base
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent.parent
 DEFAULT_SQLITE_PATH = (ROOT_DIR / "land_records.db").as_posix()
 
-DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DEFAULT_SQLITE_PATH}")
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DEFAULT_SQLITE_PATH}").strip()
+if DATABASE_URL.startswith("DATABASE_URL"):
+    DATABASE_URL = DATABASE_URL[len("DATABASE_URL"):].lstrip("=:\t ").strip()
 
 def _init_engine(url: str):
     connect_args = {"check_same_thread": False} if url.startswith("sqlite") else {}
