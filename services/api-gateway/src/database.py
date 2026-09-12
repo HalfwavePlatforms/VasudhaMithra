@@ -62,6 +62,15 @@ try:
 
             # Check records columns
             rec_cols = [c["name"] for c in insp.get_columns("records")]
+            if "file_path" not in rec_cols:
+                conn.execute(text("ALTER TABLE records ADD COLUMN file_path VARCHAR"))
+                conn.commit()
+            if "state" not in rec_cols:
+                conn.execute(text("ALTER TABLE records ADD COLUMN state VARCHAR DEFAULT 'Madhya Pradesh'"))
+                conn.commit()
+            if "geom" not in rec_cols:
+                conn.execute(text("ALTER TABLE records ADD COLUMN geom VARCHAR"))
+                conn.commit()
             if "verification_token" not in rec_cols:
                 conn.execute(text("ALTER TABLE records ADD COLUMN verification_token VARCHAR"))
                 conn.commit()

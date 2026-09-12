@@ -42,7 +42,15 @@ GIS_SERVICE_URL = os.getenv("GIS_SERVICE_URL", "http://127.0.0.1:8003")
 
 # Persistent Document Storage Path
 BASE_DIR = Path(__file__).resolve().parent
-REPO_ROOT = Path(__file__).resolve().parents[4]
+
+# Safely find repository root whether running locally or inside Docker container:
+REPO_ROOT = None
+for p in Path(__file__).resolve().parents:
+    if (p / ".git").exists() or (p / "docker-compose.yml").exists():
+        REPO_ROOT = p
+        break
+if not REPO_ROOT:
+    REPO_ROOT = Path("/app") if Path("/app").exists() else BASE_DIR
 
 STORAGE_PATH_ENV = os.getenv("STORAGE_PATH")
 if STORAGE_PATH_ENV:
