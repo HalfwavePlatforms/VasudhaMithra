@@ -112,8 +112,8 @@ def run_ocr(image: np.ndarray, language_hint: str = "en") -> dict:
                     logger.warning(f"Google Vision fallback attempt failed: {e}. Checking local deep learning engines.")
                     err_str = str(e).lower()
                     if "billing to be enabled" in err_str or "api key not valid" in err_str or "permissiondenied" in err_str:
-                        _vision_billing_disabled_until = time.time() + 3600.0
-                        logger.warning("Google Vision retry suspended for 1 hour due to billing/key configuration. Defaulting to fast local Tesseract engine.")
+                        _vision_billing_disabled_until = time.time() + 86400.0
+                        logger.warning("Google Vision retry suspended for 24 hours due to billing/key configuration. Defaulting to fast local Tesseract engine.")
                     tesseract_result["fallback_attempted"] = True
                     tesseract_result["fallback_error"] = str(e)
 
@@ -201,16 +201,13 @@ def _detect_dominant_script(image: np.ndarray) -> str:
         if hw > 800:
             scale = 800.0 / hw
             header = cv2.resize(header, (800, int(hh * scale)), interpolation=cv2.INTER_AREA)
-        sample_txt = pytesseract.image_to_string(header, lang="kan+hin+tam+tel+ben+eng", config="--psm 6")
+        sample_txt = pytesseract.image_to_string(header, lang="kan+hin+eng", config="--psm 6")
         counts = {
             "kan+eng": sum(1 for c in sample_txt if "\u0c80" <= c <= "\u0cff"),
             "hin+eng": sum(1 for c in sample_txt if "\u0900" <= c <= "\u097f"),
-            "tam+eng": sum(1 for c in sample_txt if "\u0b80" <= c <= "\u0bff"),
-            "tel+eng": sum(1 for c in sample_txt if "\u0c00" <= c <= "\u0c7f"),
-            "ben+eng": sum(1 for c in sample_txt if "\u0980" <= c <= "\u09ff"),
         }
         dom_lang, count = max(counts.items(), key=lambda x: x[1])
-        if count >= 8:
+        if count >= 6:
             return dom_lang
     except Exception as e:
         logger.debug(f"Script auto-sampling error: {e}")
@@ -236,22 +233,18 @@ def _run_tesseract(image: np.ndarray, language_hint: str) -> dict:
     else:
         lang = lang_map.get(language_hint, "kan+hin+eng")
 
-    # 1. Resolution normalization for enhanced optical stroke recognition
-    # Avoid massive over-scaling of standard-resolution documents
+    # 1. Resolution normalization for enhanced optical stroke recognition (<1200px for speed)
     h, w = image.shape[:2]
     max_dim = max(h, w)
-    min_dim = min(h, w)
-    if min_dim < 650 or max_dim < 900:
-        scale_factor = 1.5
-    elif max_dim > 2400:
-        scale_factor = 2000.0 / max_dim
+    if max_dim > 1200:
+        scale_factor = 1200.0 / max_dim
     else:
         scale_factor = 1.0
 
     if scale_factor != 1.0:
         proc_image = cv2.resize(
             image, (int(w * scale_factor), int(h * scale_factor)),
-            interpolation=cv2.INTER_CUBIC if scale_factor > 1.0 else cv2.INTER_AREA
+            interpolation=cv2.INTER_AREA
         )
     else:
         proc_image = image
@@ -292,37 +285,38 @@ def _run_tesseract(image: np.ndarray, language_hint: str) -> dict:
             )
 
     # 3. Supplemental cadastral crop pass for multi-column revenue documents:
-    # Captures narrow left table columns (Survey no, Hissa, Soil, Tenure) from native unscaled image
-    try:
-        orig_h, orig_w = image.shape[:2]
-        cadastral_crop = image[int(0.03 * orig_h):int(0.65 * orig_h), 0:int(0.38 * orig_w)]
-        y_offset = float(int(0.03 * orig_h))
-        # Run single --psm 11 pass on crop to avoid redundant processing
-        cadastral_data = pytesseract.image_to_data(
-            cadastral_crop, lang=lang, config="--psm 11", output_type=pytesseract.Output.DICT
-        )
-        for i, text in enumerate(cadastral_data["text"]):
-            if text.strip():
-                conf = float(cadastral_data["conf"][i])
-                if conf < 0:
-                    continue
-                words.append(text)
-                confidences.append(conf / 100.0)
-                x, y, bw, bh = (
-                    float(cadastral_data["left"][i]),
-                    float(cadastral_data["top"][i]) + y_offset,
-                    float(cadastral_data["width"][i]),
-                    float(cadastral_data["height"][i]),
-                )
-                boxes.append(
-                    {
-                        "text": text,
-                        "confidence": conf / 100.0,
-                        "box": [float(x), float(y), float(x + bw), float(y + bh)],
-                    }
-                )
-    except Exception as crop_err:
-        logger.debug(f"Cadastral crop pass skipped: {crop_err}")
+    # Only run if main pass yielded few words to avoid wasting CPU on cloud instances
+    if len(words) < 10:
+        try:
+            orig_h, orig_w = image.shape[:2]
+            cadastral_crop = image[int(0.03 * orig_h):int(0.65 * orig_h), 0:int(0.38 * orig_w)]
+            y_offset = float(int(0.03 * orig_h))
+            # Run single --psm 11 pass on crop to avoid redundant processing
+            cadastral_data = pytesseract.image_to_data(
+                cadastral_crop, lang=lang, config="--psm 11", output_type=pytesseract.Output.DICT
+            )
+            for i, text in enumerate(cadastral_data["text"]):
+                if text.strip():
+                    conf = float(cadastral_data["conf"][i])
+                    if conf < 0:
+                        continue
+                    words.append(text)
+                    confidences.append(conf / 100.0)
+                    x, y, bw, bh = (
+                        float(cadastral_data["left"][i]),
+                        float(cadastral_data["top"][i]) + y_offset,
+                        float(cadastral_data["width"][i]),
+                        float(cadastral_data["height"][i]),
+                    )
+                    boxes.append(
+                        {
+                            "text": text,
+                            "confidence": conf / 100.0,
+                            "box": [float(x), float(y), float(x + bw), float(y + bh)],
+                        }
+                    )
+        except Exception as crop_err:
+            logger.debug(f"Cadastral crop pass skipped: {crop_err}")
 
     avg_conf = sum(confidences) / len(confidences) if confidences else 0.0
     return {
@@ -361,7 +355,7 @@ def _run_google_vision(image: np.ndarray) -> dict:
             headers={"Content-Type": "application/json", "User-Agent": "VasudhaMithra/1.0"},
         )
         try:
-            with urllib.request.urlopen(req, timeout=20) as res:
+            with urllib.request.urlopen(req, timeout=4) as res:
                 data = json.loads(res.read().decode("utf-8"))
         except Exception as err:
             err_msg = str(err)

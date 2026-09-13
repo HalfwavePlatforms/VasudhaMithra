@@ -231,20 +231,21 @@ def _evaluate_and_attach_gis(db: Session, record: Record, fields: Optional[dict]
     }
 
     gis_data = None
-    try:
-        with httpx.Client(timeout=8.0) as client:
-            for lk in lookup_keys:
-                if not lk:
-                    continue
-                try:
-                    gis_resp = client.get(f"{GIS_SERVICE_URL}/gis/parcel/{lk}", params=gis_params)
-                    if gis_resp.status_code == 200:
-                        gis_data = gis_resp.json()
-                        break
-                except Exception as e:
-                    logger.debug(f"GIS query error on key '{lk}': {e}")
-    except Exception as outer_e:
-        logger.warning(f"GIS service call failed for record {record.id}: {outer_e}")
+    if GIS_SERVICE_URL and not GIS_SERVICE_URL.startswith("http://127.0.0.1") and not GIS_SERVICE_URL.startswith("http://localhost") and "onrender.com" not in GIS_SERVICE_URL:
+        try:
+            with httpx.Client(timeout=2.0) as client:
+                for lk in lookup_keys:
+                    if not lk:
+                        continue
+                    try:
+                        gis_resp = client.get(f"{GIS_SERVICE_URL}/gis/parcel/{lk}", params=gis_params)
+                        if gis_resp.status_code == 200:
+                            gis_data = gis_resp.json()
+                            break
+                    except Exception as e:
+                        logger.debug(f"GIS query error on key '{lk}': {e}")
+        except Exception as outer_e:
+            logger.warning(f"GIS service call failed for record {record.id}: {outer_e}")
 
     if not gis_data:
         try:
@@ -386,28 +387,27 @@ async def upload_record(
 
         _log(db, record.id, "uploaded", actor=actor, details={"filename": file.filename, "language": lang_hint, "file_path": record.file_path})
 
-        # 1. OCR Step (Microservice call with automatic resilient In-Process Fallback)
+        # 1. OCR Step (Embedded in-process engine with optional microservice probe)
         ocr_data = None
         if (
             OCR_SERVICE_URL
             and not OCR_SERVICE_URL.startswith("http://127.0.0.1")
             and not OCR_SERVICE_URL.startswith("http://localhost")
+            and "onrender.com" not in OCR_SERVICE_URL
         ):
             try:
-                async with httpx.AsyncClient(timeout=45.0) as client:
+                async with httpx.AsyncClient(timeout=2.0) as client:
                     ocr_resp = await client.post(
                         f"{OCR_SERVICE_URL}/ocr/extract",
                         json={"image_base64": image_b64, "language_hint": lang_hint, "document_id": str(record.id)},
                     )
                     if ocr_resp.status_code == 200:
                         ocr_data = ocr_resp.json()
-                    else:
-                        logger.warning(f"External OCR service returned {ocr_resp.status_code}, falling back to in-process OCR")
-            except Exception as e:
-                logger.warning(f"External OCR service unreachable ({e}), falling back to embedded in-process OCR")
+            except Exception:
+                pass
 
         if ocr_data is None:
-            # Resilient In-Process OCR Engine (zero external service dependencies)
+            # Resilient In-Process OCR Engine (zero external network latency)
             try:
                 from embedded_ocr import extract_ocr
                 ocr_data = extract_ocr(image_b64, language_hint=lang_hint, document_id=str(record.id))
@@ -435,15 +435,16 @@ async def upload_record(
         db.commit()
         _log(db, record.id, "ocr_completed", actor="OCR Engine", details={"confidence": ocr_data["confidence"], "doc_type": record.document_type, "language": record.language})
 
-        # 2. Information Extraction Step (Microservice call with automatic resilient In-Process Fallback)
+        # 2. Information Extraction Step (Embedded in-process engine with optional microservice probe)
         extraction_data = None
         if (
             EXTRACTION_SERVICE_URL
             and not EXTRACTION_SERVICE_URL.startswith("http://127.0.0.1")
             and not EXTRACTION_SERVICE_URL.startswith("http://localhost")
+            and "onrender.com" not in EXTRACTION_SERVICE_URL
         ):
             try:
-                async with httpx.AsyncClient(timeout=45.0) as client:
+                async with httpx.AsyncClient(timeout=2.0) as client:
                     extract_resp = await client.post(
                         f"{EXTRACTION_SERVICE_URL}/extraction/parse",
                         json={
@@ -456,8 +457,8 @@ async def upload_record(
                     )
                     if extract_resp.status_code == 200:
                         extraction_data = extract_resp.json()
-            except Exception as e:
-                logger.warning(f"External extraction service unreachable ({e}), falling back to in-process extraction")
+            except Exception:
+                pass
 
         if extraction_data is None:
             # Resilient in-process extraction engine (rule-based + LLM)

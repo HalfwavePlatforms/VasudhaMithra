@@ -91,23 +91,33 @@ export default function DocumentIntake({
     setPipelineStage("Uploading document scan to secure gateway...");
 
     // Responsive progress interval so user never sees a frozen spinner
-    let currentPct = 15;
+    let currentPct = 12;
+    let elapsedSeconds = 0;
     const interval = setInterval(() => {
-      currentPct += Math.floor(Math.random() * 8) + 4;
+      elapsedSeconds += 0.5;
       if (currentPct < 40) {
-        setPipelineStage("Pre-processing image & detecting script...");
-        setUploadProgress(currentPct);
+        currentPct += 4;
+        setPipelineStage("Pre-processing image & contrast enhancement...");
       } else if (currentPct < 65) {
+        currentPct += 3;
         setPipelineStage("Neural OCR stroke recognition in progress...");
-        setUploadProgress(currentPct);
-      } else if (currentPct < 85) {
-        setPipelineStage("Extracting cadastral fields & NLP validation...");
-        setUploadProgress(currentPct);
-      } else if (currentPct < 94) {
-        setPipelineStage("Geodetic cadastre cross-check & audit chain...");
-        setUploadProgress(Math.min(currentPct, 94));
+      } else if (currentPct < 82) {
+        currentPct += 2;
+        setPipelineStage("Extracting cadastral fields & NLP parsing...");
+      } else if (currentPct < 90) {
+        currentPct += 1;
+        setPipelineStage("Geodetic cadastre cross-check & spatial matching...");
+      } else if (currentPct < 97) {
+        // Slow creep so UI never looks frozen during cloud DB commit
+        if (Math.random() > 0.4) currentPct += 1;
+        if (elapsedSeconds > 8) {
+          setPipelineStage("Synchronizing with Supabase & committing audit chain...");
+        } else {
+          setPipelineStage("Geodetic cadastre cross-check & audit chain...");
+        }
       }
-    }, 350);
+      setUploadProgress(Math.min(currentPct, 97));
+    }, 500);
 
     const formData = new FormData();
     formData.append("file", file);

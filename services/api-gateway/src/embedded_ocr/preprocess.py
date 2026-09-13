@@ -110,6 +110,14 @@ def preprocess_all_pages(image_base64: str) -> tuple[list[tuple[np.ndarray, dict
         except Exception:
             raise ValueError("Could not decode input document (unsupported image or PDF format)")
 
+    # Normalize max resolution for fast cloud processing
+    if img is not None:
+        h, w = img.shape[:2]
+        max_dim = max(h, w)
+        if max_dim > 1400:
+            scale = 1400.0 / max_dim
+            img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
+
     enhanced, meta = _enhance_cv2_image(img, is_pdf=False)
     meta["page_number"] = 1
     return [(enhanced, meta)], {"is_pdf": False, "total_pages": 1}
