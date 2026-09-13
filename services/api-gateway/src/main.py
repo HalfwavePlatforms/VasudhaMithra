@@ -5,6 +5,7 @@ extraction-engine. This is the ONLY service the frontends talk to.
 Contract: see docs/api-contracts.md — section 3.
 """
 import os
+from typing import Optional
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
