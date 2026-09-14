@@ -86,7 +86,7 @@ const PROMPT_HINTS = {
     placeholder: "లేదా సర్వే నంబర్ టైప్ చేయండి (ఉదా: 145/2)",
     askBtn: "అడగండి",
     samples: [
-      "సర్వే నంబర్ 145/2 యజమాని ఎవరు?",
+      "సర్వే నಂಬರ್ 145/2 యజమాని ఎవరు?",
       "సర్వే నంబರ್ 145/2 స్థితి ఏమిటి?",
     ],
   },
@@ -266,74 +266,90 @@ export default function CitizenVoiceQueryPage({ apiBase, isEmbedded = false }) {
   };
 
   return (
-    <div className={isEmbedded ? "w-full max-w-4xl mx-auto space-y-6 pb-16 font-sans text-[var(--color-text-primary)]" : "min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] flex flex-col font-sans"}>
+    <div
+      className={
+        isEmbedded
+          ? "w-full max-w-4xl mx-auto space-y-4 sm:space-y-6 pb-12 sm:pb-16 font-sans text-[var(--color-text-primary)]"
+          : "min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] flex flex-col font-sans selection:bg-[var(--color-success-bg)]"
+      }
+    >
       {/* Top Banner (Standalone mode) */}
       {!isEmbedded && (
-        <header className="border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)]/90 backdrop-blur sticky top-0 z-30 px-4 sm:px-8 py-3.5 flex items-center justify-between shadow-2xs">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white p-1.5 flex items-center justify-center shadow-xs border border-[var(--color-border)]">
+        <header className="border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)]/95 backdrop-blur sticky top-0 z-30 px-3.5 sm:px-8 py-2.5 sm:py-3.5 flex items-center justify-between shadow-2xs">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-white p-1 sm:p-1.5 flex items-center justify-center shadow-xs border border-[var(--color-border)] shrink-0">
               <img src="/logo-transparent.png" alt="VasudhaMithra" className="w-full h-full object-contain" />
             </div>
-            <div>
-              <h1 className="text-base font-serif font-bold text-[var(--color-text-primary)] tracking-tight">
+            <div className="min-w-0">
+              <h1 className="text-sm sm:text-base font-serif font-bold text-[var(--color-text-primary)] tracking-tight truncate">
                 VasudhaMithra
               </h1>
-              <p className="text-[11px] text-[var(--color-success)] font-bold tracking-wider uppercase">
+              <p className="text-[9px] sm:text-[11px] text-[var(--color-success)] font-bold tracking-wide sm:tracking-wider uppercase truncate">
                 CITIZEN VOICE ASSISTANT • ನಾಗರಿಕ ಧ್ವನಿ ಸಹಾಯಕ
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0 ml-2">
             <a
               href="/"
-              className="text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] px-3.5 py-2 rounded-xl border border-[var(--color-border-strong)] bg-white hover:bg-[var(--color-bg-tertiary)] transition-colors shadow-2xs flex items-center gap-1.5"
+              className="text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-[var(--color-border-strong)] bg-white hover:bg-[var(--color-bg-tertiary)] transition-colors shadow-2xs flex items-center gap-1.5"
             >
-              <span>Officer Portal</span>
-              <ArrowRight className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+              <span className="hidden xs:inline">Officer </span>
+              <span>Portal</span>
+              <ArrowRight className="w-3.5 h-3.5 text-[var(--color-accent)] shrink-0" />
             </a>
           </div>
         </header>
       )}
 
       {/* Main Interactive Stage */}
-      <main className={isEmbedded ? "w-full space-y-6" : "flex-1 max-w-3xl w-full mx-auto px-4 py-8 flex flex-col items-center justify-center"}>
+      <main
+        className={
+          isEmbedded
+            ? "w-full space-y-4 sm:space-y-6"
+            : "flex-1 max-w-3xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-8 flex flex-col items-center justify-center"
+        }
+      >
         {/* Title & Guidance */}
         {isEmbedded ? (
-          <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-label-muted)]">
+          <div className="w-full">
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[var(--color-label-muted)] block">
               PUBLIC SERVICES & ASSISTANCE • ನಾಗರಿಕ ಸೇವೆಗಳು
             </span>
-            <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[var(--color-text-primary)] tracking-tight mt-1">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-bold text-[var(--color-text-primary)] tracking-tight mt-0.5 sm:mt-1 leading-tight">
               {currentHints.title}
             </h1>
-            <p className="text-sm text-[var(--color-text-muted)] mt-1">
+            <p className="text-xs sm:text-sm text-[var(--color-text-muted)] mt-0.5 sm:mt-1 leading-normal">
               {currentHints.subtitle}
             </p>
           </div>
         ) : (
-          <div className="text-center mb-6">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-label-muted)] block mb-1">
+          <div className="text-center mb-3 sm:mb-6 px-1">
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[var(--color-label-muted)] block mb-1">
               VOICE-ENABLED CITIZEN RECORD INTAKE
             </span>
-            <h2 className="text-3xl sm:text-4xl font-serif font-bold text-[var(--color-text-primary)] mb-2 tracking-tight">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-bold text-[var(--color-text-primary)] mb-1 sm:mb-2 tracking-tight leading-snug">
               {currentHints.title}
             </h2>
-            <p className="text-sm text-[var(--color-text-secondary)] max-w-lg mx-auto">
+            <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] max-w-lg mx-auto leading-normal">
               {currentHints.subtitle}
             </p>
           </div>
         )}
 
         {/* Central Interactive Card */}
-        <div className="w-full bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl p-6 sm:p-8 shadow-xs flex flex-col items-center">
-          {/* Step 1: Language Picker */}
-          <div className="w-full mb-6">
-            <div className="flex items-center justify-center gap-1.5 text-xs text-[var(--color-text-muted)] mb-2.5 font-medium">
-              <Languages className="w-4 h-4 text-[var(--color-success)]" />
-              <span>Select Language / ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ:</span>
+        <div className="w-full bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl p-4 sm:p-8 shadow-xs flex flex-col items-center">
+          {/* Step 1: Language Picker (Horizontal Swipeable Strip on Mobile, Centered Wrap on Desktop) */}
+          <div className="w-full mb-4 sm:mb-6">
+            <div className="flex items-center justify-between sm:justify-center gap-1.5 text-xs text-[var(--color-text-muted)] mb-2 font-medium px-1">
+              <div className="flex items-center gap-1.5">
+                <Languages className="w-3.5 h-3.5 text-[var(--color-success)]" />
+                <span>Select Language / ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ:</span>
+              </div>
+              <span className="text-[10px] text-[var(--color-text-muted)] sm:hidden font-sans">Swipe &rarr;</span>
             </div>
-            <div className="flex flex-wrap items-center justify-center gap-2">
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 px-0.5 -mx-1 sm:mx-0 sm:flex-wrap sm:justify-center sm:overflow-visible">
               {SUPPORTED_LANGUAGES.map((lang) => {
                 const active = selectedLang === lang.code;
                 return (
@@ -344,13 +360,14 @@ export default function CitizenVoiceQueryPage({ apiBase, isEmbedded = false }) {
                       setSelectedLang(lang.code);
                       stopSpeaking();
                     }}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                    className={`px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shrink-0 transition-all ${
                       active
                         ? "bg-[var(--color-success)] text-white shadow-xs scale-105"
                         : "bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] border border-[var(--color-border-strong)] hover:bg-[var(--color-bg-primary)] hover:text-[var(--color-text-primary)] shadow-2xs"
                     }`}
                   >
-                    {lang.label} ({lang.englishName})
+                    <span>{lang.label}</span>
+                    <span className="hidden sm:inline font-normal opacity-85"> ({lang.englishName})</span>
                   </button>
                 );
               })}
@@ -359,7 +376,7 @@ export default function CitizenVoiceQueryPage({ apiBase, isEmbedded = false }) {
 
           {/* Browser Warning if Web Speech API unsupported */}
           {!speechSupported && (
-            <div className="w-full max-w-xl bg-[var(--color-warning-bg)] border border-[var(--color-warning-border)] rounded-xl p-3.5 text-xs text-[var(--color-warning)] flex items-start gap-2.5 mb-6 shadow-2xs">
+            <div className="w-full max-w-xl bg-[var(--color-warning-bg)] border border-[var(--color-warning-border)] rounded-xl p-3 sm:p-3.5 text-xs text-[var(--color-warning)] flex items-start gap-2.5 mb-4 sm:mb-6 shadow-2xs">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-[var(--color-warning)]" />
               <div>
                 <p className="font-bold">Microphone input not supported on this browser</p>
@@ -370,13 +387,13 @@ export default function CitizenVoiceQueryPage({ apiBase, isEmbedded = false }) {
             </div>
           )}
 
-          {/* Giant Microphone Button */}
-          <div className="relative my-4 flex flex-col items-center">
+          {/* Hero Microphone Button (Adaptive scale for mobile thumbs) */}
+          <div className="relative my-3 sm:my-5 flex flex-col items-center">
             {/* Animated Glow Rings when listening */}
             {isListening && (
               <>
-                <div className="absolute w-36 h-36 rounded-full bg-[var(--color-success)]/20 animate-ping pointer-events-none" />
-                <div className="absolute w-44 h-44 rounded-full bg-[var(--color-success)]/10 animate-pulse pointer-events-none" />
+                <div className="absolute w-28 h-28 sm:w-36 sm:h-36 rounded-full bg-[var(--color-success)]/20 animate-ping pointer-events-none" />
+                <div className="absolute w-36 h-36 sm:w-44 sm:h-44 rounded-full bg-[var(--color-success)]/10 animate-pulse pointer-events-none" />
               </>
             )}
 
@@ -384,7 +401,7 @@ export default function CitizenVoiceQueryPage({ apiBase, isEmbedded = false }) {
               type="button"
               onClick={toggleListening}
               disabled={loading}
-              className={`relative w-28 h-28 rounded-full flex flex-col items-center justify-center shadow-lg transition-all duration-300 active:scale-95 ${
+              className={`relative w-24 h-24 sm:w-28 sm:h-28 rounded-full flex flex-col items-center justify-center shadow-lg transition-all duration-300 active:scale-95 ${
                 isListening
                   ? "bg-[var(--color-error)] text-white shadow-red-500/40 scale-105 animate-pulse"
                   : "bg-gradient-to-tr from-[#1D8374] to-[#259B8B] hover:from-[#166E61] hover:to-[#1D8374] text-white shadow-[#1D8374]/30 hover:scale-105"
@@ -392,16 +409,16 @@ export default function CitizenVoiceQueryPage({ apiBase, isEmbedded = false }) {
               title={isListening ? "Tap to stop" : "Tap to speak"}
             >
               {isListening ? (
-                <MicOff className="w-11 h-11 mb-1" />
+                <MicOff className="w-10 h-10 sm:w-11 sm:h-11 mb-0.5" />
               ) : (
-                <Mic className="w-11 h-11 mb-1" />
+                <Mic className="w-10 h-10 sm:w-11 sm:h-11 mb-0.5" />
               )}
-              <span className="text-[11px] font-bold tracking-wide uppercase">
+              <span className="text-[10px] sm:text-[11px] font-bold tracking-wider uppercase">
                 {isListening ? "Listening" : "Speak"}
               </span>
             </button>
 
-            <p className="text-xs font-medium text-[var(--color-text-muted)] mt-4 h-5">
+            <p className="text-xs sm:text-sm font-medium text-[var(--color-text-muted)] mt-3 sm:mt-4 min-h-[1.5rem] text-center px-2">
               {isListening ? (
                 <span className="text-[var(--color-success)] font-bold animate-pulse">
                   ● {currentHints.listening}
@@ -418,41 +435,41 @@ export default function CitizenVoiceQueryPage({ apiBase, isEmbedded = false }) {
 
           {/* Live Heard Transcript Badge */}
           {transcript && (
-            <div className="mt-1 mb-4 px-4 py-2 rounded-xl bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] text-xs text-[var(--color-text-secondary)] shadow-2xs flex items-center gap-2 max-w-md text-center">
-              <span className="text-[var(--color-text-muted)] font-medium">Heard:</span>
-              <span className="font-semibold text-[var(--color-text-primary)] italic">"{transcript}"</span>
+            <div className="mt-1 mb-3 sm:mb-4 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] text-xs sm:text-sm text-[var(--color-text-secondary)] shadow-2xs flex items-center gap-1.5 sm:gap-2 max-w-full sm:max-w-md text-center break-words">
+              <span className="text-[var(--color-text-muted)] font-medium shrink-0">Heard:</span>
+              <span className="font-semibold text-[var(--color-text-primary)] italic break-words">"{transcript}"</span>
             </div>
           )}
 
           {/* Error message */}
           {error && (
-            <div className="w-full max-w-xl bg-[var(--color-error-bg)] border border-[var(--color-error-border)] rounded-xl p-3.5 text-xs text-[var(--color-error)] flex items-center gap-2.5 mb-4 shadow-2xs">
+            <div className="w-full max-w-xl bg-[var(--color-error-bg)] border border-[var(--color-error-border)] rounded-xl p-3 sm:p-3.5 text-xs text-[var(--color-error)] flex items-center gap-2.5 mb-3 sm:mb-4 shadow-2xs">
               <AlertCircle className="w-4 h-4 shrink-0 text-[var(--color-error)]" />
-              <span className="font-medium">{error}</span>
+              <span className="font-medium break-words">{error}</span>
             </div>
           )}
 
           {/* Result Card */}
           {result && (
-            <div className="w-full max-w-2xl bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl p-5 sm:p-6 mb-6 shadow-xs animate-fade-in">
+            <div className="w-full max-w-2xl bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl p-4 sm:p-6 mb-4 sm:mb-6 shadow-xs animate-fade-in">
               {/* Spoken Answer Banner */}
-              <div className="bg-gradient-to-r from-[var(--color-success-bg)] to-[#E6F4F1] border border-[var(--color-success-border)] rounded-xl p-4 sm:p-5 mb-4 shadow-2xs">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-success)] block mb-1">
+              <div className="bg-gradient-to-r from-[var(--color-success-bg)] to-[#E6F4F1] border border-[var(--color-success-border)] rounded-xl p-3.5 sm:p-5 mb-3.5 sm:mb-4 shadow-2xs">
+                <div className="flex items-start justify-between gap-2.5 sm:gap-3">
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[var(--color-success)] block mb-1">
                       Spoken Answer • ಅಧಿಕೃತ ಉತ್ತರ
                     </span>
-                    <p className="text-base sm:text-lg font-semibold text-[var(--color-text-primary)] leading-relaxed">
+                    <p className="text-sm sm:text-base font-semibold text-[var(--color-text-primary)] leading-relaxed break-words">
                       {result.spoken_response}
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => speakAnswer(result.spoken_response, result.language)}
-                    className={`p-2.5 rounded-xl border transition-all shrink-0 ${
+                    className={`w-10 h-10 sm:w-11 sm:h-11 p-2 sm:p-2.5 rounded-xl border transition-all shrink-0 flex items-center justify-center ${
                       isSpeaking
                         ? "bg-[var(--color-success)] text-white border-[var(--color-success)] shadow-md shadow-[#1D8374]/30 animate-pulse"
-                        : "bg-white text-[var(--color-success)] border-[var(--color-border-strong)] hover:bg-[var(--color-success-bg)] shadow-2xs"
+                        : "bg-white text-[var(--color-success)] border-[var(--color-border-strong)] hover:bg-[var(--color-success-bg)] shadow-2xs active:scale-95"
                     }`}
                     title="Listen again"
                   >
@@ -467,13 +484,13 @@ export default function CitizenVoiceQueryPage({ apiBase, isEmbedded = false }) {
 
               {/* Fact Sheet from Real Database */}
               {result.record_found && result.data && (
-                <div className="border-t border-[var(--color-border)] pt-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-bold text-[var(--color-label-muted)] uppercase tracking-wider">
+                <div className="border-t border-[var(--color-border)] pt-3 sm:pt-4">
+                  <div className="flex items-center justify-between gap-2 mb-2.5 sm:mb-3">
+                    <span className="text-[10px] sm:text-xs font-bold text-[var(--color-label-muted)] uppercase tracking-wider truncate">
                       Verified Land Record Facts
                     </span>
                     <span
-                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-bold shrink-0 ${
                         result.data.status === "validated"
                           ? "bg-[var(--color-success-bg)] text-[var(--color-success)] border border-[var(--color-success-border)]"
                           : "bg-[var(--color-warning-bg)] text-[var(--color-warning)] border border-[var(--color-warning-border)]"
@@ -484,32 +501,32 @@ export default function CitizenVoiceQueryPage({ apiBase, isEmbedded = false }) {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                    <div className="bg-[var(--color-bg-secondary)] p-3.5 rounded-xl border border-[var(--color-border)]">
-                      <span className="text-[var(--color-text-muted)] text-[11px] font-medium block mb-0.5">Survey Number</span>
-                      <span className="font-bold text-[var(--color-text-primary)] text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs">
+                    <div className="bg-[var(--color-bg-secondary)] p-3 sm:p-3.5 rounded-xl border border-[var(--color-border)]">
+                      <span className="text-[var(--color-text-muted)] text-[10px] sm:text-[11px] font-medium block mb-0.5">Survey Number</span>
+                      <span className="font-bold text-[var(--color-text-primary)] text-xs sm:text-sm">
                         {result.data.survey_number}
                       </span>
                     </div>
 
-                    <div className="bg-[var(--color-bg-secondary)] p-3.5 rounded-xl border border-[var(--color-border)]">
-                      <span className="text-[var(--color-text-muted)] text-[11px] font-medium block mb-0.5">Registered Owner</span>
-                      <span className="font-bold text-[var(--color-text-primary)] text-sm truncate block">
+                    <div className="bg-[var(--color-bg-secondary)] p-3 sm:p-3.5 rounded-xl border border-[var(--color-border)]">
+                      <span className="text-[var(--color-text-muted)] text-[10px] sm:text-[11px] font-medium block mb-0.5">Registered Owner</span>
+                      <span className="font-bold text-[var(--color-text-primary)] text-xs sm:text-sm truncate block">
                         {result.data.owner_name || "Not Specified"}
                       </span>
                     </div>
 
-                    <div className="bg-[var(--color-bg-secondary)] p-3.5 rounded-xl border border-[var(--color-border)]">
-                      <span className="text-[var(--color-text-muted)] text-[11px] font-medium block mb-0.5">Land Classification</span>
-                      <span className="font-semibold text-[var(--color-text-secondary)]">
+                    <div className="bg-[var(--color-bg-secondary)] p-3 sm:p-3.5 rounded-xl border border-[var(--color-border)]">
+                      <span className="text-[var(--color-text-muted)] text-[10px] sm:text-[11px] font-medium block mb-0.5">Land Classification</span>
+                      <span className="font-semibold text-[var(--color-text-secondary)] text-xs sm:text-sm">
                         {result.data.land_classification || "Standard"}
                       </span>
                     </div>
 
                     <div className="bg-[var(--color-bg-secondary)] p-3.5 rounded-xl border border-[var(--color-border)]">
-                      <span className="text-[var(--color-text-muted)] text-[11px] font-medium block mb-0.5">Dispute / Conflict Status</span>
+                      <span className="text-[var(--color-text-muted)] text-[10px] sm:text-[11px] font-medium block mb-0.5">Dispute / Conflict Status</span>
                       <span
-                        className={`font-semibold ${
+                        className={`font-semibold text-xs sm:text-sm ${
                           result.data.has_dispute ? "text-[var(--color-warning)]" : "text-[var(--color-success)]"
                         }`}
                       >
@@ -519,7 +536,7 @@ export default function CitizenVoiceQueryPage({ apiBase, isEmbedded = false }) {
                   </div>
 
                   {result.data.village && (
-                    <div className="mt-2.5 text-[11px] text-[var(--color-text-muted)]">
+                    <div className="mt-2 text-[10px] sm:text-[11px] text-[var(--color-text-muted)] truncate">
                       Location: {result.data.village}, {result.data.district}
                     </div>
                   )}
@@ -529,8 +546,8 @@ export default function CitizenVoiceQueryPage({ apiBase, isEmbedded = false }) {
           )}
 
           {/* Text-Based Fallback Input */}
-          <div className="w-full max-w-2xl bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl p-5 shadow-xs">
-            <span className="text-[11px] font-bold text-[var(--color-label-muted)] uppercase tracking-wider block mb-2.5">
+          <div className="w-full max-w-2xl bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-xl sm:rounded-2xl p-3.5 sm:p-5 shadow-xs">
+            <span className="text-[10px] sm:text-[11px] font-bold text-[var(--color-label-muted)] uppercase tracking-wider block mb-2">
               Text Fallback • ಕೈಬರಹದ ಪರ್ಯಾಯ
             </span>
             <form
@@ -538,41 +555,46 @@ export default function CitizenVoiceQueryPage({ apiBase, isEmbedded = false }) {
                 e.preventDefault();
                 handleExecuteQuery(typedQuery);
               }}
-              className="flex gap-2"
+              className="flex gap-1.5 sm:gap-2 items-stretch"
             >
               <input
                 type="text"
                 value={typedQuery}
                 onChange={(e) => setTypedQuery(e.target.value)}
                 placeholder={currentHints.placeholder}
-                className="flex-1 bg-[var(--color-bg-secondary)] border border-[var(--color-border-strong)] rounded-xl px-3.5 py-2.5 text-xs text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-success)] focus:border-[var(--color-success)]"
+                className="flex-1 bg-[var(--color-bg-secondary)] border border-[var(--color-border-strong)] rounded-xl px-3 sm:px-3.5 py-2 sm:py-2.5 text-sm sm:text-xs text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-success)] focus:border-[var(--color-success)] min-w-0"
               />
               <button
                 type="submit"
                 disabled={loading || !typedQuery.trim()}
-                className="bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] disabled:opacity-40 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-xs"
+                className="bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] active:scale-95 disabled:opacity-40 text-white px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-xs shrink-0"
               >
                 <Search className="w-3.5 h-3.5" />
                 <span>{currentHints.askBtn}</span>
               </button>
             </form>
 
-            {/* Quick sample chips */}
-            <div className="mt-3 flex flex-wrap gap-1.5 items-center">
-              <span className="text-[10px] text-[var(--color-text-muted)] mr-1 font-semibold">Examples:</span>
-              {currentHints.samples.map((sample, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => {
-                    setTypedQuery(sample);
-                    handleExecuteQuery(sample);
-                  }}
-                  className="text-[11px] bg-[var(--color-bg-secondary)] hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] px-2.5 py-1.5 rounded-lg border border-[var(--color-border)] hover:border-[var(--color-border-strong)] transition-colors shadow-2xs font-medium"
-                >
-                  {sample}
-                </button>
-              ))}
+            {/* Quick sample chips (Swipeable on mobile, wrap on desktop) */}
+            <div className="mt-2.5 sm:mt-3">
+              <div className="flex items-center justify-between text-[10px] sm:text-[11px] text-[var(--color-text-muted)] font-semibold mb-1 px-0.5">
+                <span>Examples / ಉದಾಹರಣೆಗಳು:</span>
+                <span className="sm:hidden font-normal text-[9px]">Swipe &rarr;</span>
+              </div>
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 px-0.5 -mx-1 sm:mx-0 sm:flex-wrap sm:overflow-visible">
+                {currentHints.samples.map((sample, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setTypedQuery(sample);
+                      handleExecuteQuery(sample);
+                    }}
+                    className="text-[11px] bg-[var(--color-bg-secondary)] hover:bg-[var(--color-bg-tertiary)] active:bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] px-2.5 py-1.5 rounded-lg border border-[var(--color-border)] hover:border-[var(--color-border-strong)] transition-colors shadow-2xs font-medium whitespace-nowrap shrink-0 sm:shrink cursor-pointer"
+                  >
+                    {sample}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -580,7 +602,7 @@ export default function CitizenVoiceQueryPage({ apiBase, isEmbedded = false }) {
 
       {/* Safety & Integrity Footer (Standalone mode) */}
       {!isEmbedded && (
-        <footer className="border-t border-[var(--color-border)] py-4 px-4 text-center text-[11px] text-[var(--color-text-muted)] bg-[var(--color-bg-secondary)] mt-auto">
+        <footer className="border-t border-[var(--color-border)] py-3 sm:py-4 px-3 sm:px-4 text-center text-[10px] sm:text-[11px] text-[var(--color-text-muted)] bg-[var(--color-bg-secondary)] mt-auto">
           <p className="font-medium">
             Digitization Platform Verification Query • Generated from verified land record database.
           </p>
