@@ -151,6 +151,7 @@ export default function App() {
     gis_parcels: t("sidebar.gisParcels"),
     audit_trail: t("sidebar.auditTrail"),
     analytics: t("sidebar.analytics"),
+    citizen_voice: t("sidebar.citizenVoice"),
   };
 
   return (
@@ -249,6 +250,10 @@ export default function App() {
 
           {activeTab === "analytics" && (
             <AnalyticsView apiBase={API_BASE} />
+          )}
+
+          {activeTab === "citizen_voice" && (
+            <CitizenVoiceQueryPage apiBase={API_BASE} isEmbedded={true} />
           )}
         </main>
       </div>

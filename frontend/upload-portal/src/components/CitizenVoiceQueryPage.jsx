@@ -87,7 +87,7 @@ const PROMPT_HINTS = {
     askBtn: "అడగండి",
     samples: [
       "సర్వే నంబర్ 145/2 యజమాని ఎవరు?",
-      "సర్వే నంబర్ 145/2 స్థితి ఏమిటి?",
+      "సర్వే నంబರ್ 145/2 స్థితి ఏమిటి?",
     ],
   },
   mr: {
@@ -116,7 +116,7 @@ const PROMPT_HINTS = {
   },
 };
 
-export default function CitizenVoiceQueryPage({ apiBase }) {
+export default function CitizenVoiceQueryPage({ apiBase, isEmbedded = false }) {
   const resolvedApiBase = apiBase || import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
   const [selectedLang, setSelectedLang] = useState("kn");
@@ -266,304 +266,329 @@ export default function CitizenVoiceQueryPage({ apiBase }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#0E1525] text-[#F3F4F6] flex flex-col font-sans">
-      {/* Top Banner */}
-      <header className="border-b border-[#1F293D] bg-[#0E1525]/90 backdrop-blur sticky top-0 z-30 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white p-1.5 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-            <img src="/logo-transparent.png" alt="VasudhaMithra" className="w-full h-full object-contain" />
-          </div>
-          <div>
-            <h1 className="text-base font-bold text-white tracking-wide">
-              VasudhaMithra
-            </h1>
-            <p className="text-xs text-emerald-400 font-medium tracking-wider">
-              CITIZEN VOICE ASSISTANT • ನಾಗರಿಕ ಧ್ವನಿ ಸಹಾಯಕ
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <a
-            href="/"
-            className="text-xs text-gray-400 hover:text-white px-3 py-1.5 rounded-lg border border-[#2B354C] hover:bg-[#1A2234] transition-colors"
-          >
-            Officer Portal
-          </a>
-        </div>
-      </header>
-
-      {/* Main Interactive Stage */}
-      <main className="flex-1 max-w-2xl w-full mx-auto px-4 py-8 flex flex-col items-center justify-center">
-        {/* Step 1: Language Picker */}
-        <div className="w-full mb-6">
-          <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400 mb-2.5">
-            <Languages className="w-4 h-4 text-emerald-400" />
-            <span>Select Language / ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ:</span>
-          </div>
-          <div className="flex flex-wrap items-center justify-center gap-1.5">
-            {SUPPORTED_LANGUAGES.map((lang) => {
-              const active = selectedLang === lang.code;
-              return (
-                <button
-                  key={lang.code}
-                  type="button"
-                  onClick={() => {
-                    setSelectedLang(lang.code);
-                    stopSpeaking();
-                  }}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                    active
-                      ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/30 scale-105"
-                      : "bg-[#182234] text-gray-300 border border-[#2B354C] hover:border-emerald-500/50"
-                  }`}
-                >
-                  {lang.label} ({lang.englishName})
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Title & Guidance */}
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-white mb-1.5">
-            {currentHints.title}
-          </h2>
-          <p className="text-sm text-gray-400 max-w-md mx-auto">
-            {currentHints.subtitle}
-          </p>
-        </div>
-
-        {/* Browser Warning if Web Speech API unsupported */}
-        {!speechSupported && (
-          <div className="w-full bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-xs text-amber-300 flex items-start gap-2.5 mb-6">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+    <div className={isEmbedded ? "w-full max-w-4xl mx-auto space-y-6 pb-16 font-sans text-[var(--color-text-primary)]" : "min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] flex flex-col font-sans"}>
+      {/* Top Banner (Standalone mode) */}
+      {!isEmbedded && (
+        <header className="border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)]/90 backdrop-blur sticky top-0 z-30 px-4 sm:px-8 py-3.5 flex items-center justify-between shadow-2xs">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white p-1.5 flex items-center justify-center shadow-xs border border-[var(--color-border)]">
+              <img src="/logo-transparent.png" alt="VasudhaMithra" className="w-full h-full object-contain" />
+            </div>
             <div>
-              <p className="font-semibold">Microphone input not supported on this browser</p>
-              <p className="text-amber-300/80 mt-0.5">
-                Safari and Firefox have limited Web Speech API support. Please use the text input below to ask your question.
+              <h1 className="text-base font-serif font-bold text-[var(--color-text-primary)] tracking-tight">
+                VasudhaMithra
+              </h1>
+              <p className="text-[11px] text-[var(--color-success)] font-bold tracking-wider uppercase">
+                CITIZEN VOICE ASSISTANT • ನಾಗರಿಕ ಧ್ವನಿ ಸಹಾಯಕ
               </p>
             </div>
           </div>
-        )}
 
-        {/* Giant Microphone Button */}
-        <div className="relative my-4 flex flex-col items-center">
-          {/* Animated Glow Rings when listening */}
-          {isListening && (
-            <>
-              <div className="absolute w-36 h-36 rounded-full bg-emerald-500/20 animate-ping pointer-events-none" />
-              <div className="absolute w-44 h-44 rounded-full bg-emerald-500/10 animate-pulse pointer-events-none" />
-            </>
-          )}
+          <div className="flex items-center gap-2">
+            <a
+              href="/"
+              className="text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] px-3.5 py-2 rounded-xl border border-[var(--color-border-strong)] bg-white hover:bg-[var(--color-bg-tertiary)] transition-colors shadow-2xs flex items-center gap-1.5"
+            >
+              <span>Officer Portal</span>
+              <ArrowRight className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+            </a>
+          </div>
+        </header>
+      )}
 
-          <button
-            type="button"
-            onClick={toggleListening}
-            disabled={loading}
-            className={`relative w-28 h-28 rounded-full flex flex-col items-center justify-center shadow-2xl transition-all duration-300 active:scale-95 ${
-              isListening
-                ? "bg-red-500 text-white shadow-red-500/50 scale-110 animate-pulse"
-                : "bg-gradient-to-tr from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 shadow-emerald-500/30 hover:scale-105"
-            }`}
-            title={isListening ? "Tap to stop" : "Tap to speak"}
-          >
-            {isListening ? (
-              <MicOff className="w-12 h-12 mb-1" />
-            ) : (
-              <Mic className="w-12 h-12 mb-1" />
-            )}
-            <span className="text-[11px] font-semibold tracking-wide">
-              {isListening ? "Listening" : "Speak"}
+      {/* Main Interactive Stage */}
+      <main className={isEmbedded ? "w-full space-y-6" : "flex-1 max-w-3xl w-full mx-auto px-4 py-8 flex flex-col items-center justify-center"}>
+        {/* Title & Guidance */}
+        {isEmbedded ? (
+          <div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-label-muted)]">
+              PUBLIC SERVICES & ASSISTANCE • ನಾಗರಿಕ ಸೇವೆಗಳು
             </span>
-          </button>
-
-          <p className="text-xs font-medium text-gray-400 mt-4 h-5">
-            {isListening ? (
-              <span className="text-emerald-400 font-semibold animate-pulse">
-                ● {currentHints.listening}
-              </span>
-            ) : loading ? (
-              <span className="text-emerald-400 animate-pulse">
-                Looking up official land records...
-              </span>
-            ) : (
-              currentHints.pressToSpeak
-            )}
-          </p>
-        </div>
-
-        {/* Live Heard Transcript Badge */}
-        {transcript && (
-          <div className="mt-2 mb-4 px-4 py-2 rounded-xl bg-[#1A2333] border border-[#2B354C] text-xs text-gray-300 flex items-center gap-2 max-w-md text-center">
-            <span className="text-gray-500 font-medium">Heard:</span>
-            <span className="font-semibold text-white italic">"{transcript}"</span>
+            <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[var(--color-text-primary)] tracking-tight mt-1">
+              {currentHints.title}
+            </h1>
+            <p className="text-sm text-[var(--color-text-muted)] mt-1">
+              {currentHints.subtitle}
+            </p>
+          </div>
+        ) : (
+          <div className="text-center mb-6">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-label-muted)] block mb-1">
+              VOICE-ENABLED CITIZEN RECORD INTAKE
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-serif font-bold text-[var(--color-text-primary)] mb-2 tracking-tight">
+              {currentHints.title}
+            </h2>
+            <p className="text-sm text-[var(--color-text-secondary)] max-w-lg mx-auto">
+              {currentHints.subtitle}
+            </p>
           </div>
         )}
 
-        {/* Error message */}
-        {error && (
-          <div className="w-full bg-rose-500/10 border border-rose-500/30 rounded-xl p-3 text-xs text-rose-300 flex items-center gap-2 mb-4">
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {/* Result Card */}
-        {result && (
-          <div className="w-full bg-[#141C2E] border border-[#27344D] rounded-2xl p-5 mb-6 shadow-xl animate-fade-in">
-            {/* Spoken Answer Banner */}
-            <div className="bg-gradient-to-r from-emerald-950/60 to-teal-950/40 border border-emerald-500/30 rounded-xl p-4 mb-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block mb-1">
-                    Spoken Answer • ಉತ್ತರ
-                  </span>
-                  <p className="text-base sm:text-lg font-semibold text-white leading-relaxed">
-                    {result.spoken_response}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => speakAnswer(result.spoken_response, result.language)}
-                  className={`p-2.5 rounded-xl border transition-colors shrink-0 ${
-                    isSpeaking
-                      ? "bg-emerald-500 text-white border-emerald-400 shadow-md shadow-emerald-500/30 animate-pulse"
-                      : "bg-[#1E293B] text-emerald-400 border-[#334155] hover:bg-[#2A374D]"
-                  }`}
-                  title="Listen again"
-                >
-                  {isSpeaking ? (
-                    <VolumeX className="w-5 h-5" />
-                  ) : (
-                    <Volume2 className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
+        {/* Central Interactive Card */}
+        <div className="w-full bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl p-6 sm:p-8 shadow-xs flex flex-col items-center">
+          {/* Step 1: Language Picker */}
+          <div className="w-full mb-6">
+            <div className="flex items-center justify-center gap-1.5 text-xs text-[var(--color-text-muted)] mb-2.5 font-medium">
+              <Languages className="w-4 h-4 text-[var(--color-success)]" />
+              <span>Select Language / ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ:</span>
             </div>
-
-            {/* Fact Sheet from Real Database */}
-            {result.record_found && result.data && (
-              <div className="border-t border-[#232F46] pt-4">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                    Verified Land Record Facts
-                  </span>
-                  <span
-                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                      result.data.status === "validated"
-                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
-                        : "bg-amber-500/20 text-amber-400 border border-amber-500/40"
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {SUPPORTED_LANGUAGES.map((lang) => {
+                const active = selectedLang === lang.code;
+                return (
+                  <button
+                    key={lang.code}
+                    type="button"
+                    onClick={() => {
+                      setSelectedLang(lang.code);
+                      stopSpeaking();
+                    }}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                      active
+                        ? "bg-[var(--color-success)] text-white shadow-xs scale-105"
+                        : "bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] border border-[var(--color-border-strong)] hover:bg-[var(--color-bg-primary)] hover:text-[var(--color-text-primary)] shadow-2xs"
                     }`}
                   >
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    {result.data.status}
-                  </span>
+                    {lang.label} ({lang.englishName})
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Browser Warning if Web Speech API unsupported */}
+          {!speechSupported && (
+            <div className="w-full max-w-xl bg-[var(--color-warning-bg)] border border-[var(--color-warning-border)] rounded-xl p-3.5 text-xs text-[var(--color-warning)] flex items-start gap-2.5 mb-6 shadow-2xs">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-[var(--color-warning)]" />
+              <div>
+                <p className="font-bold">Microphone input not supported on this browser</p>
+                <p className="text-[var(--color-warning)]/90 mt-0.5">
+                  Safari and Firefox have limited Web Speech API support. Please use the text input below to ask your question.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Giant Microphone Button */}
+          <div className="relative my-4 flex flex-col items-center">
+            {/* Animated Glow Rings when listening */}
+            {isListening && (
+              <>
+                <div className="absolute w-36 h-36 rounded-full bg-[var(--color-success)]/20 animate-ping pointer-events-none" />
+                <div className="absolute w-44 h-44 rounded-full bg-[var(--color-success)]/10 animate-pulse pointer-events-none" />
+              </>
+            )}
+
+            <button
+              type="button"
+              onClick={toggleListening}
+              disabled={loading}
+              className={`relative w-28 h-28 rounded-full flex flex-col items-center justify-center shadow-lg transition-all duration-300 active:scale-95 ${
+                isListening
+                  ? "bg-[var(--color-error)] text-white shadow-red-500/40 scale-105 animate-pulse"
+                  : "bg-gradient-to-tr from-[#1D8374] to-[#259B8B] hover:from-[#166E61] hover:to-[#1D8374] text-white shadow-[#1D8374]/30 hover:scale-105"
+              }`}
+              title={isListening ? "Tap to stop" : "Tap to speak"}
+            >
+              {isListening ? (
+                <MicOff className="w-11 h-11 mb-1" />
+              ) : (
+                <Mic className="w-11 h-11 mb-1" />
+              )}
+              <span className="text-[11px] font-bold tracking-wide uppercase">
+                {isListening ? "Listening" : "Speak"}
+              </span>
+            </button>
+
+            <p className="text-xs font-medium text-[var(--color-text-muted)] mt-4 h-5">
+              {isListening ? (
+                <span className="text-[var(--color-success)] font-bold animate-pulse">
+                  ● {currentHints.listening}
+                </span>
+              ) : loading ? (
+                <span className="text-[var(--color-success)] font-semibold animate-pulse">
+                  Looking up official land records...
+                </span>
+              ) : (
+                currentHints.pressToSpeak
+              )}
+            </p>
+          </div>
+
+          {/* Live Heard Transcript Badge */}
+          {transcript && (
+            <div className="mt-1 mb-4 px-4 py-2 rounded-xl bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] text-xs text-[var(--color-text-secondary)] shadow-2xs flex items-center gap-2 max-w-md text-center">
+              <span className="text-[var(--color-text-muted)] font-medium">Heard:</span>
+              <span className="font-semibold text-[var(--color-text-primary)] italic">"{transcript}"</span>
+            </div>
+          )}
+
+          {/* Error message */}
+          {error && (
+            <div className="w-full max-w-xl bg-[var(--color-error-bg)] border border-[var(--color-error-border)] rounded-xl p-3.5 text-xs text-[var(--color-error)] flex items-center gap-2.5 mb-4 shadow-2xs">
+              <AlertCircle className="w-4 h-4 shrink-0 text-[var(--color-error)]" />
+              <span className="font-medium">{error}</span>
+            </div>
+          )}
+
+          {/* Result Card */}
+          {result && (
+            <div className="w-full max-w-2xl bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl p-5 sm:p-6 mb-6 shadow-xs animate-fade-in">
+              {/* Spoken Answer Banner */}
+              <div className="bg-gradient-to-r from-[var(--color-success-bg)] to-[#E6F4F1] border border-[var(--color-success-border)] rounded-xl p-4 sm:p-5 mb-4 shadow-2xs">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-success)] block mb-1">
+                      Spoken Answer • ಅಧಿಕೃತ ಉತ್ತರ
+                    </span>
+                    <p className="text-base sm:text-lg font-semibold text-[var(--color-text-primary)] leading-relaxed">
+                      {result.spoken_response}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => speakAnswer(result.spoken_response, result.language)}
+                    className={`p-2.5 rounded-xl border transition-all shrink-0 ${
+                      isSpeaking
+                        ? "bg-[var(--color-success)] text-white border-[var(--color-success)] shadow-md shadow-[#1D8374]/30 animate-pulse"
+                        : "bg-white text-[var(--color-success)] border-[var(--color-border-strong)] hover:bg-[var(--color-success-bg)] shadow-2xs"
+                    }`}
+                    title="Listen again"
+                  >
+                    {isSpeaking ? (
+                      <VolumeX className="w-5 h-5" />
+                    ) : (
+                      <Volume2 className="w-5 h-5" />
+                    )}
+                  </button>
                 </div>
+              </div>
 
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="bg-[#0F1626] p-3 rounded-lg border border-[#1E293D]">
-                    <span className="text-gray-500 block mb-0.5">Survey Number</span>
-                    <span className="font-bold text-white text-sm">
-                      {result.data.survey_number}
+              {/* Fact Sheet from Real Database */}
+              {result.record_found && result.data && (
+                <div className="border-t border-[var(--color-border)] pt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-bold text-[var(--color-label-muted)] uppercase tracking-wider">
+                      Verified Land Record Facts
                     </span>
-                  </div>
-
-                  <div className="bg-[#0F1626] p-3 rounded-lg border border-[#1E293D]">
-                    <span className="text-gray-500 block mb-0.5">Registered Owner</span>
-                    <span className="font-bold text-white text-sm truncate block">
-                      {result.data.owner_name || "Not Specified"}
-                    </span>
-                  </div>
-
-                  <div className="bg-[#0F1626] p-3 rounded-lg border border-[#1E293D]">
-                    <span className="text-gray-500 block mb-0.5">Land Classification</span>
-                    <span className="font-semibold text-gray-300">
-                      {result.data.land_classification || "Standard"}
-                    </span>
-                  </div>
-
-                  <div className="bg-[#0F1626] p-3 rounded-lg border border-[#1E293D]">
-                    <span className="text-gray-500 block mb-0.5">Dispute / Conflict Status</span>
                     <span
-                      className={`font-semibold ${
-                        result.data.has_dispute ? "text-amber-400" : "text-emerald-400"
+                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                        result.data.status === "validated"
+                          ? "bg-[var(--color-success-bg)] text-[var(--color-success)] border border-[var(--color-success-border)]"
+                          : "bg-[var(--color-warning-bg)] text-[var(--color-warning)] border border-[var(--color-warning-border)]"
                       }`}
                     >
-                      {result.data.dispute_status}
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      {result.data.status}
                     </span>
                   </div>
-                </div>
 
-                {result.data.village && (
-                  <div className="mt-2 text-[11px] text-gray-500">
-                    Location: {result.data.village}, {result.data.district}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div className="bg-[var(--color-bg-secondary)] p-3.5 rounded-xl border border-[var(--color-border)]">
+                      <span className="text-[var(--color-text-muted)] text-[11px] font-medium block mb-0.5">Survey Number</span>
+                      <span className="font-bold text-[var(--color-text-primary)] text-sm">
+                        {result.data.survey_number}
+                      </span>
+                    </div>
+
+                    <div className="bg-[var(--color-bg-secondary)] p-3.5 rounded-xl border border-[var(--color-border)]">
+                      <span className="text-[var(--color-text-muted)] text-[11px] font-medium block mb-0.5">Registered Owner</span>
+                      <span className="font-bold text-[var(--color-text-primary)] text-sm truncate block">
+                        {result.data.owner_name || "Not Specified"}
+                      </span>
+                    </div>
+
+                    <div className="bg-[var(--color-bg-secondary)] p-3.5 rounded-xl border border-[var(--color-border)]">
+                      <span className="text-[var(--color-text-muted)] text-[11px] font-medium block mb-0.5">Land Classification</span>
+                      <span className="font-semibold text-[var(--color-text-secondary)]">
+                        {result.data.land_classification || "Standard"}
+                      </span>
+                    </div>
+
+                    <div className="bg-[var(--color-bg-secondary)] p-3.5 rounded-xl border border-[var(--color-border)]">
+                      <span className="text-[var(--color-text-muted)] text-[11px] font-medium block mb-0.5">Dispute / Conflict Status</span>
+                      <span
+                        className={`font-semibold ${
+                          result.data.has_dispute ? "text-[var(--color-warning)]" : "text-[var(--color-success)]"
+                        }`}
+                      >
+                        {result.data.dispute_status}
+                      </span>
+                    </div>
                   </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
 
-        {/* Text-Based Fallback Input (Step 6) */}
-        <div className="w-full bg-[#121927] border border-[#202B3E] rounded-xl p-4 mt-2">
-          <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block mb-2">
-            Text Fallback • ಕೈಬರಹದ ಪರ್ಯಾಯ
-          </span>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleExecuteQuery(typedQuery);
-            }}
-            className="flex gap-2"
-          >
-            <input
-              type="text"
-              value={typedQuery}
-              onChange={(e) => setTypedQuery(e.target.value)}
-              placeholder={currentHints.placeholder}
-              className="flex-1 bg-[#0A0F1A] border border-[#26334A] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500"
-            />
-            <button
-              type="submit"
-              disabled={loading || !typedQuery.trim()}
-              className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white px-4 py-2.5 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5"
+                  {result.data.village && (
+                    <div className="mt-2.5 text-[11px] text-[var(--color-text-muted)]">
+                      Location: {result.data.village}, {result.data.district}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Text-Based Fallback Input */}
+          <div className="w-full max-w-2xl bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-2xl p-5 shadow-xs">
+            <span className="text-[11px] font-bold text-[var(--color-label-muted)] uppercase tracking-wider block mb-2.5">
+              Text Fallback • ಕೈಬರಹದ ಪರ್ಯಾಯ
+            </span>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleExecuteQuery(typedQuery);
+              }}
+              className="flex gap-2"
             >
-              <Search className="w-3.5 h-3.5" />
-              <span>{currentHints.askBtn}</span>
-            </button>
-          </form>
-
-          {/* Quick sample chips */}
-          <div className="mt-3 flex flex-wrap gap-1.5 items-center">
-            <span className="text-[10px] text-gray-500 mr-1">Examples:</span>
-            {currentHints.samples.map((sample, idx) => (
+              <input
+                type="text"
+                value={typedQuery}
+                onChange={(e) => setTypedQuery(e.target.value)}
+                placeholder={currentHints.placeholder}
+                className="flex-1 bg-[var(--color-bg-secondary)] border border-[var(--color-border-strong)] rounded-xl px-3.5 py-2.5 text-xs text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-success)] focus:border-[var(--color-success)]"
+              />
               <button
-                key={idx}
-                type="button"
-                onClick={() => {
-                  setTypedQuery(sample);
-                  handleExecuteQuery(sample);
-                }}
-                className="text-[11px] bg-[#1A2436] hover:bg-[#23314A] text-gray-300 px-2.5 py-1 rounded-lg border border-[#2B3A54] transition-colors"
+                type="submit"
+                disabled={loading || !typedQuery.trim()}
+                className="bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] disabled:opacity-40 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-xs"
               >
-                {sample}
+                <Search className="w-3.5 h-3.5" />
+                <span>{currentHints.askBtn}</span>
               </button>
-            ))}
+            </form>
+
+            {/* Quick sample chips */}
+            <div className="mt-3 flex flex-wrap gap-1.5 items-center">
+              <span className="text-[10px] text-[var(--color-text-muted)] mr-1 font-semibold">Examples:</span>
+              {currentHints.samples.map((sample, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    setTypedQuery(sample);
+                    handleExecuteQuery(sample);
+                  }}
+                  className="text-[11px] bg-[var(--color-bg-secondary)] hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] px-2.5 py-1.5 rounded-lg border border-[var(--color-border)] hover:border-[var(--color-border-strong)] transition-colors shadow-2xs font-medium"
+                >
+                  {sample}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </main>
 
-      {/* Safety & Integrity Footer */}
-      <footer className="border-t border-[#1F293D] py-4 px-4 text-center text-[11px] text-gray-500 bg-[#0E1525]">
-        <p>
-          Digitization Platform Verification Query • Generated from verified land record database.
-        </p>
-        <p className="text-gray-600 mt-0.5">
-          Answers are strictly retrieved from official digitized records. The AI parser only translates questions into database lookups.
-        </p>
-      </footer>
+      {/* Safety & Integrity Footer (Standalone mode) */}
+      {!isEmbedded && (
+        <footer className="border-t border-[var(--color-border)] py-4 px-4 text-center text-[11px] text-[var(--color-text-muted)] bg-[var(--color-bg-secondary)] mt-auto">
+          <p className="font-medium">
+            Digitization Platform Verification Query • Generated from verified land record database.
+          </p>
+          <p className="text-[var(--color-text-muted)]/80 mt-0.5">
+            Answers are strictly retrieved from official digitized records. The AI parser only translates questions into database lookups.
+          </p>
+        </footer>
+      )}
     </div>
   );
 }
