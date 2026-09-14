@@ -80,25 +80,25 @@ export default function PublicVerifyPage({ apiBase }) {
   return (
     <div className="min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] flex flex-col justify-between selection:bg-[var(--color-accent-subtle)] selection:text-[var(--color-accent)]">
       {/* Top Header */}
-      <header className="border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)] py-4 px-6 sticky top-0 z-20 shadow-2xs">
+      <header className="border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)] py-2.5 sm:py-4 px-3.5 sm:px-6 sticky top-0 z-20 shadow-2xs">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-white p-1 flex items-center justify-center shadow-xs border border-[var(--color-border-subtle)]">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-white p-1 flex items-center justify-center shadow-xs border border-[var(--color-border-subtle)] shrink-0">
               <img src="/logo-transparent.png" alt="VasudhaMithra" className="w-full h-full object-contain" />
             </div>
-            <div>
-              <div className="text-[10px] uppercase tracking-widest font-bold text-[var(--color-accent)] flex items-center gap-1.5">
+            <div className="min-w-0">
+              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider font-bold text-[var(--color-accent)] flex items-center gap-1 sm:gap-1.5 truncate">
                 <span>GOVERNMENT OF INDIA</span>
                 <span className="text-[var(--color-border-strong)]">•</span>
-                <span>LAND RECORD VERIFICATION</span>
+                <span>LAND VERIFICATION</span>
               </div>
-              <h1 className="text-base sm:text-lg font-serif font-bold text-[var(--color-text-primary)]">
-                Vasudha Public Record Verification Portal
+              <h1 className="text-sm sm:text-lg font-serif font-bold text-[var(--color-text-primary)] truncate">
+                Vasudha Public Record Verification
               </h1>
             </div>
           </div>
 
-          <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-[var(--color-text-muted)] bg-[var(--color-bg-primary)] px-3 py-1.5 rounded-lg border border-[var(--color-border)]">
+          <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-[var(--color-text-muted)] bg-[var(--color-bg-primary)] px-3 py-1.5 rounded-lg border border-[var(--color-border)] shrink-0">
             <Lock className="w-3.5 h-3.5 text-[var(--color-accent)]" />
             <span>Cryptographic Proof</span>
           </div>
@@ -106,7 +106,7 @@ export default function PublicVerifyPage({ apiBase }) {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-8 flex flex-col justify-center">
+      <main className="flex-1 max-w-4xl w-full mx-auto p-3.5 sm:p-8 flex flex-col justify-center">
         {loading && (
           <div className="py-20 text-center space-y-4">
             <Loader2 className="w-10 h-10 animate-spin mx-auto text-[var(--color-accent)]" />

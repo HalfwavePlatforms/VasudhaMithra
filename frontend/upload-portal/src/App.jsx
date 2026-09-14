@@ -46,6 +46,7 @@ export default function App() {
   const [auditLogs, setAuditLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogin = (userSession) => {
     setUser(userSession);
@@ -156,16 +157,21 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] font-sans antialiased">
-      {/* Fixed Left Sidebar */}
+      {/* Sidebar (Fixed on Desktop, Off-canvas Drawer on Mobile) */}
       <Sidebar
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={(tab) => {
+          setActiveTab(tab);
+          setSidebarOpen(false);
+        }}
         pendingCount={stats?.pending_review_count || 0}
         discrepancyCount={stats?.spatial_discrepancy_count || 0}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 ml-64 flex flex-col min-h-screen">
+      <div className="flex-1 lg:ml-64 flex flex-col min-h-screen w-full min-w-0">
         {/* Top Header Bar */}
         <TopBar
           title={pageTitles[activeTab] || t("sidebar.commandCentre")}
@@ -177,10 +183,11 @@ export default function App() {
           onLogout={handleLogout}
           onUpdatePhoto={() => setShowCaptureModal(true)}
           auditLogs={auditLogs}
+          onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
         />
 
         {/* Dynamic Page View */}
-        <main className="flex-1 p-8 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-6 lg:p-8 overflow-y-auto min-w-0">
           {activeTab === "command_centre" && (
             <CommandCentre
               stats={stats}

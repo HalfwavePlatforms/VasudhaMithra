@@ -147,28 +147,28 @@ export default function LandRecords({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-label-muted)]">
+          <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[var(--color-label-muted)]">
             {t("sidebar.governance")}
           </span>
-          <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[var(--color-text-primary)] tracking-tight mt-1">
+          <h1 className="text-2xl sm:text-4xl font-serif font-bold text-[var(--color-text-primary)] tracking-tight mt-0.5 sm:mt-1">
             {t("sidebar.landRecords")}
           </h1>
-          <p className="text-sm text-[var(--color-text-muted)] mt-1">
+          <p className="text-xs sm:text-sm text-[var(--color-text-muted)] mt-1">
             {t("commandCentre.overviewSubtitle")}
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
           <button
             onClick={handleExportCSV}
-            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-[var(--color-text-primary)] bg-[var(--color-bg-secondary)] border border-[var(--color-border-strong)] hover:bg-[var(--color-bg-tertiary)] rounded-lg shadow-xs transition-colors cursor-pointer"
+            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2 text-xs font-semibold text-[var(--color-text-primary)] bg-[var(--color-bg-secondary)] border border-[var(--color-border-strong)] hover:bg-[var(--color-bg-tertiary)] rounded-xl shadow-xs transition-colors cursor-pointer"
           >
             <Download className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
             {t("common.export")} CSV
           </button>
           <button
             onClick={() => setActiveTab("document_intake")}
-            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-[var(--color-sidebar-bg)] hover:bg-[var(--color-sidebar-hover)] rounded-lg shadow-xs transition-colors cursor-pointer"
+            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2 text-xs font-semibold text-white bg-[var(--color-sidebar-bg)] hover:bg-[var(--color-sidebar-hover)] rounded-xl shadow-xs transition-colors cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5 text-white" />
             {t("commandCentre.intakeBatch")}
@@ -230,7 +230,7 @@ export default function LandRecords({
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl p-4 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl p-3.5 sm:p-4 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
         {/* Search */}
         <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 text-[var(--color-text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
@@ -239,12 +239,12 @@ export default function LandRecords({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder={t("topbar.searchPlaceholder")}
-            className="w-full pl-9 pr-4 py-1.5 text-xs bg-[var(--color-bg-primary)] border border-[var(--color-border-strong)] rounded-lg text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+            className="w-full pl-9 pr-4 py-2 text-xs bg-[var(--color-bg-primary)] border border-[var(--color-border-strong)] rounded-lg text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
           />
         </div>
 
         {/* Status Dropdown Filter */}
-        <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+        <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
           <div className="flex items-center gap-2 text-xs text-[var(--color-text-secondary)]">
             <Filter className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
             <span>{t("common.status")}:</span>

@@ -183,17 +183,17 @@ export default function GisParcels({
   };
 
   return (
-    <div className="space-y-6 pb-16 max-w-7xl mx-auto">
+    <div className="space-y-6 pb-12 sm:pb-16 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-label-muted)]">
+          <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[var(--color-label-muted)]">
             {t("sidebar.operations")}
           </span>
-          <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[var(--color-text-primary)] tracking-tight mt-1">
+          <h1 className="text-2xl sm:text-4xl font-serif font-bold text-[var(--color-text-primary)] tracking-tight mt-0.5 sm:mt-1">
             {t("sidebar.gisParcels")}
           </h1>
-          <p className="text-sm text-[var(--color-text-muted)] mt-1">
+          <p className="text-xs sm:text-sm text-[var(--color-text-muted)] mt-1">
             {t("gis.satelliteSubtitle")}
           </p>
         </div>
@@ -376,7 +376,7 @@ export default function GisParcels({
           </div>
 
           {loadingDetail ? (
-            <div className="h-[460px] flex items-center justify-center text-xs text-[var(--color-sidebar-muted)]">
+            <div className="h-[300px] sm:h-[460px] flex items-center justify-center text-xs text-[var(--color-sidebar-muted)]">
               <Loader2 className="w-5 h-5 animate-spin mr-2 text-[var(--color-accent)]" />
               Loading cadastral boundary polygon...
             </div>

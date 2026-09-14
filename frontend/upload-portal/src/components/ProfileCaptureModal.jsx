@@ -183,7 +183,7 @@ export default function ProfileCaptureModal({
       </div>
 
       {/* Camera / Preview Area */}
-      <div className="p-8 flex flex-col items-center justify-center bg-[var(--color-bg-primary)]">
+      <div className="p-4 sm:p-8 flex flex-col items-center justify-center bg-[var(--color-bg-primary)]">
         {!capturedImage ? (
           <div className="relative w-full aspect-4/3 max-w-md rounded-2xl overflow-hidden bg-zinc-950 border-2 border-[var(--color-border-strong)] flex items-center justify-center shadow-lg">
             {hasCamera ? (
@@ -197,7 +197,7 @@ export default function ProfileCaptureModal({
                 />
                 {/* Face Framing Target Oval */}
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                  <div className="w-48 h-64 rounded-[50%] border-2 border-dashed border-[var(--color-accent)] shadow-[0_0_25px_rgba(29,131,116,0.35)] flex items-center justify-center">
+                  <div className="w-36 h-48 sm:w-48 sm:h-64 rounded-[50%] border-2 border-dashed border-[var(--color-accent)] shadow-[0_0_25px_rgba(29,131,116,0.35)] flex items-center justify-center">
                     <div className="w-2 h-2 bg-[var(--color-accent)] rounded-full animate-ping" />
                   </div>
                 </div>
@@ -260,11 +260,11 @@ export default function ProfileCaptureModal({
       </div>
 
       {/* Action Controls */}
-      <div className="p-6 border-t border-[var(--color-border-subtle)] flex items-center justify-between gap-3 bg-[var(--color-bg-secondary)]">
+      <div className="p-4 sm:p-6 border-t border-[var(--color-border-subtle)] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[var(--color-bg-secondary)]">
         {!capturedImage ? (
           <>
-            <div className="flex items-center gap-3">
-              <label className="text-xs text-[var(--color-accent-text)] hover:underline cursor-pointer font-semibold">
+            <div className="flex items-center justify-between sm:justify-start gap-3">
+              <label className="text-xs text-[var(--color-accent-text)] hover:underline cursor-pointer font-semibold py-1">
                 Upload Photo File
                 <input
                   type="file"
@@ -277,7 +277,7 @@ export default function ProfileCaptureModal({
                 <button
                   type="button"
                   onClick={onSkip}
-                  className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] font-medium cursor-pointer ml-3 flex items-center gap-1"
+                  className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] font-medium cursor-pointer sm:ml-3 flex items-center gap-1 py-1"
                 >
                   <span>Skip to portal</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -289,7 +289,7 @@ export default function ProfileCaptureModal({
               <button
                 type="button"
                 onClick={handleCapture}
-                className="inline-flex items-center gap-2 px-6 py-2.5 bg-[var(--color-accent)] text-white text-xs font-bold rounded-xl hover:bg-[var(--color-accent-hover)] transition-all shadow-md cursor-pointer"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-[var(--color-accent)] text-white text-xs font-bold rounded-xl hover:bg-[var(--color-accent-hover)] transition-all shadow-md cursor-pointer"
               >
                 <Camera className="w-4 h-4" />
                 <span>Capture &amp; Verify Face</span>

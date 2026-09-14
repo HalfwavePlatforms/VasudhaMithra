@@ -9,6 +9,7 @@ import {
   Clock,
   BarChart2,
   Mic,
+  X,
 } from "lucide-react";
 
 export default function Sidebar({
@@ -16,6 +17,8 @@ export default function Sidebar({
   setActiveTab,
   pendingCount = 0,
   discrepancyCount = 0,
+  isOpen = false,
+  onClose = () => {},
 }) {
   const { t } = useTranslation();
 
@@ -84,48 +87,75 @@ export default function Sidebar({
   ];
 
   return (
-    <aside className="w-64 bg-[var(--color-sidebar-bg)] text-[var(--color-sidebar-text)] flex flex-col h-screen fixed left-0 top-0 z-30 border-r border-[var(--color-sidebar-border)] select-none">
-      {/* Brand Header */}
-      <div className="p-5 border-b border-[var(--color-sidebar-border)]">
-        <div className="flex items-center gap-3">
-          {/* Brand Logo */}
-          <div className="relative w-9 h-9 flex-shrink-0 rounded-xl bg-white p-1 shadow-md ring-1 ring-white/20 flex items-center justify-center">
-            <img src="/logo-transparent.png" alt="VasudhaMithra" className="w-full h-full object-contain" />
-          </div>
-          <div>
-            <h1 className="text-white text-lg font-serif font-bold tracking-tight leading-tight">
-              {t("sidebar.appName")}
-            </h1>
-            <p className="text-[var(--color-sidebar-muted)] text-[11px] font-medium tracking-wide">
-              {t("sidebar.appTagline")}
-            </p>
-          </div>
-        </div>
-      </div>
+    <>
+      {/* Mobile Backdrop Overlay */}
+      {isOpen && (
+        <div
+          onClick={onClose}
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 lg:hidden animate-fade-in transition-opacity"
+          aria-hidden="true"
+        />
+      )}
 
-      {/* Nav List */}
-      <div className="flex-1 overflow-y-auto py-4 px-3 space-y-6 custom-scrollbar">
-        {navItems.map((sec, idx) => (
-          <div key={idx}>
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-sidebar-icon)] px-3 mb-2">
-              {sec.group}
+      <aside
+        className={`w-64 bg-[var(--color-sidebar-bg)] text-[var(--color-sidebar-text)] flex flex-col h-screen fixed left-0 top-0 z-50 lg:z-30 border-r border-[var(--color-sidebar-border)] select-none transition-transform duration-300 ease-in-out ${
+          isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full lg:translate-x-0"
+        }`}
+      >
+        {/* Brand Header */}
+        <div className="p-4 sm:p-5 border-b border-[var(--color-sidebar-border)] flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Brand Logo */}
+            <div className="relative w-9 h-9 flex-shrink-0 rounded-xl bg-white p-1 shadow-md ring-1 ring-white/20 flex items-center justify-center">
+              <img src="/logo-transparent.png" alt="VasudhaMithra" className="w-full h-full object-contain" />
             </div>
-            <div className="space-y-1">
-              {sec.items.map((item) => {
-                const Icon = item.icon;
-                const isActive = activeTab === item.id;
-                const isComingSoon = item.tag === "Coming soon";
+            <div className="min-w-0">
+              <h1 className="text-white text-lg font-serif font-bold tracking-tight leading-tight truncate">
+                {t("sidebar.appName")}
+              </h1>
+              <p className="text-[var(--color-sidebar-muted)] text-[11px] font-medium tracking-wide truncate">
+                {t("sidebar.appTagline")}
+              </p>
+            </div>
+          </div>
 
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      if (item.href) {
-                        window.location.href = item.href;
-                        return;
-                      }
-                      if (!isComingSoon) setActiveTab(item.id);
-                    }}
+          {/* Close button for mobile */}
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-[var(--color-sidebar-muted)] hover:text-white hover:bg-[var(--color-sidebar-hover)] lg:hidden cursor-pointer"
+            title="Close sidebar"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Nav List */}
+        <div className="flex-1 overflow-y-auto py-4 px-3 space-y-6 custom-scrollbar">
+          {navItems.map((sec, idx) => (
+            <div key={idx}>
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-sidebar-icon)] px-3 mb-2">
+                {sec.group}
+              </div>
+              <div className="space-y-1">
+                {sec.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeTab === item.id;
+                  const isComingSoon = item.tag === "Coming soon";
+
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        if (item.href) {
+                          window.location.href = item.href;
+                          return;
+                        }
+                        if (!isComingSoon) {
+                          setActiveTab(item.id);
+                          if (onClose) onClose();
+                        }
+                      }}
                     disabled={isComingSoon}
                     className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left ${
                       isActive
@@ -190,5 +220,6 @@ export default function Sidebar({
         </div>
       </div>
     </aside>
+  </>
   );
 }

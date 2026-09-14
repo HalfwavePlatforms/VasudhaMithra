@@ -187,30 +187,30 @@ export default function DocumentIntake({
   };
 
   return (
-    <div className="space-y-8 pb-16 max-w-4xl mx-auto">
+    <div className="space-y-6 sm:space-y-8 pb-12 sm:pb-16 max-w-4xl mx-auto">
       {/* Page Header */}
       <div>
-        <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-label-muted)]">
+        <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[var(--color-label-muted)]">
           {t("sidebar.operations")}
         </span>
-        <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[var(--color-text-primary)] tracking-tight mt-1">
+        <h1 className="text-2xl sm:text-4xl font-serif font-bold text-[var(--color-text-primary)] tracking-tight mt-0.5 sm:mt-1">
           {t("documentIntake.title")}
         </h1>
-        <p className="text-sm text-[var(--color-text-muted)] mt-1">
+        <p className="text-xs sm:text-sm text-[var(--color-text-muted)] mt-1">
           {t("documentIntake.subtitle")}
         </p>
       </div>
 
       {/* Upload Form Card */}
       {!uploadResult ? (
-        <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl p-8 shadow-xs space-y-6">
+        <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl p-4 sm:p-8 shadow-xs space-y-4 sm:space-y-6">
           {/* Dropzone */}
           <div
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all ${
+            className={`border-2 border-dashed rounded-xl p-6 sm:p-10 text-center cursor-pointer transition-all ${
               isDragging
                 ? "border-[var(--color-accent)] bg-[var(--color-accent-subtle)]"
                 : file
@@ -324,18 +324,18 @@ export default function DocumentIntake({
               </div>
             )}
 
-            <div className="flex items-center justify-between">
-              <div className="text-xs text-[var(--color-text-muted)]">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+              <div className="text-xs text-[var(--color-text-muted)] truncate">
                 {file ? `Ready to process: ${file.name}` : "No file selected"}
               </div>
 
               <button
                 onClick={handleUpload}
                 disabled={!file || uploading}
-                className={`px-6 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
+                className={`w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
                   !file || uploading
                     ? "bg-[var(--color-border-strong)] text-[var(--color-text-muted)] cursor-not-allowed"
-                    : "bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)] shadow-xs cursor-pointer"
+                    : "bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)] shadow-xs cursor-pointer active:scale-95"
                 }`}
               >
                 {uploading ? (

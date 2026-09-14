@@ -57,32 +57,32 @@ export default function CommandCentre({
   const byDocType = stats?.by_doc_type || {};
 
   return (
-    <div className="space-y-8 pb-16 max-w-7xl mx-auto">
+    <div className="space-y-6 sm:space-y-8 pb-12 sm:pb-16 max-w-7xl mx-auto">
       {/* Top Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-label-muted)]">
+          <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[var(--color-label-muted)]">
             {t("sidebar.commandCentre").toUpperCase()}
           </span>
-          <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[var(--color-text-primary)] tracking-tight mt-1">
+          <h1 className="text-2xl sm:text-4xl font-serif font-bold text-[var(--color-text-primary)] tracking-tight mt-0.5 sm:mt-1">
             {getGreeting()}, {firstName}.
           </h1>
-          <p className="text-sm text-[var(--color-text-muted)] mt-1 font-normal">
+          <p className="text-xs sm:text-sm text-[var(--color-text-muted)] mt-1 font-normal">
             {t("commandCentre.overviewSubtitle")}
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
           <button
             onClick={() => onExport && onExport()}
-            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-[var(--color-text-primary)] bg-[var(--color-bg-secondary)] border border-[var(--color-border-strong)] hover:bg-[var(--color-bg-tertiary)] rounded-lg shadow-xs transition-colors cursor-pointer"
+            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2 text-xs font-semibold text-[var(--color-text-primary)] bg-[var(--color-bg-secondary)] border border-[var(--color-border-strong)] hover:bg-[var(--color-bg-tertiary)] rounded-xl shadow-xs transition-colors cursor-pointer"
           >
             <Download className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
             {t("commandCentre.exportReport")}
           </button>
           <button
             onClick={() => setActiveTab("document_intake")}
-            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-[var(--color-sidebar-bg)] hover:bg-[var(--color-sidebar-hover)] rounded-lg shadow-xs transition-colors cursor-pointer"
+            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2 text-xs font-semibold text-white bg-[var(--color-sidebar-bg)] hover:bg-[var(--color-sidebar-hover)] rounded-xl shadow-xs transition-colors cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5 text-white" />
             {t("commandCentre.intakeBatch")}

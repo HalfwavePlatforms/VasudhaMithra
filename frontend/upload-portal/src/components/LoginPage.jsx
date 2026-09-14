@@ -441,7 +441,7 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
   return (
     <div className="min-h-screen w-full grid grid-cols-1 lg:grid-cols-2 font-sans bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
       {/* LEFT PANEL — Auth Form */}
-      <div className="flex flex-col justify-between p-8 sm:p-12 lg:p-16 bg-[var(--color-bg-primary)]">
+      <div className="flex flex-col justify-between p-4 sm:p-8 lg:p-14 bg-[var(--color-bg-primary)]">
         <div>
           {/* Logo Row */}
           <div className="flex items-center gap-3 mb-10">
@@ -697,7 +697,7 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
                 </label>
 
                 {/* OTP Boxes */}
-                <div className="flex gap-2.5 mb-2" onPaste={handleOtpPaste}>
+                <div className="flex justify-between sm:justify-start gap-1.5 sm:gap-2.5 mb-2" onPaste={handleOtpPaste}>
                   {otpDigits.map((digit, idx) => (
                     <input
                       key={idx}
@@ -708,7 +708,7 @@ export default function LoginPage({ onLoginSuccess, apiBase }) {
                       value={digit}
                       onChange={(e) => handleOtpChange(idx, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                      className="w-11 h-13 text-center text-xl font-semibold border border-[var(--color-border)] rounded-lg bg-[var(--color-bg-secondary)] outline-none focus:border-[var(--color-sidebar-bg)] text-[var(--color-text-primary)] shadow-2xs font-mono"
+                      className="w-10 sm:w-11 h-12 sm:h-13 text-center text-lg sm:text-xl font-semibold border border-[var(--color-border)] rounded-lg bg-[var(--color-bg-secondary)] outline-none focus:border-[var(--color-sidebar-bg)] text-[var(--color-text-primary)] shadow-2xs font-mono"
                     />
                   ))}
                 </div>

@@ -257,17 +257,17 @@ export default function VerificationDesk({
   };
 
   return (
-    <div className="space-y-6 pb-16 max-w-7xl mx-auto">
+    <div className="space-y-6 pb-12 sm:pb-16 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-label-muted)]">
+          <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[var(--color-label-muted)]">
             {t("sidebar.operations")}
           </span>
-          <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[var(--color-text-primary)] tracking-tight mt-1">
+          <h1 className="text-2xl sm:text-4xl font-serif font-bold text-[var(--color-text-primary)] tracking-tight mt-0.5 sm:mt-1">
             {t("verificationDesk.title")}
           </h1>
-          <p className="text-sm text-[var(--color-text-muted)] mt-1">
+          <p className="text-xs sm:text-sm text-[var(--color-text-muted)] mt-1">
             {t("verificationDesk.subtitle")}
           </p>
         </div>
@@ -344,7 +344,7 @@ export default function VerificationDesk({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Pane (5 Cols): Source Document Preview */}
           <div className="lg:col-span-5 space-y-4">
-            <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl p-5 shadow-xs flex flex-col h-[740px]">
+            <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col h-[360px] sm:h-[500px] lg:h-[740px]">
               {/* Document Header & View Switcher */}
               <div className="flex items-center justify-between pb-3 border-b border-[var(--color-border-subtle)]">
                 <div>
@@ -763,21 +763,21 @@ export default function VerificationDesk({
                 />
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[var(--color-border-subtle)]">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2 border-t border-[var(--color-border-subtle)]">
                 <button
                   onClick={handleSaveCorrections}
                   disabled={actionLoading}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold text-[var(--color-text-primary)] bg-[var(--color-bg-secondary)] border border-[var(--color-border-strong)] hover:bg-[var(--color-bg-tertiary)] transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                  className="w-full sm:w-auto justify-center px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--color-text-primary)] bg-[var(--color-bg-secondary)] border border-[var(--color-border-strong)] hover:bg-[var(--color-bg-tertiary)] transition-colors inline-flex items-center gap-1.5 cursor-pointer"
                 >
                   <Save className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
                   {t("verificationDesk.saveCorrections")}
                 </button>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
                   <button
                     onClick={() => handleDecision("REJECTED")}
                     disabled={actionLoading}
-                    className="px-4 py-2 rounded-lg text-xs font-semibold text-[var(--color-error)] bg-[var(--color-error-bg)] border border-[var(--color-error-border)] hover:bg-[var(--color-bg-tertiary)] transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                    className="flex-1 sm:flex-initial justify-center px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--color-error)] bg-[var(--color-error-bg)] border border-[var(--color-error-border)] hover:bg-[var(--color-bg-tertiary)] transition-colors inline-flex items-center gap-1.5 cursor-pointer"
                   >
                     <XCircle className="w-3.5 h-3.5" />
                     {t("verificationDesk.rejectRecord")}
@@ -786,7 +786,7 @@ export default function VerificationDesk({
                   <button
                     onClick={() => handleDecision("APPROVED")}
                     disabled={actionLoading}
-                    className="px-5 py-2 rounded-lg text-xs font-semibold text-white bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] transition-colors inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
+                    className="flex-1 sm:flex-initial justify-center px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] transition-colors inline-flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     {t("verificationDesk.approveRecord")}
